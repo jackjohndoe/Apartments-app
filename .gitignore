@@ -28,3 +28,6 @@ AppData/
 .idea/
 *.iml
 
+# EAS temp directories
+.eas-temp-*/
+

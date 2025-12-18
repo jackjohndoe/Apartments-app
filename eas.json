@@ -1,6 +1,8 @@
 {
   "cli": {
-    "version": ">= 13.2.0"
+    "version": ">= 13.2.0",
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
@@ -26,11 +28,13 @@
       }
     },
     "production": {
+      "distribution": "store",
       "android": {
         "buildType": "apk"
       },
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "buildConfiguration": "Release"
       }
     }
   },
@@ -38,5 +42,3 @@
     "production": {}
   }
 }
-
-
