@@ -31,3 +31,29 @@ AppData/
 # EAS temp directories
 .eas-temp-*/
 
+# Android build artifacts
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab
+
+# iOS build artifacts
+ios/build/
+ios/Pods/
+*.ipa
+
+# Long path issues - exclude gradle caches
+.gradle/caches/
+android/.gradle/caches/
+
+# Node modules (already excluded but ensure)
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+

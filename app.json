@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "Nigerian Apartments",
+    "name": "Apartify Africa",
     "slug": "nigerian-apartments-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#FFD700"
