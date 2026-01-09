@@ -2141,6 +2141,11 @@ export default function WalletScreen() {
               
               {bankAccountDetails ? (
                 <View style={styles.accountDetailsCard}>
+                  <Text style={styles.accountDetailsTitle}>Your Virtual Account Details</Text>
+                  <Text style={styles.accountDetailsSubtitle}>
+                    Transfer exactly ₦{fundAmount ? parseFloat(fundAmount).toLocaleString() : '0'} to this account
+                  </Text>
+                  
                   {/* Account Number - Most Important - Display Prominently */}
                   <View style={styles.accountDetailRow}>
                     <Text style={styles.accountDetailLabel}>Account Number:</Text>
