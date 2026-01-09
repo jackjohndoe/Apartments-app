@@ -440,13 +440,14 @@ export default function WalletScreen() {
     const syncInterval = setInterval(async () => {
       try {
         syncAttempts++;
-        if (syncAttempts % 10 === 0) {
+        if (syncAttempts % 20 === 0) { // Reduced logging frequency
           console.log(`🔄 Auto-syncing wallet (${syncAttempts} syncs completed)...`);
         }
         
         // First verify pending transactions (this processes them)
+        // Reduced frequency to every 10 syncs instead of 5
         try {
-          if (syncAttempts % 5 === 0) { // Every 5 syncs, verify pending transactions
+          if (syncAttempts % 10 === 0) {
             await walletService.verifyPendingTransactions();
           }
         } catch (verifyError) {
@@ -455,8 +456,11 @@ export default function WalletScreen() {
         
         // Sync with Flutterwave first to catch any pending payments processed via webhook
         // Sync is non-blocking - if it fails, we still load wallet data
+        // Only sync every 3rd interval to reduce API calls
         try {
-          await walletService.syncBalance();
+          if (syncAttempts % 3 === 0) {
+            await walletService.syncBalance();
+          }
         } catch (syncError) {
           // Sync errors are non-fatal - continue with wallet load
           if (syncError.status !== 500) {
@@ -464,10 +468,10 @@ export default function WalletScreen() {
           }
         }
         
-        // Do comprehensive sync more frequently to ensure ALL transactions are fetched and verified in real-time
-        // Every 30 seconds when payment pending, every 2 minutes otherwise
+        // Do comprehensive sync less frequently to reduce API load
+        // Every 60 seconds when payment pending, every 5 minutes otherwise
         const timeSinceLastComprehensiveSync = Date.now() - (lastComprehensiveSyncRef.current || 0);
-        const comprehensiveSyncInterval = (paymentReference && paymentStatus !== 'success') ? 30000 : 120000; // 30s or 2min
+        const comprehensiveSyncInterval = (paymentReference && paymentStatus !== 'success') ? 60000 : 300000; // 1min or 5min
         const shouldDoComprehensiveSync = timeSinceLastComprehensiveSync >= comprehensiveSyncInterval;
         
         if (shouldDoComprehensiveSync) {
@@ -485,7 +489,10 @@ export default function WalletScreen() {
         }
         
         // Load fresh data from API (this will work even if sync failed)
-        await loadWalletData();
+        // Only reload data every 2nd interval to reduce API calls
+        if (syncAttempts % 2 === 0) {
+          await loadWalletData();
+        }
         
         // Check if balance changed (payment was processed via webhook or verification)
         const currentBal = await hybridWalletService.getBalance(user.email);

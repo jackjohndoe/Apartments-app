@@ -366,7 +366,13 @@ export const syncAllTransactionsFromBackend = async (userEmail) => {
           if (Array.isArray(transactionsResult)) {
             apiTransactions = transactionsResult;
           } else if (transactionsResult && typeof transactionsResult === 'object') {
-            apiTransactions = transactionsResult.data || transactionsResult.transactions || transactionsResult.items || [];
+            // Check for paginated response format (Spring Boot Page) - content array
+            if (transactionsResult.content && Array.isArray(transactionsResult.content)) {
+              apiTransactions = transactionsResult.content;
+            } else {
+              // Try other common response formats
+              apiTransactions = transactionsResult.data || transactionsResult.transactions || transactionsResult.items || [];
+            }
           } else {
             apiTransactions = [];
           }

@@ -102,14 +102,21 @@ export const walletService = {
       console.log('📦 Backend transactions response type:', typeof response);
       console.log('📦 Backend transactions response keys:', response && typeof response === 'object' ? Object.keys(response) : 'N/A');
       
-      // Handle different response formats
+      // Handle different response formats (including paginated responses)
       let transactions = null;
       if (Array.isArray(response)) {
         transactions = response;
         console.log(`✅ Backend returned array with ${transactions.length} transactions`);
       } else if (response && typeof response === 'object') {
-        transactions = response.data || response.transactions || response.items || [];
-        console.log(`✅ Backend returned object, extracted ${transactions.length} transactions`);
+        // Check for paginated response format (Spring Boot Page)
+        if (response.content && Array.isArray(response.content)) {
+          transactions = response.content;
+          console.log(`✅ Backend returned paginated response, extracted ${transactions.length} transactions from content array`);
+        } else {
+          // Try other common response formats
+          transactions = response.data || response.transactions || response.items || [];
+          console.log(`✅ Backend returned object, extracted ${transactions.length} transactions`);
+        }
       } else {
         console.warn('⚠️ Unexpected response format from backend:', response);
         return null;
