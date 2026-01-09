@@ -10,10 +10,15 @@ export const apartmentService = {
       const page = filters.page !== undefined ? filters.page : 0;
       const size = filters.size !== undefined ? filters.size : 100; // Fetch more listings by default
       
+      // Add cache-busting timestamp to prevent browser caching
+      // This ensures fresh data is fetched, especially important for cross-device sync
+      const cacheBuster = filters._cacheBuster || Date.now();
+      
       const queryParams = new URLSearchParams({
         ...filters,
         page: page.toString(),
         size: size.toString(),
+        _t: cacheBuster.toString(), // Cache-busting timestamp
       }).toString();
       
       const endpoint = queryParams 

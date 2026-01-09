@@ -154,17 +154,25 @@ export default function ExploreScreen() {
     }, [user])
   );
 
-  // Real-time polling: Check for new listings every 15 seconds when screen is focused
+  // Real-time polling: Check for new listings every 5 seconds when screen is focused
   useEffect(() => {
     if (!isScreenFocused) return;
 
     const pollInterval = setInterval(async () => {
       try {
-        // Quick check: Get listing count from API without full refresh
+        // Always force refresh to bypass cache and get latest from API
+        // This ensures listings uploaded on other devices appear immediately
         const { hybridApartmentService } = await import('../services/hybridService');
         
-        // Fetch just the count/latest listings to detect changes
-        const currentListings = await hybridApartmentService.getAllApartmentsForExplore(false);
+        // Clear cache before fetching to ensure fresh data
+        try {
+          await AsyncStorage.removeItem('cached_api_apartments');
+        } catch (cacheError) {
+          // Ignore cache errors
+        }
+        
+        // Fetch latest listings from API (bypass cache)
+        const currentListings = await hybridApartmentService.getAllApartmentsForExplore(true);
         const currentCount = currentListings?.length || 0;
         
         // If count increased, new listings were added - trigger full refresh
@@ -172,13 +180,19 @@ export default function ExploreScreen() {
           console.log(`🔄 New listings detected! Count: ${lastListingCount} → ${currentCount}. Refreshing...`);
           await loadApartments(true); // Force refresh to show new listings
         } else if (lastListingCount === 0 && currentCount > 0) {
-          // First poll after initial load - update count
+          // First poll after initial load - update count and refresh
           setLastListingCount(currentCount);
+          await loadApartments(true);
+        } else if (currentCount !== lastListingCount) {
+          // Count changed (could be increase or decrease) - refresh
+          console.log(`🔄 Listing count changed: ${lastListingCount} → ${currentCount}. Refreshing...`);
+          setLastListingCount(currentCount);
+          await loadApartments(true);
         }
       } catch (error) {
         console.warn('⚠️ Real-time polling error (non-fatal):', error.message);
       }
-    }, 15000); // Poll every 15 seconds
+    }, 5000); // Poll every 5 seconds for faster updates
 
     return () => clearInterval(pollInterval);
   }, [isScreenFocused, lastListingCount]);

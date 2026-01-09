@@ -136,6 +136,14 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     }
     
     try {
+      // Add cache-busting headers for GET requests to prevent browser caching
+      // This is critical for real-time cross-device listing sync
+      if (method === 'GET' && !config.headers['Cache-Control']) {
+        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        config.headers['Pragma'] = 'no-cache';
+        config.headers['Expires'] = '0';
+      }
+      
       const response = await fetch(`${BASE_URL}${endpoint}`, config);
     
     // Log response details for payment endpoints (in dev mode)
