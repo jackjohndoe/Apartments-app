@@ -416,10 +416,9 @@ export default function HostBookingDetailsScreen() {
     );
   }
 
-  // Fees set to 0 until changed
-  const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-  const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-  const totalServiceFees = cleaningFee + serviceFee; // Total fees (currently 0)
+  const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+  const serviceFee = 3000; // Fixed service fee: ₦3,000
+  const totalServiceFees = cleaningFee + serviceFee; // Total fees
   const hostReceives = booking.hostPaymentAmount || Math.max(0, (booking.totalAmount || 0) - totalServiceFees);
 
   return (

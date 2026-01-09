@@ -22,7 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import WelcomeDealModal from '../components/WelcomeDealModal';
 import { hasSeenWelcomeDeal, markWelcomeDealSeen } from '../utils/userStorage';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const apartments = [
   {
@@ -144,8 +144,8 @@ export default function ExploreScreen() {
     }, [user])
   );
 
-  // Check if user is new and show welcome deal modal
-  // IMPORTANT: Welcome deal is ONLY for first-time users (sign-up), NOT for existing users (sign-in)
+  // Check if user should see welcome deal modal
+  // Shows for both new users (sign-up) and existing users (sign-in)
   const checkAndShowWelcomeDeal = async () => {
     if (!user || !user.email || checkingWelcomeDeal) return;
     
@@ -153,15 +153,13 @@ export default function ExploreScreen() {
       setCheckingWelcomeDeal(true);
       const hasSeenDeal = await hasSeenWelcomeDeal(user.email);
       
-      // Only show deal if user hasn't seen it AND they're a new user (just signed up)
-      // Existing users who sign in are automatically marked as ineligible in AuthContext.signIn
+      // Show deal if user hasn't seen it yet (works for both sign-up and sign-in)
       if (!hasSeenDeal) {
-        // IMMEDIATELY show welcome deal modal for new user on home page
-        // This only appears for users who just signed up, not users who signed in
+        // Show welcome deal modal on home page for both new and existing users
         setShowWelcomeDeal(true);
-        console.log('🎉 Welcome deal modal shown on home page for NEW user (sign-up):', user.email);
+        console.log('🎉 Welcome deal modal shown on home page for user:', user.email);
       } else {
-        console.log(`✅ User ${user.email} is an existing user - Welcome deal not shown (only for first-time users)`);
+        console.log(`✅ User ${user.email} has already seen the welcome deal`);
       }
     } catch (error) {
       console.error('Error checking welcome deal:', error);
@@ -245,15 +243,35 @@ export default function ExploreScreen() {
               maxGuests: listing.maxGuests || null,
               description: listing.description || null,
               amenities: listing.amenities || null,
-              image: listing.image || listing.images?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-              images: (() => {
-                // If listing has images array, use it
-                if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
-                  return listing.images.filter(img => img && img.trim && img.trim() !== '');
+              image: (() => {
+                // Prioritize uploaded images - only use placeholder if truly no image
+                if (listing.image && typeof listing.image === 'string' && listing.image.trim() !== '') {
+                  return listing.image;
                 }
-                // If no images array but we have a main image, create array with it
-                if (listing.image) {
+                if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+                  const validImage = listing.images.find(img => img && typeof img === 'string' && img.trim() !== '');
+                  if (validImage) {
+                    return validImage;
+                  }
+                }
+                if (listing.photo && typeof listing.photo === 'string' && listing.photo.trim() !== '') {
+                  return listing.photo;
+                }
+                // Only use placeholder if no valid image exists
+                return 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
+              })(),
+              images: (() => {
+                // If listing has images array, use it (filter out invalid images)
+                if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+                  return listing.images.filter(img => img && typeof img === 'string' && img.trim() !== '');
+                }
+                // If no images array but we have a valid main image, create array with it
+                if (listing.image && typeof listing.image === 'string' && listing.image.trim() !== '') {
                   return [listing.image];
+                }
+                // If we have photo field, use it
+                if (listing.photo && typeof listing.photo === 'string' && listing.photo.trim() !== '') {
+                  return [listing.photo];
                 }
                 // Return empty array (will use default in details screen)
                 return [];
@@ -589,13 +607,20 @@ export default function ExploreScreen() {
     const [imageError, setImageError] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
     
-    // Default fallback image
+    // Calculate card width dynamically for proper fit
+    // Formula: (screen width - left padding - right padding - gap between cards) / 2
+    // For iPhone 12 (390px): (390 - 16 - 16 - 12) / 2 = 173px per card
+    const cardWidth = (SCREEN_WIDTH - 44) / 2;
+    
+    // Default fallback image - only use if no valid uploaded image
     const defaultImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
-    const imageUri = item.image && !imageError && item.image.trim() !== '' ? item.image : defaultImage;
+    // Prioritize uploaded image - check if it's a valid non-empty string
+    const hasValidImage = item.image && typeof item.image === 'string' && item.image.trim() !== '';
+    const imageUri = hasValidImage && !imageError ? item.image : defaultImage;
     
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { width: cardWidth }]}
         onPress={() => onPress(item)}
         activeOpacity={0.8}
       >
@@ -625,7 +650,7 @@ export default function ExploreScreen() {
           >
             <MaterialIcons 
               name={item.isFavorite ? 'favorite' : 'favorite-border'} 
-              size={20} 
+              size={18} 
               color={item.isFavorite ? '#FF0000' : '#FFFFFF'} 
             />
           </TouchableOpacity>
@@ -640,7 +665,7 @@ export default function ExploreScreen() {
             <View style={styles.priceRatingRow}>
               <Text style={styles.price}>{formatPrice(item.price)}/day</Text>
               <View style={styles.ratingContainer}>
-                <MaterialIcons name="star" size={14} color="#FFD700" />
+                <MaterialIcons name="star" size={12} color="#FFD700" />
                 <Text style={styles.rating}>{item.rating || 4.9}</Text>
               </View>
             </View>
@@ -712,6 +737,8 @@ export default function ExploreScreen() {
         data={filteredApartments}
         renderItem={renderApartmentCard}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={[
           styles.listContent,
           filteredApartments.length === 0 && styles.emptyListContent
@@ -824,21 +851,35 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   listContent: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 80,
   },
   emptyListContent: {
     flexGrow: 1,
   },
+  row: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    marginBottom: 0,
+  },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 24,
+    borderRadius: 12,
+    marginBottom: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   imageContainer: {
     width: '100%',
-    height: 300,
+    height: 160,
     position: 'relative',
   },
   image: {
@@ -848,17 +889,17 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    width: 36,
-    height: 36,
+    borderRadius: 18,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardContent: {
-    padding: 16,
+    padding: 10,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -869,33 +910,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 3,
+    lineHeight: 18,
   },
   location: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#666',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   priceRatingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   price: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   rating: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#333',
   },

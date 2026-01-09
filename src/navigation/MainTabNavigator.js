@@ -15,7 +15,6 @@ import AboutScreen from '../screens/AboutScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
 import ApartmentDetailsScreen from '../screens/ApartmentDetailsScreen';
 import PaymentConfirmationScreen from '../screens/PaymentConfirmationScreen';
-import PaymentOptionsScreen from '../screens/PaymentOptionsScreen';
 import CardPaymentScreen from '../screens/CardPaymentScreen';
 import TransferPaymentScreen from '../screens/TransferPaymentScreen';
 import HostProfileScreen from '../screens/HostProfileScreen';
@@ -54,11 +53,6 @@ function ExploreStack() {
       <Stack.Screen 
         name="PaymentConfirmation" 
         component={PaymentConfirmationScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="PaymentOptions" 
-        component={PaymentOptionsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
@@ -101,11 +95,6 @@ function FavoritesStack() {
       <Stack.Screen 
         name="PaymentConfirmation" 
         component={PaymentConfirmationScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen 
-        name="PaymentOptions" 
-        component={PaymentOptionsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen 

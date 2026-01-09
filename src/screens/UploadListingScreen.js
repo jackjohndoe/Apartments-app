@@ -202,45 +202,26 @@ export default function UploadListingScreen() {
       let savedListing = null;
       
       if (isEdit && listing) {
-        try {
-          savedListing = await hybridApartmentService.updateApartment(listing.id, listingData);
-          console.log('✅ Listing updated successfully:', savedListing?.id || listing.id);
-        } catch (error) {
-          console.error('Error updating listing to API:', error);
-          // Fallback to local storage - FRONTEND PRESERVED
-          // Pass user email explicitly
-          savedListing = await updateListing(listing.id, listingData, user.email);
-          console.log('✅ Listing updated locally:', savedListing?.id || listing.id);
-        }
+        // Save directly to API - makes listing available to all iPhone users
+        savedListing = await hybridApartmentService.updateApartment(listing.id, listingData);
+        console.log('✅ Listing updated successfully and available to all iPhone users:', savedListing?.id || listing.id);
         Alert.alert('Success', 'Listing updated successfully!');
       } else {
-        try {
-          savedListing = await hybridApartmentService.createApartment(listingData);
-          console.log('✅ Listing created successfully:', savedListing?.id);
-          // Add notification for listing upload
-          await notifyListingUploaded(listingData.title);
-        } catch (error) {
-          console.error('Error creating listing to API:', error);
-          // Fallback to local storage - FRONTEND PRESERVED
-          // Pass user email explicitly to ensure createdBy is set correctly
-          savedListing = await addListing(listingData, user.email);
-          console.log('✅ Listing created locally:', savedListing?.id);
-          // Add notification for listing upload
-          await notifyListingUploaded(listingData.title);
-        }
-        Alert.alert('Success', 'Listing created successfully!');
+        // Save directly to API - makes listing available to all iPhone users
+        savedListing = await hybridApartmentService.createApartment(listingData);
+        console.log('✅ Listing created successfully and available to all iPhone users:', savedListing?.id);
+        // Add notification for listing upload
+        await notifyListingUploaded(listingData.title);
+        Alert.alert('Success', 'Listing created successfully and is now available to all iPhone users!');
       }
-
-      // Ensure data is fully saved before navigating back
-      // This ensures listings appear in real-time on both Explore and MyListings screens
-      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Navigate back - screens will refresh via useFocusEffect
       // ExploreScreen and MyListingsScreen both use useFocusEffect to reload data
       navigation.goBack();
     } catch (error) {
       console.error('Error saving listing:', error);
-      Alert.alert('Error', 'Failed to save listing. Please try again.');
+      const errorMessage = error.message || 'Failed to save listing to API. Please check your internet connection and try again.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -567,6 +548,9 @@ export default function UploadListingScreen() {
               placeholderTextColor="#999"
               keyboardType="numeric"
             />
+            <Text style={styles.priceWarningText}>
+              We will charge a 10 percent commission on total transaction for apartments. Consider this when you add your daily rate.
+            </Text>
           </View>
 
           {/* Property Details Row */}
@@ -879,6 +863,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
     fontStyle: 'italic',
+  },
+  priceWarningText: {
+    fontSize: 12,
+    color: '#F44336',
+    marginTop: 8,
+    lineHeight: 18,
   },
   input: {
     borderWidth: 1,

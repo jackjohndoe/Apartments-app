@@ -67,23 +67,11 @@ export const AuthProvider = ({ children }) => {
             await migrateUserData(user.email);
             
             // CRITICAL: Check if this is an existing user (has data) or new user
-            // Welcome deal is ONLY for first-time users (sign-up), not existing users
-            const { hasSeenWelcomeDeal, markWelcomeDealSeen } = await import('../utils/userStorage');
-            const { getWalletBalance, getTransactions } = await import('../utils/wallet');
-            
-            // Check if user has existing wallet data (balance > 0 or has transactions)
-            const existingBalance = await getWalletBalance(user.email);
-            const existingTransactions = await getTransactions(user.email);
-            const hasExistingData = existingBalance > 0 || (existingTransactions && existingTransactions.length > 0);
-            
-            // If user has existing data OR has already seen the deal, mark as ineligible
-            if (hasExistingData || await hasSeenWelcomeDeal(user.email)) {
-              await markWelcomeDealSeen(user.email, false); // Mark as seen (not claimed)
-              console.log(`✅ Existing user session restored: ${user.email} - Welcome deal marked as ineligible`);
-            } else {
-              // New user - don't mark as ineligible yet
-              console.log(`✅ New user session: ${user.email} - Welcome deal will be shown if eligible`);
-            }
+            // Welcome deal is shown for both new and existing users if they haven't seen it
+            // Don't mark as ineligible - let ExploreScreen check if they've seen it
+            const { hasSeenWelcomeDeal } = await import('../utils/userStorage');
+            const hasSeen = await hasSeenWelcomeDeal(user.email);
+            console.log(`✅ User session restored: ${user.email} - Welcome deal will be shown if not seen (hasSeen: ${hasSeen})`);
           } catch (migrationError) {
             // Silently handle migration errors - don't block app startup
             console.error('Error during data migration:', migrationError);
@@ -171,28 +159,14 @@ export const AuthProvider = ({ children }) => {
             bookingsCount: bookings?.length || 0,
           });
           
-          // CRITICAL: Mark welcome deal as ineligible for existing users (sign-in)
-          // Welcome deal is ONLY for first-time users (sign-up), not existing users (sign-in)
-          // isNewUser flag indicates if this is a sign-up (true) or sign-in (false)
-          const { markWelcomeDealSeen, hasSeenWelcomeDeal, getUserStorageKey } = await import('../utils/userStorage');
-          
+          // Welcome deal is shown for both new users (sign-up) and existing users (sign-in)
+          // Don't mark as ineligible - let ExploreScreen check if they've seen it
+          const { hasSeenWelcomeDeal } = await import('../utils/userStorage');
+          const hasSeen = await hasSeenWelcomeDeal(userToStore.email);
           if (!isNewUser) {
-            // User is signing in (existing user) - ALWAYS mark as ineligible for welcome deal
-            // This ensures NO voucher is shown for sign-in, regardless of previous state
-            await markWelcomeDealSeen(userToStore.email, false); // Mark as seen (not claimed)
-            const dealStatus = await hasSeenWelcomeDeal(userToStore.email);
-            console.log(`✅ Existing user signed in: ${userToStore.email} - Welcome deal marked as ineligible (hasSeenDeal: ${dealStatus}) - NO VOUCHER`);
+            console.log(`✅ Existing user signed in: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
           } else {
-            // User is signing up (new user) - ensure they can see the deal
-            // Clear any existing deal status to ensure new sign-ups always see the voucher
-            const hasSeen = await hasSeenWelcomeDeal(userToStore.email);
-            if (hasSeen) {
-              // If somehow they've seen it before, clear it so they can see it now
-              const key = getUserStorageKey('welcomeDealSeen', userToStore.email);
-              await AsyncStorage.removeItem(key);
-              console.log(`🔄 Cleared previous deal status for new sign-up: ${userToStore.email}`);
-            }
-            console.log(`✅ New user signed up: ${userToStore.email} - Welcome deal voucher WILL BE SHOWN on home page`);
+            console.log(`✅ New user signed up: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
           }
           
           console.log('✅ User signed in - ALL user data restored and verified:');

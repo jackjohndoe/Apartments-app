@@ -108,21 +108,66 @@ export const createVirtualAccount = async (email, amount, name, txRef) => {
       throw new Error(`Flutterwave virtual account creation failed: ${errorMsg}`);
     }
     
-    // Check for account_number in both snake_case and camelCase
-    const accountNumber = data.account_number || data.accountNumber;
-    if (!accountNumber) {
-      console.error('❌ Account number missing in response:', JSON.stringify(data, null, 2));
-      const errorMsg = data.error || data.message || 'Account number not found in response';
+    // Check for account_number in multiple possible response formats
+    // Flutterwave may return it in different structures
+    let accountNumber = null;
+    
+    // Try different possible locations for account number
+    if (data.account_number) {
+      accountNumber = data.account_number;
+    } else if (data.accountNumber) {
+      accountNumber = data.accountNumber;
+    } else if (data.data?.account_number) {
+      accountNumber = data.data.account_number;
+    } else if (data.data?.accountNumber) {
+      accountNumber = data.data.accountNumber;
+    } else if (data.virtual_account?.account_number) {
+      accountNumber = data.virtual_account.account_number;
+    } else if (data.virtual_account?.accountNumber) {
+      accountNumber = data.virtual_account.accountNumber;
+    } else if (data.virtualAccount?.account_number) {
+      accountNumber = data.virtualAccount.account_number;
+    } else if (data.virtualAccount?.accountNumber) {
+      accountNumber = data.virtualAccount.accountNumber;
+    } else if (data.response?.account_number) {
+      accountNumber = data.response.account_number;
+    } else if (data.response?.accountNumber) {
+      accountNumber = data.response.accountNumber;
+    }
+    
+    // Validate account number exists and is not empty
+    if (!accountNumber || (typeof accountNumber === 'string' && accountNumber.trim() === '')) {
+      console.error('❌ Account number missing or empty in response:', JSON.stringify(data, null, 2));
+      console.error('❌ Searched in: account_number, accountNumber, data.account_number, data.accountNumber, virtual_account.account_number, virtualAccount.accountNumber, response.account_number, response.accountNumber');
+      const errorMsg = data.error || data.message || 'Account number not found in Flutterwave response. Please ensure Flutterwave API is properly configured.';
       throw new Error(`Failed to create virtual account: ${errorMsg}`);
     }
+    
+    // Ensure account number is a string
+    accountNumber = String(accountNumber).trim();
+    
+    console.log('✅ Account number extracted successfully:', accountNumber);
 
     // Prepare response immediately for fast UI update
     // Handle both snake_case and camelCase response formats
+    // Extract account name and bank name from multiple possible locations
+    let accountName = data.account_name || data.accountName || 
+                      data.data?.account_name || data.data?.accountName ||
+                      data.virtual_account?.account_name || data.virtual_account?.accountName ||
+                      data.virtualAccount?.account_name || data.virtualAccount?.accountName ||
+                      'Apartify Africa';
+    
+    let bankName = data.bank_name || data.bankName ||
+                   data.data?.bank_name || data.data?.bankName ||
+                   data.virtual_account?.bank_name || data.virtual_account?.bankName ||
+                   data.virtualAccount?.bank_name || data.virtualAccount?.bankName ||
+                   'Virtual Bank';
+    
     const accountData = {
       accountNumber: accountNumber,
-      accountName: data.account_name || data.accountName || 'Nigerian Apartments Leasing Ltd',
-      bankName: data.bank_name || data.bankName || 'Virtual Bank',
-      txRef: data.tx_ref || data.txRef || txRef,
+      accountName: accountName,
+      bankName: bankName,
+      txRef: data.tx_ref || data.txRef || data.txRef || txRef,
     };
 
     console.log('✅ Virtual account created successfully:', accountData);

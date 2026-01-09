@@ -115,7 +115,7 @@ export const SHADOWS = {
 export const APP_CONFIG = {
   CURRENCY: '₦',
   CURRENCY_NAME: 'Nigerian Naira',
-  APP_NAME: 'Nigerian Apartments',
+  APP_NAME: 'Apartify Africa',
   PACKAGE_NAME: 'com.nigerianapartments.app',
 };
 

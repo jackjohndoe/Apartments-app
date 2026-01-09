@@ -303,9 +303,9 @@ export const confirmEscrowPayment = async (userEmail, bookingId) => {
     }
     
     // Calculate host payment amount (total amount minus fees)
-    // Fees: cleaning fee + service fee (both set to 0 until changed)
-    const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-    const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
+    // Fees: cleaning fee + service fee
+    const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+    const serviceFee = 3000; // Fixed service fee: ₦3,000
     const totalFees = cleaningFee + serviceFee;
     const hostPaymentAmount = Math.max(0, escrowPayment.amount - totalFees);
     

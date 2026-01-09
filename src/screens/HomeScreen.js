@@ -47,7 +47,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.logoContainer}>
             <MaterialIcons name="home" size={60} color="#333" />
           </View>
-        <Text style={styles.title}>Nigerian Apartments</Text>
+        <Text style={styles.title}>Apartify Africa</Text>
         <Text style={styles.subtitle}>Find Your Perfect Home</Text>
         <Text style={styles.description}>
           Discover amazing apartments across Nigeria. Your dream home awaits.{'\n\n'}

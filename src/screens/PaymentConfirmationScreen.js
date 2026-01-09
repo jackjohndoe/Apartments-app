@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { getUserProfile } from '../utils/userStorage';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +19,7 @@ export default function PaymentConfirmationScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { apartment, checkInDate, checkOutDate, numberOfDays, numberOfGuests } = route.params || {};
+  const [hostName, setHostName] = useState(apartment?.hostName || 'Property Owner');
 
   // Safety check
   if (!apartment) {
@@ -57,28 +59,59 @@ export default function PaymentConfirmationScreen() {
     // No maximum payment limit - calculates total based on daily rate and days
     const dailyRate = apartment?.price || 0; // Price is already daily rate
     const basePrice = dailyRate * numberOfDays;
-    const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-    const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-    const total = basePrice + cleaningFee + serviceFee;
+    const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+    const serviceFee = 3000; // Fixed service fee: ₦3,000
+    const cautionFee = 10000; // Fixed caution fee: ₦10,000
+    const total = basePrice + cleaningFee + serviceFee + cautionFee;
 
     return {
       basePrice,
       cleaningFee,
       serviceFee,
+      cautionFee,
       total,
     };
   };
 
   const priceBreakdown = calculatePriceBreakdown();
 
+  // Load host name from profile if available
+  useEffect(() => {
+    const loadHostName = async () => {
+      if (!apartment) return;
+      
+      // Initialize with apartment hostName
+      let currentHostName = apartment.hostName || 'Property Owner';
+      
+      // Try to get the latest host name from profile
+      const hostEmail = apartment.createdBy || apartment.hostEmail || null;
+      if (hostEmail) {
+        try {
+          const hostProfile = await getUserProfile(hostEmail);
+          if (hostProfile && hostProfile.name) {
+            currentHostName = hostProfile.name;
+          }
+        } catch (error) {
+          console.log('Could not load host profile:', error);
+          // Use apartment hostName as fallback
+        }
+      }
+      
+      setHostName(currentHostName);
+    };
+
+    loadHostName();
+  }, [apartment]);
+
   const handleConfirmAndPay = () => {
-    navigation.navigate('PaymentOptions', {
+    navigation.navigate('Wallet', {
       apartment,
       checkInDate,
       checkOutDate,
       numberOfDays,
       numberOfGuests: numberOfGuests || 1,
       totalAmount: priceBreakdown.total,
+      isPayment: true,
     });
   };
 
@@ -106,7 +139,7 @@ export default function PaymentConfirmationScreen() {
             <Text style={styles.propertyType}>
               Entire apartment in {apartment?.location || 'Nigeria'}, Nigeria
             </Text>
-            <Text style={styles.hostName}>Hosted by John D.</Text>
+            <Text style={styles.hostName}>Hosted by {hostName}</Text>
           </View>
           <Image
             source={{ uri: apartment?.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800' }}
@@ -170,6 +203,11 @@ export default function PaymentConfirmationScreen() {
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Service fee</Text>
             <Text style={styles.priceValue}>{formatPrice(priceBreakdown.serviceFee)}</Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.priceLabel}>Caution fee</Text>
+            <Text style={styles.priceValue}>{formatPrice(priceBreakdown.cautionFee)}</Text>
           </View>
 
           <View style={[styles.priceRow, styles.totalRow]}>

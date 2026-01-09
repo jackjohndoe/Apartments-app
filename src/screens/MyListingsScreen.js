@@ -189,17 +189,29 @@ export default function MyListingsScreen() {
 
   const renderListingCard = ({ item }) => (
     <View style={styles.listingCard}>
-      {/* Listing Image */}
-      {item.image || (item.images && item.images[0]) ? (
-        <Image 
-          source={{ uri: item.image || item.images[0] }} 
-          style={styles.listingImage} 
-        />
-      ) : (
-        <View style={styles.listingImagePlaceholder}>
-          <MaterialIcons name="home" size={48} color="#CCC" />
-        </View>
-      )}
+      {/* Listing Image - Show uploaded image if available, otherwise placeholder */}
+      {(() => {
+        // Check for valid uploaded image
+        const hasValidImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '') ||
+                              (item.images && Array.isArray(item.images) && item.images.length > 0 && 
+                               item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '');
+        const imageUri = item.image && typeof item.image === 'string' && item.image.trim() !== '' 
+          ? item.image 
+          : (item.images && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '' 
+            ? item.images[0] 
+            : null);
+        
+        return hasValidImage && imageUri ? (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={styles.listingImage} 
+          />
+        ) : (
+          <View style={styles.listingImagePlaceholder}>
+            <MaterialIcons name="home" size={48} color="#CCC" />
+          </View>
+        );
+      })()}
 
       {/* Listing Info */}
       <View style={styles.listingInfo}>

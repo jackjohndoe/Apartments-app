@@ -284,10 +284,9 @@ const generateBookingConfirmationHTML = (bookingData, userName, topUpAmount = nu
  * Generate HTML email template for host notification
  */
 const generateHostNotificationHTML = (bookingData, userName, hostName, userEmail, userPhone, userAddress) => {
-  // Fees set to 0 until changed
-  const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-  const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-  const totalServiceFees = cleaningFee + serviceFee; // Total fees (currently 0)
+  const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+  const serviceFee = 3000; // Fixed service fee: ₦3,000
+  const totalServiceFees = cleaningFee + serviceFee; // Total fees
   const hostReceives = Math.max(0, (bookingData.totalAmount || 0) - totalServiceFees);
   
   return `
@@ -626,10 +625,10 @@ export const sendHostBookingNotificationEmail = async (hostEmail, bookingData, u
   }
 
   try {
-    // Calculate fee breakdown - fees set to 0 until changed
-    const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-    const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-    const totalServiceFees = cleaningFee + serviceFee; // Total fees (currently 0)
+    // Calculate fee breakdown
+    const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+    const serviceFee = 3000; // Fixed service fee: ₦3,000
+    const totalServiceFees = cleaningFee + serviceFee; // Total fees
     const hostReceives = Math.max(0, (bookingData.totalAmount || 0) - totalServiceFees);
 
     // Format the booking details
@@ -935,10 +934,9 @@ Payment Request Details:
  * Generate HTML email template for payment confirmation
  */
 const generatePaymentConfirmationHTML = (bookingData, hostName) => {
-  // Fees set to 0 until changed
-  const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-  const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-  const totalServiceFees = cleaningFee + serviceFee; // Total fees (currently 0)
+  const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+  const serviceFee = 3000; // Fixed service fee: ₦3,000
+  const totalServiceFees = cleaningFee + serviceFee; // Total fees
   const hostReceives = Math.max(0, (bookingData.totalAmount || 0) - totalServiceFees);
   
   return `
@@ -1148,10 +1146,9 @@ export const sendPaymentConfirmationEmail = async (hostEmail, bookingData, guest
   }
 
   try {
-    // Fees set to 0 until changed
-    const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-    const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-    const totalServiceFees = cleaningFee + serviceFee; // Total fees (currently 0)
+    const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+    const serviceFee = 3000; // Fixed service fee: ₦3,000
+    const totalServiceFees = cleaningFee + serviceFee; // Total fees
     const hostReceives = Math.max(0, (bookingData.totalAmount || 0) - totalServiceFees);
     
     const receiptDetails = `

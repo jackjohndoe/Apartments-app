@@ -15,15 +15,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { notifyPaymentMade } from '../utils/notifications';
-import { addBooking, addHostBooking } from '../utils/bookings';
-import { hybridBookingService } from '../services/hybridService';
 import { useAuth } from '../hooks/useAuth';
-import { sendBookingEmails } from '../utils/emailService';
-import { getUserProfile } from '../utils/userStorage';
-import { hybridWalletService } from '../services/hybridService';
-import { notifyHostNewBooking, notifyHostWalletFunded } from '../utils/notifications';
-import { addToEscrow } from '../utils/escrow';
 import { initializePayment, verifyPayment, verifyAndFundWallet } from '../services/flutterwaveService';
 
 export default function CardPaymentScreen() {
@@ -31,12 +23,7 @@ export default function CardPaymentScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { 
-    apartment, 
-    totalAmount, 
-    checkInDate, 
-    checkOutDate, 
-    numberOfDays, 
-    numberOfGuests,
+    amount, // Amount to fund wallet
     paymentProvider = 'flutterwave'
   } = route.params || {};
   
@@ -117,7 +104,7 @@ export default function CardPaymentScreen() {
       return;
     }
 
-    if (!user || !user.email || !totalAmount) {
+    if (!user || !user.email || !amount) {
       Alert.alert('Error', 'Missing required information. Please try again.');
       return;
     }
@@ -125,73 +112,19 @@ export default function CardPaymentScreen() {
     try {
       setProcessing(true);
       
-      // Validate dates first
-      if (checkInDate && checkOutDate) {
-        const checkIn = new Date(checkInDate);
-        const checkOut = new Date(checkOutDate);
-        
-        if (checkIn >= checkOut) {
-          Alert.alert(
-            'Invalid Dates',
-            'Check-out date must be after check-in date. Please select valid dates.',
-            [{ text: 'OK' }]
-          );
-          setProcessing(false);
-          return;
-        }
-      }
-
-      // Check for date conflicts
-      if (checkInDate && checkOutDate && apartment) {
-        try {
-          const { checkDateConflict } = await import('../utils/bookings');
-          const hostEmail = apartment.createdBy || apartment.hostEmail;
-          
-          if (hostEmail) {
-            const conflictResult = await checkDateConflict(
-              apartment.id || apartment._id,
-              hostEmail,
-              checkInDate,
-              checkOutDate
-            );
-            
-            if (conflictResult.hasConflict) {
-              Alert.alert(
-                'Unavailable',
-                'This apartment is unavailable for the selected dates. Please choose another date.',
-                [{ text: 'OK' }]
-              );
-              setProcessing(false);
-              return;
-            }
-          }
-        } catch (error) {
-          console.error('Error checking date conflict:', error);
-        }
-      }
-
-      // Initialize Flutterwave payment with card details
+      // Initialize Flutterwave payment with card details for wallet funding
       try {
         const userName = user?.name || 'Guest';
         const userPhone = user?.phoneNumber || null;
         
-        // Note: In a real implementation, you would send card details securely to your backend
-        // which would then process the payment through Flutterwave
-        // For now, we'll simulate the payment flow
         const paymentInit = await initializePayment(
-          totalAmount || 0,
+          amount || 0,
           user.email,
           userName,
           userPhone,
           'card', // Payment method: card
           null, // Reference will be generated
           {
-            apartmentId: apartment?.id || apartment?._id,
-            apartmentTitle: apartment?.title,
-            checkInDate,
-            checkOutDate,
-            numberOfDays,
-            numberOfGuests,
             cardNumber: cardNumber.replace(/\s/g, ''), // Send cleaned card number
             cardholderName,
             expiryDate,
@@ -241,20 +174,18 @@ export default function CardPaymentScreen() {
         throw new Error('Payment reference not found');
       }
 
-      console.log('🔄 Processing successful payment:', { paymentRef, amount: totalAmount });
+      console.log('🔄 Processing successful wallet funding:', { paymentRef, amount });
 
       // CRITICAL: Verify payment and automatically fund wallet
-      // This ensures wallet is topped up immediately after successful payment
-      let walletFundingResult = null; // Store result for booking email
       try {
-        if (user && user.email && totalAmount) {
+        if (user && user.email && amount) {
           console.log('💰 Verifying payment and funding wallet...');
           
           try {
-            walletFundingResult = await verifyAndFundWallet(
+            const walletFundingResult = await verifyAndFundWallet(
               paymentRef,
               user.email,
-              totalAmount,
+              amount,
               'card'
             );
             
@@ -263,25 +194,34 @@ export default function CardPaymentScreen() {
               console.log('✅ Updated balance:', walletFundingResult.balance);
               
               // Wallet top-up email is already sent by verifyAndFundWallet
-              // Show success message
               Alert.alert(
-                'Payment Successful',
-                `Your payment of ₦${totalAmount.toLocaleString()} has been verified and added to your wallet! A confirmation email has been sent to your email address.`,
-                [{ text: 'OK' }]
+                'Wallet Funded',
+                `₦${amount.toLocaleString()} has been added to your wallet! A confirmation email has been sent.`,
+                [{ 
+                  text: 'OK', 
+                  onPress: () => {
+                    setShowSuccessModal(true);
+                    // Navigate back to wallet after a short delay
+                    setTimeout(() => {
+                      navigation.navigate('Wallet');
+                    }, 1500);
+                  }
+                }]
               );
             } else if (walletFundingResult.verified && !walletFundingResult.funded) {
               console.warn('⚠️ Payment verified but wallet funding may have failed');
-              // Payment verified but funding failed - backend webhook should handle it
               Alert.alert(
                 'Payment Verified',
                 `Your payment has been verified. The wallet will be funded automatically within a few moments.`,
-                [{ text: 'OK' }]
+                [{ 
+                  text: 'OK',
+                  onPress: () => navigation.navigate('Wallet')
+                }]
               );
             }
           } catch (verifyError) {
             console.error('❌ Error in verifyAndFundWallet:', verifyError);
             
-            // Check if it's a retryable error (pending payment)
             const isRetryable = verifyError.message && (
               verifyError.message.includes('pending') ||
               verifyError.message.includes('processing') ||
@@ -289,51 +229,50 @@ export default function CardPaymentScreen() {
             );
             
             if (isRetryable) {
-              // Payment is pending - backend webhook will handle it
               console.log('⏳ Payment is pending, backend webhook will process funding');
               Alert.alert(
                 'Payment Processing',
                 `Your payment is being processed. Your wallet will be funded automatically once the payment is confirmed (usually within 1-2 minutes).`,
-                [{ text: 'OK' }]
+                [{ 
+                  text: 'OK',
+                  onPress: () => navigation.navigate('Wallet')
+                }]
               );
             } else {
-              // Try fallback verification (non-blocking)
               try {
                 await verifyPayment(paymentRef);
                 console.log('✅ Fallback verification succeeded');
                 Alert.alert(
                   'Payment Verified',
                   `Your payment has been verified. The wallet will be funded automatically.`,
-                  [{ text: 'OK' }]
+                  [{ 
+                    text: 'OK',
+                    onPress: () => navigation.navigate('Wallet')
+                  }]
                 );
               } catch (fallbackError) {
                 console.log('⚠️ Fallback verification also failed:', fallbackError);
-                // Continue with booking processing even if verification fails
-                // Backend webhook should handle wallet funding
                 Alert.alert(
                   'Payment Received',
                   `Your payment has been received. The wallet will be funded automatically once processing is complete.`,
-                  [{ text: 'OK' }]
+                  [{ 
+                    text: 'OK',
+                    onPress: () => navigation.navigate('Wallet')
+                  }]
                 );
               }
             }
           }
         } else {
           console.warn('⚠️ Cannot fund wallet: Missing user email or amount');
+          Alert.alert('Error', 'Missing required information to fund wallet.');
         }
       } catch (error) {
         console.error('❌ Unexpected error in payment verification:', error);
-        // Don't block booking flow - backend webhook will handle funding
+        Alert.alert('Error', 'An error occurred while funding your wallet. Please contact support.');
       }
-
-      // Process booking after successful payment (pass wallet funding result for email)
-      await processBookingAfterPayment(paymentRef, walletFundingResult);
       
       setShowSuccessModal(true);
-      
-      if (apartment) {
-        await notifyPaymentMade(totalAmount || 0, apartment.title || 'Apartment');
-      }
     } catch (error) {
       console.error('Error processing payment:', error);
       Alert.alert('Error', error.message || 'Payment processing failed. Please contact support.');
@@ -342,229 +281,10 @@ export default function CardPaymentScreen() {
     }
   };
 
-  const handlePaymentCancel = () => {
-    Alert.alert(
-      'Payment Cancelled',
-      'Your payment was cancelled. You can try again when ready.',
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
-  };
-
-  const handlePaymentError = (error) => {
-    console.error('Payment error:', error);
-    Alert.alert('Payment Error', error.message || 'An error occurred during payment. Please try again.');
-  };
-
-  const processBookingAfterPayment = async (paymentReference, walletFundingResult = null) => {
-    if (!user || !user.email) {
-      Alert.alert('Error', 'You must be logged in to complete this booking.');
-      return;
-    }
-
-    // Get user profile information
-    let userName = user?.name || 'Guest';
-    let userPhone = null;
-    let userAddress = null;
-    try {
-      const userProfile = await getUserProfile(user.email);
-      if (userProfile) {
-        if (userProfile.name) userName = userProfile.name;
-        userPhone = userProfile.whatsappNumber || null;
-        userAddress = userProfile.address || null;
-      }
-    } catch (profileError) {
-      console.log('Could not load user profile for email:', profileError);
-    }
-
-    // Save booking to history with ESCROW status
-    const bookingData = {
-        apartmentId: apartment?.id || apartment?._id,
-        title: apartment?.title || 'Apartment',
-        location: apartment?.location || 'Nigeria',
-        image: apartment?.image || apartment?.images?.[0],
-        checkInDate: checkInDate || new Date().toISOString().split('T')[0],
-        checkOutDate: checkOutDate || new Date().toISOString().split('T')[0],
-        numberOfDays: numberOfDays || 1,
-        numberOfGuests: numberOfGuests || 1,
-        totalAmount: totalAmount || 0,
-        paymentMethod: 'Card (Flutterwave)',
-        status: 'In Escrow', // Payment goes to escrow
-        bookingDate: new Date().toISOString(),
-        hostEmail: apartment?.hostEmail || apartment?.createdBy || null,
-        hostName: apartment?.hostName || null,
-        paymentReference: paymentReference,
-      };
-
-      // Create booking first to get booking ID
-      let savedBooking;
-      try {
-        savedBooking = await hybridBookingService.createBooking(user.email, bookingData);
-        if (!savedBooking || !savedBooking.id) {
-          // Fallback to local storage
-          savedBooking = await addBooking(user.email, bookingData);
-        }
-      } catch (error) {
-        console.error('Error saving booking to API:', error);
-        // Fallback to local storage - FRONTEND PRESERVED
-        savedBooking = await addBooking(user.email, bookingData);
-      }
-
-      const bookingId = savedBooking?.id || bookingData.id || `booking_${Date.now()}`;
-      
-      // Update booking data with the actual booking ID
-      const completeBookingData = {
-        ...bookingData,
-        id: bookingId,
-      };
-      
-      // Send booking confirmation emails AFTER booking is created with complete data
-      // Get host email - will be normalized later for wallet funding
-      let hostEmail = apartment?.hostEmail || apartment?.createdBy || null;
-      console.log('📧 Sending booking confirmation emails after booking creation...');
-      
-      // Check if wallet was funded (from verifyAndFundWallet call in handlePaymentSuccess)
-      // If so, include top-up information in guest email
-      let topUpAmount = null;
-      let guestWalletBalance = null;
-      if (walletFundingResult && walletFundingResult.verified && walletFundingResult.funded) {
-        topUpAmount = totalAmount;
-        guestWalletBalance = walletFundingResult.balance;
-        // Note: verifyAndFundWallet already sends top-up email, but we include info in booking email too
-      } else {
-        // Try to get current balance as fallback
-        try {
-          guestWalletBalance = await hybridWalletService.getBalance(user.email);
-        } catch (balanceError) {
-          console.log('Could not get wallet balance for email:', balanceError);
-        }
-      }
-      
-      try {
-        // Import individual email functions to pass top-up info
-        const { sendUserBookingConfirmationEmail, sendHostBookingNotificationEmail } = await import('../utils/emailService');
-        
-        // Send guest email with booking details (top-up email already sent by verifyAndFundWallet)
-        await sendUserBookingConfirmationEmail(
-          user.email,
-          completeBookingData,
-          userName,
-          topUpAmount,
-          guestWalletBalance
-        );
-        console.log('✅ Guest booking confirmation email sent');
-        
-        // Send host email with booking details and receipt
-        if (hostEmail) {
-          await sendHostBookingNotificationEmail(
-            hostEmail,
-            completeBookingData,
-            userName,
-            user.email,
-            userPhone,
-            userAddress
-          );
-          console.log('✅ Host booking notification email sent');
-        }
-      } catch (emailError) {
-        console.error('❌ Error sending booking confirmation emails:', emailError);
-        // Don't block payment flow if email fails
-      }
-      
-      // Create escrow payment (funds held in escrow, not released to host yet)
-      try {
-        if (hostEmail) {
-          await addToEscrow(
-            user.email,
-            bookingId,
-            totalAmount || 0,
-            hostEmail
-          );
-          console.log(`✅ Escrow payment created for booking ${bookingId}`);
-        }
-      } catch (escrowError) {
-        console.error('Error creating escrow payment:', escrowError);
-        // Don't block payment flow if escrow creation fails
-      }
-      
-      // CRITICAL: Also store booking for the host (even if host is not signed in)
-      // This ensures hosts can see bookings when they sign in later
-      // Normalize host email BEFORE storing to ensure consistent retrieval
-      if (hostEmail) {
-        try {
-          // Normalize host email to ensure it matches when host views bookings
-          const normalizedHostEmail = hostEmail.toLowerCase().trim();
-          
-          // Calculate host payment amount (after fees)
-          const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-          const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
-          const totalServiceFees = cleaningFee + serviceFee;
-          const hostPaymentAmount = Math.max(0, (totalAmount || 0) - totalServiceFees);
-          
-          const hostBookingData = {
-            ...bookingData,
-            id: bookingId,
-            userEmail: user.email, // Guest's email
-            userName: userName, // Guest's name
-            guestEmail: user.email, // Explicitly set guest email
-            guestName: userName,    // Explicitly set guest name
-            // Include all booking details for host
-            apartmentId: bookingData.apartmentId,
-            title: bookingData.title,
-            location: bookingData.location,
-            image: bookingData.image,
-            checkInDate: bookingData.checkInDate,
-            checkOutDate: bookingData.checkOutDate,
-            numberOfDays: bookingData.numberOfDays,
-            numberOfGuests: bookingData.numberOfGuests,
-            totalAmount: bookingData.totalAmount,
-            paymentMethod: bookingData.paymentMethod,
-            status: bookingData.status, // "In Escrow"
-            bookingDate: bookingData.bookingDate,
-            hostPaymentAmount: hostPaymentAmount, // Amount host receives
-            hostEmail: normalizedHostEmail, // Store normalized email
-          };
-          await addHostBooking(normalizedHostEmail, hostBookingData);
-          console.log(`✅ Booking stored for host: ${normalizedHostEmail} (normalized from ${hostEmail})`);
-        } catch (hostBookingError) {
-          console.error('Error storing booking for host:', hostBookingError);
-          // Don't block payment flow if host booking storage fails
-        }
-      } else {
-        console.warn('⚠️ Cannot store host booking: Host email not found');
-        console.warn('Apartment data:', { hostEmail: apartment?.hostEmail, createdBy: apartment?.createdBy });
-      }
-
-      // NOTE: Funds are NOT released to host wallet yet
-      // They will be released when user confirms payment on check-in date
-      console.log(`💰 Payment of ₦${(totalAmount || 0).toLocaleString()} held in escrow for booking ${bookingId}`);
-      console.log(`📅 Host can request payment on check-in date: ${checkInDate || 'N/A'}`);
-      console.log(`✅ User can confirm payment in "My Bookings" to release funds to host`);
-      
-      // Notify host about new booking in real-time with all booking details
-      if (hostEmail) {
-        try {
-          await notifyHostNewBooking(
-            hostEmail,
-            userName,
-            apartment?.title || 'Apartment',
-            checkInDate || bookingData.checkInDate,
-            checkOutDate || bookingData.checkOutDate,
-            numberOfGuests || bookingData.numberOfGuests,
-            numberOfDays || bookingData.numberOfDays,
-            totalAmount,
-            'Card Payment'
-          );
-          console.log(`✅ Host notification sent to ${hostEmail} about new booking with full details`);
-        } catch (notificationError) {
-          console.error('Error sending host booking notification:', notificationError);
-          // Don't block payment flow if notification fails
-        }
-      }
-  };
 
   const handleSuccessClose = () => {
     setShowSuccessModal(false);
-    navigation.navigate('ExploreMain');
+    navigation.navigate('Wallet');
   };
 
   return (
@@ -582,7 +302,7 @@ export default function CardPaymentScreen() {
         >
           <MaterialIcons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Card Payment</Text>
+        <Text style={styles.headerTitle}>Fund Wallet with Card</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -594,8 +314,8 @@ export default function CardPaymentScreen() {
       >
         {/* Total Amount */}
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Amount to Pay</Text>
-          <Text style={styles.totalAmount}>{formatPrice(totalAmount || 0)}</Text>
+          <Text style={styles.totalLabel}>Amount to Fund</Text>
+          <Text style={styles.totalAmount}>{formatPrice(amount || 0)}</Text>
         </View>
 
         {/* Payment Info */}
@@ -688,7 +408,7 @@ export default function CardPaymentScreen() {
             {processing ? (
               <ActivityIndicator size="small" color="#333" />
             ) : (
-              <Text style={styles.payButtonText}>Pay Now</Text>
+              <Text style={styles.payButtonText}>Fund Wallet</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -717,10 +437,10 @@ export default function CardPaymentScreen() {
             </View>
             <Text style={styles.successTitle}>Payment Successful!</Text>
             <Text style={styles.successMessage}>
-              Your reservation has been confirmed
+              Your wallet has been funded successfully
             </Text>
             <Text style={styles.successDetails}>
-              Amount: {formatPrice(totalAmount || 0)}
+              Amount: {formatPrice(amount || 0)}
             </Text>
             <TouchableOpacity
               style={styles.successButton}

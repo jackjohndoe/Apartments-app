@@ -17,6 +17,7 @@ import { updateBookingStatus } from '../utils/bookings';
 import { sendPaymentConfirmationEmail, sendBookingCancellationEmail } from '../utils/emailService';
 import { useAuth } from '../hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserProfile } from '../utils/userStorage';
 
 export default function UserBookingDetailsScreen() {
   const route = useRoute();
@@ -32,6 +33,7 @@ export default function UserBookingDetailsScreen() {
   const [showDeclineButton, setShowDeclineButton] = useState(false); // Show decline button on second request
   const [requestingRefund, setRequestingRefund] = useState(false);
   const [declining, setDeclining] = useState(false);
+  const [hostProfile, setHostProfile] = useState(null); // Host profile for contact details
 
   // Load escrow information
   useEffect(() => {
@@ -216,6 +218,51 @@ export default function UserBookingDetailsScreen() {
     
     return () => clearInterval(countdownTimer);
   }, [booking]);
+
+  // Load host profile when payment is confirmed
+  useEffect(() => {
+    const loadHostProfile = async () => {
+      // Only load host profile if payment is confirmed or released
+      if (!escrow || (escrow.status !== 'confirmed' && escrow.status !== 'released')) {
+        setHostProfile(null);
+        return;
+      }
+
+      // Get host email from booking or escrow
+      const hostEmail = booking?.hostEmail || escrow?.hostEmail || booking?.apartment?.hostEmail || booking?.apartment?.createdBy;
+      
+      if (!hostEmail) {
+        console.warn('UserBookingDetails - No host email found for contact details');
+        return;
+      }
+
+      try {
+        const profile = await getUserProfile(hostEmail);
+        if (profile) {
+          setHostProfile(profile);
+        } else {
+          // Fallback to booking data if profile not found
+          setHostProfile({
+            name: booking?.hostName || 'Property Owner',
+            email: hostEmail,
+            whatsappNumber: null,
+            address: null,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading host profile:', error);
+        // Fallback to booking data on error
+        setHostProfile({
+          name: booking?.hostName || 'Property Owner',
+          email: hostEmail,
+          whatsappNumber: null,
+          address: null,
+        });
+      }
+    };
+
+    loadHostProfile();
+  }, [escrow?.status, booking?.hostEmail, booking?.hostName, escrow?.hostEmail]);
 
   const handleRequestRefund = async () => {
     if (requestingRefund || !escrow || !booking) {
@@ -808,6 +855,44 @@ export default function UserBookingDetailsScreen() {
             </Text>
           </View>
         ) : null}
+
+        {/* Host Contact Information - Only shown after payment is confirmed */}
+        {(escrow?.status === 'confirmed' || escrow?.status === 'released') && hostProfile && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="contact-phone" size={24} color="#FFD700" />
+              <Text style={styles.sectionTitle}>Host Contact Information</Text>
+            </View>
+            <View style={styles.detailCard}>
+              {hostProfile?.email && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Email:</Text>
+                  <Text style={styles.detailValue}>{hostProfile.email}</Text>
+                </View>
+              )}
+
+              {hostProfile?.whatsappNumber && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>WhatsApp:</Text>
+                  <Text style={styles.detailValue}>+234 {hostProfile.whatsappNumber}</Text>
+                </View>
+              )}
+
+              {hostProfile?.address && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Address:</Text>
+                  <Text style={styles.detailValue} numberOfLines={3}>{hostProfile.address}</Text>
+                </View>
+              )}
+
+              {!hostProfile?.email && !hostProfile?.whatsappNumber && !hostProfile?.address && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailValue}>Contact information not available</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Information Text at Bottom */}
         <View style={styles.bottomInfoContainer}>

@@ -494,6 +494,26 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
       throw apiError;
     }
     
+    // Detect CORS errors specifically for better error messages
+    const isCorsError = error.message && (
+      error.message.includes('CORS') ||
+      error.message.includes('Access-Control-Allow-Origin') ||
+      error.message.includes('blocked by CORS policy') ||
+      (error.name === 'TypeError' && error.message.includes('Failed to fetch') && typeof window !== 'undefined')
+    );
+    
+    if (isCorsError && __DEV__) {
+      // Only log CORS warning once per session to reduce console noise
+      if (!global._corsErrorLogged) {
+        console.warn('⚠️ CORS Configuration Required:', 
+          'The backend API needs to be configured to allow requests from http://localhost:8081. ' +
+          'See CORS_CONFIGURATION.md for backend configuration instructions. ' +
+          'Note: This only affects web development - iOS and Android apps work fine.'
+        );
+        global._corsErrorLogged = true;
+      }
+    }
+    
     // Network errors, timeouts, etc. - return null to preserve frontend for non-auth endpoints
     console.log('API network error, using local storage fallback:', error.message);
     return null;

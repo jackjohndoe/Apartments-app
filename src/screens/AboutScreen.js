@@ -44,7 +44,7 @@ export default function AboutScreen() {
           <View style={styles.logoContainer}>
             <MaterialIcons name="home" size={64} color="#FFD700" />
           </View>
-          <Text style={styles.appName}>Apartment Rental App</Text>
+          <Text style={styles.appName}>Apartify Africa</Text>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
           <Text style={styles.appTagline}>
             Your trusted platform for finding and renting apartments
@@ -55,7 +55,7 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About This App</Text>
           <Text style={styles.sectionText}>
-            Welcome to our Apartment Rental App! We provide a seamless platform for 
+            Welcome to Apartify Africa! We provide a seamless platform for 
             finding, booking, and managing apartment rentals. Whether you're looking for 
             a temporary stay or a long-term rental, we've got you covered.
           </Text>
@@ -298,7 +298,7 @@ export default function AboutScreen() {
         {/* Copyright */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2024 Apartment Rental App. All rights reserved.
+            © 2024 Apartify Africa. All rights reserved.
           </Text>
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Made with </Text>

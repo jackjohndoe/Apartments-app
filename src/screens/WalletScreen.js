@@ -63,6 +63,8 @@ export default function WalletScreen() {
   const [flutterwaveUrl, setFlutterwaveUrl] = useState(null);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // 'pending', 'verifying', 'success', 'failed'
+  const [creatingVirtualAccount, setCreatingVirtualAccount] = useState(false);
+  const [virtualAccountError, setVirtualAccountError] = useState(null);
   
   // Track last comprehensive sync time
   const lastComprehensiveSyncRef = useRef(0);
@@ -301,6 +303,104 @@ export default function WalletScreen() {
     // Delay sync to allow initial load to complete
     setTimeout(syncAllOnMount, 2000);
   }, []);
+
+  // Reset virtual account states when fund modal closes
+  useEffect(() => {
+    if (!showFundModal) {
+      // Reset states when modal closes
+      setBankAccountDetails(null);
+      setPaymentReference(null);
+      setVirtualAccountError(null);
+      setCreatingVirtualAccount(false);
+      setPaymentStatus(null);
+    }
+  }, [showFundModal]);
+
+  // Create virtual account immediately when bank_transfer is selected
+  useEffect(() => {
+    const createAccountImmediately = async () => {
+      // Only create if:
+      // 1. Payment method is bank_transfer
+      // 2. Fund amount is set and valid
+      // 3. User is logged in
+      // 4. Modal is open
+      // 5. Not already creating or already created
+      if (
+        paymentMethod !== 'bank_transfer' ||
+        !fundAmount ||
+        !user ||
+        !user.email ||
+        creatingVirtualAccount ||
+        bankAccountDetails ||
+        !showFundModal
+      ) {
+        return;
+      }
+
+      const amount = parseFloat(fundAmount);
+      if (isNaN(amount) || amount <= 0) {
+        return;
+      }
+
+      // Check Flutterwave limit
+      const FLUTTERWAVE_MAX_AMOUNT = 500000;
+      if (amount > FLUTTERWAVE_MAX_AMOUNT) {
+        setVirtualAccountError(`Amount exceeds ₦${FLUTTERWAVE_MAX_AMOUNT.toLocaleString()} limit. Please use card payment.`);
+        return;
+      }
+
+      try {
+        setCreatingVirtualAccount(true);
+        setVirtualAccountError(null);
+        
+        console.log('🔄 Creating virtual account immediately for bank transfer...');
+        
+        const userName = user?.name || 'Guest';
+        const txRef = `wallet_topup_${user.email}_${Date.now()}`;
+        
+        // Create virtual account immediately
+        const account = await createVirtualAccount(
+          user.email,
+          amount,
+          userName,
+          txRef
+        );
+        
+        if (!account) {
+          throw new Error('Failed to create virtual account. No account data received.');
+        }
+        
+        // Handle both camelCase and snake_case formats
+        const accountNumber = account.accountNumber || account.account_number;
+        const bankName = account.bankName || account.bank_name || 'Virtual Bank';
+        const accountName = account.accountName || account.account_name || 'Apartify Africa';
+        
+        if (!accountNumber) {
+          throw new Error('Failed to create virtual account. Account number not found in response.');
+        }
+        
+        // Store account details and payment reference
+        const accountDetails = {
+          account_number: accountNumber,
+          bank: bankName,
+          account_name: accountName,
+        };
+        
+        setBankAccountDetails(accountDetails);
+        setPaymentReference(txRef);
+        setPaymentStatus('pending');
+        
+        console.log('✅ Virtual account created immediately:', accountDetails);
+      } catch (error) {
+        console.error('❌ Error creating virtual account immediately:', error);
+        setVirtualAccountError(error.message || 'Failed to create virtual account. Please try again.');
+      } finally {
+        setCreatingVirtualAccount(false);
+      }
+    };
+
+    createAccountImmediately();
+  }, [paymentMethod, fundAmount, user, showFundModal]);
 
   // Automatic real-time balance and transaction syncing
   useEffect(() => {
@@ -701,97 +801,36 @@ export default function WalletScreen() {
     setLoading(true);
     setPaymentStatus('pending');
     try {
-      // For bank transfers, create a dynamic virtual account
+      // For bank transfers, use the already-created virtual account (created immediately when selected)
       if (paymentMethod === 'bank_transfer') {
-        try {
-          const userName = user?.name || 'Guest';
-          const txRef = `wallet_topup_${user.email}_${Date.now()}`;
-          
-          // Create dynamic virtual account for this transaction
-          console.log('🔄 Calling createVirtualAccount with:', { email: user.email, amount, name: userName, txRef });
-          const account = await createVirtualAccount(
-            user.email,
-            amount,
-            userName,
-            txRef
-          );
-          
-          console.log('✅ createVirtualAccount returned:', account);
-          console.log('✅ Account type:', typeof account);
-          console.log('✅ Account keys:', account ? Object.keys(account) : 'N/A');
-          console.log('✅ account.accountNumber:', account?.accountNumber);
-          console.log('✅ account.bankName:', account?.bankName);
-          console.log('✅ account.accountName:', account?.accountName);
-          
-          if (!account) {
-            console.error('❌ Account is null or undefined');
-            throw new Error('Failed to create virtual account. No account data received.');
-          }
-          
-          // Handle both camelCase and snake_case formats
-          const accountNumber = account.accountNumber || account.account_number;
-          const bankName = account.bankName || account.bank_name || 'Virtual Bank';
-          const accountName = account.accountName || account.account_name || 'Nigerian Apartments Leasing Ltd';
-          
-          if (!accountNumber) {
-            console.error('❌ Account number is missing. Account object:', JSON.stringify(account, null, 2));
-            throw new Error('Failed to create virtual account. Account number not found in response.');
-          }
-          
-          // Store account details and payment reference
-          // CRITICAL: Update all states immediately for real-time display
-          const accountDetails = {
-            account_number: accountNumber,
-            bank: bankName,
-            account_name: accountName,
-          };
-          
-          console.log('✅ Account details prepared:', accountDetails);
-          console.log('✅ Account Number:', accountDetails.account_number);
-          console.log('✅ Bank:', accountDetails.bank);
-          console.log('✅ Account Name:', accountDetails.account_name);
-          
-          // IMPORTANT: Set account details FIRST before showing modal
-          // This ensures data is ready when modal opens
-          // React will batch these state updates automatically
-          setBankAccountDetails(accountDetails);
-          setPaymentReference(txRef);
-          setPaymentStatus('pending');
+        // Check if virtual account was already created (should be created immediately when bank_transfer is selected)
+        if (bankAccountDetails && paymentReference) {
+          console.log('✅ Using pre-created virtual account:', bankAccountDetails);
           
           // Clear loading and close fund modal
           setLoading(false);
           setShowFundModal(false);
           
-          // Show account details modal - React will render on next cycle
+          // Show account details modal immediately
           setShowAccountDetails(true);
           
-          console.log('✅ UI states updated - account details should display NOW');
-          console.log('✅ Modal visible state set to:', true);
-          console.log('✅ Account details ready:', !!accountDetails.account_number);
-          console.log('✅ bankAccountDetails will be:', accountDetails);
-        } catch (accountError) {
-          console.error('❌ Error creating virtual account:', accountError);
-          console.error('❌ Error type:', typeof accountError);
-          console.error('❌ Error message:', accountError?.message);
-          console.error('❌ Error stack:', accountError?.stack);
-          
-          // Always clear loading state on error
+          console.log('✅ Showing account details modal with pre-created account');
+        } else if (creatingVirtualAccount) {
+          // Account is being created, wait a bit and try again
+          console.log('⏳ Virtual account is being created, please wait...');
+          Alert.alert(
+            'Creating Account',
+            'Virtual account is being created. Please wait a moment and try again.',
+            [{ text: 'OK' }]
+          );
           setLoading(false);
-          setShowFundModal(false);
-          
-          // Provide helpful error message
-          let errorMessage = accountError?.message || 'Failed to create virtual account.';
-          
-          // Check for Flutterwave amount limit error
-          if (errorMessage.includes('500,000') || errorMessage.includes('500000') || errorMessage.includes('amount should be between')) {
-            errorMessage = `Bank transfer is limited to ₦500,000 per transaction.\n\nYou entered: ₦${amount.toLocaleString()}\n\nPlease use card payment for larger amounts or split into multiple transactions.`;
-          } else if (errorMessage.includes('Flutterwave') || errorMessage.includes('credentials') || errorMessage.includes('401') || errorMessage.includes('500')) {
-            errorMessage = 'Payment service is temporarily unavailable. Please use card payment instead, or try again later.';
-          }
-          
+          return;
+        } else if (virtualAccountError) {
+          // There was an error creating the account
+          console.error('❌ Virtual account creation failed:', virtualAccountError);
           Alert.alert(
             'Payment Service Unavailable',
-            errorMessage + '\n\nYou can still fund your wallet using card payment.',
+            virtualAccountError + '\n\nYou can still fund your wallet using card payment.',
             [
               { text: 'OK', style: 'cancel' },
               { text: 'Use Card Payment', onPress: () => {
@@ -799,7 +838,69 @@ export default function WalletScreen() {
               }}
             ]
           );
+          setLoading(false);
           return;
+        } else {
+          // Fallback: Try to create account now (shouldn't happen if useEffect worked)
+          console.warn('⚠️ Virtual account not pre-created, creating now...');
+          try {
+            const userName = user?.name || 'Guest';
+            const txRef = `wallet_topup_${user.email}_${Date.now()}`;
+            
+            const account = await createVirtualAccount(
+              user.email,
+              amount,
+              userName,
+              txRef
+            );
+            
+            if (!account) {
+              throw new Error('Failed to create virtual account. No account data received.');
+            }
+            
+            const accountNumber = account.accountNumber || account.account_number;
+            const bankName = account.bankName || account.bank_name || 'Virtual Bank';
+            const accountName = account.accountName || account.account_name || 'Apartify Africa';
+            
+            if (!accountNumber) {
+              throw new Error('Failed to create virtual account. Account number not found in response.');
+            }
+            
+            const accountDetails = {
+              account_number: accountNumber,
+              bank: bankName,
+              account_name: accountName,
+            };
+            
+            setBankAccountDetails(accountDetails);
+            setPaymentReference(txRef);
+            setPaymentStatus('pending');
+            
+            setLoading(false);
+            setShowFundModal(false);
+            setShowAccountDetails(true);
+          } catch (accountError) {
+            console.error('❌ Error creating virtual account (fallback):', accountError);
+            setLoading(false);
+            setShowFundModal(false);
+            
+            let errorMessage = accountError?.message || 'Failed to create virtual account.';
+            if (errorMessage.includes('500,000') || errorMessage.includes('500000')) {
+              errorMessage = `Bank transfer is limited to ₦500,000 per transaction.\n\nYou entered: ₦${amount.toLocaleString()}\n\nPlease use card payment for larger amounts.`;
+            }
+            
+            Alert.alert(
+              'Payment Service Unavailable',
+              errorMessage + '\n\nYou can still fund your wallet using card payment.',
+              [
+                { text: 'OK', style: 'cancel' },
+                { text: 'Use Card Payment', onPress: () => {
+                  setPaymentMethod('card');
+                }}
+              ]
+            );
+            return;
+          }
         }
       } 
       // For card payments, use regular payment initialization
@@ -1435,8 +1536,8 @@ export default function WalletScreen() {
                   const normalizedHostEmail = hostEmail.toLowerCase().trim();
                   
                   // Calculate host payment amount (after fees)
-                  const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-                  const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
+                  const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+                  const serviceFee = 3000; // Fixed service fee: ₦3,000
                   const totalServiceFees = cleaningFee + serviceFee;
                   const hostPaymentAmount = Math.max(0, (totalAmount || 0) - totalServiceFees);
                   
@@ -1468,9 +1569,8 @@ export default function WalletScreen() {
               // They will be released when user confirms payment on check-in date
               
               // Calculate fees and host payment amount
-              // Fees set to 0 until changed
-              const cleaningFee = 0; // Fixed cleaning fee: ₦0 (set to 0 until changed)
-              const serviceFee = 0; // Fixed service fee: ₦0 (set to 0 until changed)
+              const cleaningFee = 2500; // Fixed cleaning fee: ₦2,500
+              const serviceFee = 3000; // Fixed service fee: ₦3,000
               const totalPaid = totalAmount || 0;
               const totalServiceFees = cleaningFee + serviceFee;
               const hostPaymentAmount = Math.max(0, totalPaid - totalServiceFees);
@@ -1866,7 +1966,14 @@ export default function WalletScreen() {
                     styles.methodButton,
                     paymentMethod === 'bank_transfer' && styles.methodButtonActive,
                   ]}
-                  onPress={() => setPaymentMethod('bank_transfer')}
+                  onPress={() => {
+                    setPaymentMethod('bank_transfer');
+                    // Reset virtual account states when switching to bank transfer
+                    // The useEffect will create a new account immediately
+                    setBankAccountDetails(null);
+                    setPaymentReference(null);
+                    setVirtualAccountError(null);
+                  }}
                 >
                   <Text
                     style={[
@@ -1895,13 +2002,33 @@ export default function WalletScreen() {
                 </TouchableOpacity>
               </View>
 
+              {paymentMethod === 'bank_transfer' && creatingVirtualAccount && (
+                <View style={styles.creatingAccountContainer}>
+                  <ActivityIndicator size="small" color="#FFD700" />
+                  <Text style={styles.creatingAccountText}>Creating virtual account...</Text>
+                </View>
+              )}
+              {paymentMethod === 'bank_transfer' && virtualAccountError && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{virtualAccountError}</Text>
+                </View>
+              )}
+              {paymentMethod === 'bank_transfer' && bankAccountDetails && (
+                <View style={styles.accountReadyContainer}>
+                  <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
+                  <Text style={styles.accountReadyText}>Virtual account ready</Text>
+                </View>
+              )}
               <TouchableOpacity
-                style={[styles.modalButton, loading && styles.modalButtonDisabled]}
+                style={[
+                  styles.modalButton, 
+                  (loading || creatingVirtualAccount || (paymentMethod === 'bank_transfer' && !bankAccountDetails && !virtualAccountError)) && styles.modalButtonDisabled
+                ]}
                 onPress={handleFundWallet}
-                disabled={loading || !paymentMethod}
+                disabled={loading || creatingVirtualAccount || !paymentMethod || (paymentMethod === 'bank_transfer' && !bankAccountDetails && !virtualAccountError)}
               >
                 <Text style={styles.modalButtonText}>
-                  {loading ? 'Processing...' : 'Continue to Payment'}
+                  {loading ? 'Processing...' : creatingVirtualAccount ? 'Creating Account...' : 'Continue to Payment'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -2522,6 +2649,41 @@ const styles = StyleSheet.create({
   modalButtonDisabled: {
     backgroundColor: '#E0E0E0',
     opacity: 0.6,
+  },
+  creatingAccountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  creatingAccountText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  errorContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#F44336',
+    textAlign: 'center',
+  },
+  accountReadyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  accountReadyText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
   },
   modalButtonText: {
     fontSize: 16,

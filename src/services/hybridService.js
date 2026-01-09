@@ -125,38 +125,63 @@ const getDefaultApartments = () => {
   ];
 };
 
+// Helper to check if an image URI is valid (not empty, not null, not undefined)
+const isValidImageUri = (uri) => {
+  return uri && typeof uri === 'string' && uri.trim() !== '';
+};
+
 // Helper to format listings for ExploreScreen
 const formatListingsForExplore = (listings) => {
-  return listings.map(listing => ({
-    id: listing.id || listing._id || String(listing.id),
-    title: listing.title || listing.name || 'Apartment',
-    price: listing.price || listing.rent || 0,
-    location: listing.location || listing.address || 'Nigeria',
-    beds: listing.bedrooms || listing.beds || 1,
-    baths: listing.bathrooms || listing.baths || 1,
-    bedrooms: listing.bedrooms || listing.beds || null,
-    bathrooms: listing.bathrooms || listing.baths || null,
-    area: listing.area || null,
-    maxGuests: listing.maxGuests || null,
-    description: listing.description || null,
-    amenities: listing.amenities || null,
-    image: listing.image || listing.images?.[0] || listing.photo || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-    images: (() => {
-      // If listing has images array, use it
-      if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
-        return listing.images.filter(img => img && img.trim && img.trim() !== '');
+  return listings.map(listing => {
+    // Get the primary image - prioritize uploaded images, only use placeholder if truly no image
+    let primaryImage = null;
+    if (isValidImageUri(listing.image)) {
+      primaryImage = listing.image;
+    } else if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+      // Find first valid image in images array
+      const validImage = listing.images.find(img => isValidImageUri(img));
+      if (validImage) {
+        primaryImage = validImage;
       }
-      // If no images array but we have a main image, create array with it
-      if (listing.image) {
-        return [listing.image];
-      }
-      // If we have photo field, use it
-      if (listing.photo) {
-        return [listing.photo];
-      }
-      // Return empty array (will use default in details screen)
-      return [];
-    })(),
+    } else if (isValidImageUri(listing.photo)) {
+      primaryImage = listing.photo;
+    }
+    
+    // Only use placeholder if we truly have no valid image
+    if (!primaryImage) {
+      primaryImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
+    }
+    
+    return {
+      id: listing.id || listing._id || String(listing.id),
+      title: listing.title || listing.name || 'Apartment',
+      price: listing.price || listing.rent || 0,
+      location: listing.location || listing.address || 'Nigeria',
+      beds: listing.bedrooms || listing.beds || 1,
+      baths: listing.bathrooms || listing.baths || 1,
+      bedrooms: listing.bedrooms || listing.beds || null,
+      bathrooms: listing.bathrooms || listing.baths || null,
+      area: listing.area || null,
+      maxGuests: listing.maxGuests || null,
+      description: listing.description || null,
+      amenities: listing.amenities || null,
+      image: primaryImage,
+      images: (() => {
+        // If listing has images array, use it (filter out invalid images)
+        if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+          return listing.images.filter(img => isValidImageUri(img));
+        }
+        // If no images array but we have a valid main image, create array with it
+        if (isValidImageUri(listing.image)) {
+          return [listing.image];
+        }
+        // If we have photo field, use it
+        if (isValidImageUri(listing.photo)) {
+          return [listing.photo];
+        }
+        // Return empty array (will use default in details screen)
+        return [];
+      })(),
     isFavorite: false,
     rating: listing.rating || 4.5,
     createdAt: listing.createdAt || new Date().toISOString(),
@@ -165,7 +190,8 @@ const formatListingsForExplore = (listings) => {
     isSuperhost: listing.isSuperhost || false,
     hostEmail: listing.hostEmail || null,
     hostProfilePicture: listing.hostProfilePicture || null,
-  }));
+    };
+  });
 };
 
 // Helper to merge API listings with local listings (API first, then local-only)
@@ -302,15 +328,23 @@ export const hybridApartmentService = {
     try {
       // PRIORITY 1: Fetch from API first (these contain listings from ALL devices/users)
       // This ensures cross-platform visibility (iOS users see Android listings and vice versa)
+      // CRITICAL: API returns ALL listings regardless of platform - no filtering by device type
       let apiApartments = [];
       try {
-        const apartments = await apartmentService.getApartments(filters);
+        // Ensure no platform-specific filters are applied
+        const cleanFilters = { ...filters };
+        // Remove any potential platform-specific filters
+        delete cleanFilters.platform;
+        delete cleanFilters.deviceType;
+        delete cleanFilters.os;
+        
+        const apartments = await apartmentService.getApartments(cleanFilters);
         if (apartments !== null && apartments !== undefined) {
           apiApartments = Array.isArray(apartments) ? apartments : [];
           // Cache API apartments for offline access
           if (apiApartments.length > 0) {
             await AsyncStorage.setItem('cached_api_apartments', JSON.stringify(apiApartments));
-            console.log('✅ Loaded', apiApartments.length, 'listings from API (cross-platform)');
+            console.log('✅ Loaded', apiApartments.length, 'listings from API (cross-platform - Android & iOS)');
           }
         }
       } catch (apiError) {
@@ -359,16 +393,18 @@ export const hybridApartmentService = {
     try {
       // PRIORITY 1: Get API apartments first (these contain listings from ALL devices/users)
       // This ensures cross-platform visibility (iPhone users see Android listings and vice versa)
+      // CRITICAL: API returns ALL listings regardless of platform - no filtering by device type
       let apiApartments = [];
       try {
-        const apartments = await apartmentService.getApartments();
+        // Fetch ALL listings without any platform-specific filters
+        const apartments = await apartmentService.getApartments({});
         if (apartments !== null && apartments !== undefined) {
           apiApartments = Array.isArray(apartments) ? apartments : [];
           
           // Cache API apartments for offline access
           if (apiApartments.length > 0) {
             await AsyncStorage.setItem('cached_api_apartments', JSON.stringify(apiApartments));
-            console.log('✅ Loaded', apiApartments.length, 'API listings (cross-platform)');
+            console.log('✅ Loaded', apiApartments.length, 'API listings (cross-platform - Android & iOS)');
           }
         }
       } catch (apiError) {
@@ -495,85 +531,47 @@ export const hybridApartmentService = {
   },
 
   createApartment: async (apartmentData) => {
-    try {
-      // PRIORITY 1: Try API save first (this makes listing visible to ALL users on ALL devices)
-      // This ensures cross-platform visibility (iPhone users see Android listings and vice versa)
-      let apiResult = null;
-      try {
-        apiResult = await apartmentService.createApartment(apartmentData);
-        if (apiResult !== null && apiResult !== undefined) {
-          console.log('✅ Listing saved to API - visible to all users on all devices:', apiResult.id || apiResult._id);
-          
-          // CRITICAL: Also save locally so it appears immediately on homepage
-          // Even though API save succeeded, we save locally to ensure immediate visibility
-          // The local version will be replaced by API version on next fetch
-          try {
-            // Format API result for local storage (use API ID if available)
-            const localListingData = {
-              ...apartmentData,
-              id: apiResult.id || apiResult._id || apartmentData.id,
-              _id: apiResult._id || apiResult.id || apartmentData._id,
-            };
-            const localListing = await addListing(localListingData);
-            console.log('✅ Listing also saved locally for immediate visibility:', localListing.id);
-          } catch (localError) {
-            console.warn('⚠️ Could not save listing locally (non-fatal):', localError.message);
-            // Continue - API save succeeded, listing will appear on next API fetch
-          }
-          
-          // CRITICAL: Clear API cache so new listing appears immediately
-          // This forces getAllApartmentsForExplore to refetch from API
-          try {
-            await AsyncStorage.removeItem('cached_api_apartments');
-            console.log('✅ Cleared API cache - new listing will appear on next load');
-          } catch (cacheError) {
-            console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
-          }
-          
-          return apiResult;
-        }
-      } catch (apiError) {
-        console.log('⚠️ API save failed, will save locally and queue for sync:', apiError.message);
-        // Continue to local storage save and queue for sync
-      }
-      
-      // PRIORITY 2: Save to local storage (ensures listing appears even if API fails)
-      // This ensures the listing appears on this device immediately
-      const newListing = await addListing(apartmentData);
-      console.log('✅ Listing saved to local storage:', newListing.id, newListing.title);
-      
-      // Queue for automatic sync to API (will sync when connection is available)
-      try {
-        await queueListingForSync(newListing);
-        console.log('✅ Listing queued for automatic sync to API');
-      } catch (queueError) {
-        console.warn('⚠️ Could not queue listing for sync:', queueError);
-        // Continue - listing is saved locally
-      }
-      
-      // Return the locally saved listing - it will appear on ExploreScreen
-      // It will automatically sync to API in the background
-      return newListing;
-    } catch (error) {
-      console.error('Error creating apartment:', error);
-      // If addListing fails, try again
-      try {
-        const newListing = await addListing(apartmentData);
-        console.log('✅ Listing saved on retry:', newListing.id);
-        
-        // Queue for sync
-        try {
-          await queueListingForSync(newListing);
-        } catch (queueError) {
-          console.warn('Could not queue listing for sync:', queueError);
-        }
-        
-        return newListing;
-      } catch (retryError) {
-        console.error('Failed to save listing after retry:', retryError);
-        throw retryError;
-      }
+    // Save directly to API - makes listing available to all iPhone users immediately
+    // No fallback to local storage - API is required for cross-device visibility
+    const apiResult = await apartmentService.createApartment(apartmentData);
+    
+    if (apiResult === null || apiResult === undefined) {
+      throw new Error('Failed to save listing to API. Please check your internet connection and try again.');
     }
+    
+    console.log('✅ Listing saved to API - available to all iPhone users:', apiResult.id || apiResult._id);
+    
+    // Clear API cache so new listing appears immediately
+    try {
+      await AsyncStorage.removeItem('cached_api_apartments');
+      console.log('✅ Cleared API cache - new listing will appear immediately');
+    } catch (cacheError) {
+      console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
+    }
+    
+    return apiResult;
+  },
+
+  updateApartment: async (id, apartmentData) => {
+    // Update directly to API - makes listing available to all iPhone users immediately
+    // No fallback to local storage - API is required for cross-device visibility
+    const apiResult = await apartmentService.updateApartment(id, apartmentData);
+    
+    if (apiResult === null || apiResult === undefined) {
+      throw new Error('Failed to update listing to API. Please check your internet connection and try again.');
+    }
+    
+    console.log('✅ Listing updated to API - available to all iPhone users:', apiResult.id || id);
+    
+    // Clear API cache so updated listing appears immediately
+    try {
+      await AsyncStorage.removeItem('cached_api_apartments');
+      console.log('✅ Cleared API cache - updated listing will appear immediately');
+    } catch (cacheError) {
+      console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
+    }
+    
+    return apiResult;
   },
 
   getMyApartments: async () => {

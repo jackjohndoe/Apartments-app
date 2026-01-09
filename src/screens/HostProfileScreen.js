@@ -342,17 +342,29 @@ export default function HostProfileScreen() {
       }}
       activeOpacity={0.8}
     >
-      {/* Listing Image */}
-      {item.image || (item.images && item.images[0]) ? (
-        <Image 
-          source={{ uri: item.image || item.images[0] }} 
-          style={styles.listingImage} 
-        />
-      ) : (
-        <View style={styles.listingImagePlaceholder}>
-          <MaterialIcons name="home" size={48} color="#CCC" />
-        </View>
-      )}
+      {/* Listing Image - Show uploaded image if available, otherwise placeholder */}
+      {(() => {
+        // Check for valid uploaded image
+        const hasValidImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '') ||
+                              (item.images && Array.isArray(item.images) && item.images.length > 0 && 
+                               item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '');
+        const imageUri = item.image && typeof item.image === 'string' && item.image.trim() !== '' 
+          ? item.image 
+          : (item.images && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '' 
+            ? item.images[0] 
+            : null);
+        
+        return hasValidImage && imageUri ? (
+          <Image 
+            source={{ uri: imageUri }} 
+            style={styles.listingImage} 
+          />
+        ) : (
+          <View style={styles.listingImagePlaceholder}>
+            <MaterialIcons name="home" size={48} color="#CCC" />
+          </View>
+        );
+      })()}
 
       {/* Listing Info */}
       <View style={styles.listingInfo}>
@@ -511,9 +523,6 @@ export default function HostProfileScreen() {
             </View>
           )}
           <Text style={styles.name}>{hostProfile?.name || 'Property Owner'}</Text>
-          {hostProfile?.email && (
-            <Text style={styles.email}>{hostProfile.email}</Text>
-          )}
           {apartment?.isSuperhost && (
             <View style={styles.superhostBadgeContainer}>
               <MaterialIcons name="verified" size={16} color="#FFD700" />
@@ -522,52 +531,8 @@ export default function HostProfileScreen() {
           )}
         </View>
 
-        {/* Contact Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
-          
-          {hostProfile?.email && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MaterialIcons name="email" size={20} color="#666" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{hostProfile.email}</Text>
-              </View>
-            </View>
-          )}
-
-          {hostProfile?.whatsappNumber && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MaterialIcons name="phone" size={20} color="#666" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>WhatsApp</Text>
-                <Text style={styles.infoValue}>+234 {hostProfile.whatsappNumber}</Text>
-              </View>
-            </View>
-          )}
-
-          {hostProfile?.address && (
-            <View style={styles.infoRow}>
-              <View style={styles.infoIcon}>
-                <MaterialIcons name="location-on" size={20} color="#666" />
-              </View>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Address</Text>
-                <Text style={styles.infoValue} numberOfLines={3}>{hostProfile.address}</Text>
-              </View>
-            </View>
-          )}
-
-          {!hostProfile?.email && !hostProfile?.whatsappNumber && !hostProfile?.address && (
-            <Text style={styles.noInfoText}>
-              Contact information not available
-            </Text>
-          )}
-        </View>
+        {/* Contact Information - Hidden for privacy */}
+        {/* Contact details are only available after payment is made in booked listings */}
 
         {/* Host's Listings */}
         <View style={styles.section}>
