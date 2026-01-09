@@ -138,10 +138,13 @@ export default function ExploreScreen() {
   }, []);
 
   // Reload apartments when screen comes into focus (to show new listings from all devices)
+  // This ensures newly uploaded listings appear at the top immediately when user navigates back
   useFocusEffect(
     React.useCallback(() => {
       setIsScreenFocused(true);
       // Always refresh when screen comes into focus to get latest listings from all devices
+      // This ensures newly uploaded listings appear at the top immediately
+      console.log('🔄 ExploreScreen focused - refreshing to show new listings at top');
       loadApartments(true); // Force refresh to get listings uploaded on other devices
       // Check if user is new and show welcome deal modal
       if (user && user.email) {
@@ -378,12 +381,19 @@ export default function ExploreScreen() {
         // Continue without favorites
       }
       
-      // Set the final list - this ensures listings are stable
+      // Sort by most recent first to ensure newly uploaded listings appear at top
+      finalApartments.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.updatedAt || 0);
+        const dateB = new Date(b.createdAt || b.updatedAt || 0);
+        return dateB - dateA; // Most recent first (newest at top)
+      });
+      
+      // Set the final list - this ensures listings are stable and sorted correctly
       // Always set the list, even if empty (shouldn't happen)
       setApartmentList(finalApartments);
       // Update listing count for real-time polling
       setLastListingCount(finalApartments.length);
-      console.log('ExploreScreen - Final apartments set:', finalApartments.length, 'User listings included:', userListings.length);
+      console.log('✅ ExploreScreen - Final apartments set:', finalApartments.length, 'Sorted by most recent first. User listings included:', userListings.length);
     } catch (error) {
       console.error('Error loading apartments:', error);
       // Fallback: try to get user listings and merge with defaults

@@ -202,21 +202,29 @@ export default function UploadListingScreen() {
       let savedListing = null;
       
       if (isEdit && listing) {
-        // Save directly to API - makes listing available to all iPhone users
+        // Save directly to API - makes listing available to all users immediately
         savedListing = await hybridApartmentService.updateApartment(listing.id, listingData);
-        console.log('✅ Listing updated successfully and available to all iPhone users:', savedListing?.id || listing.id);
+        console.log('✅ Listing updated successfully and available to all users:', savedListing?.id || listing.id);
         Alert.alert('Success', 'Listing updated successfully!');
       } else {
-        // Save directly to API - makes listing available to all iPhone users
+        // Save directly to API - makes listing available to all users immediately
         savedListing = await hybridApartmentService.createApartment(listingData);
-        console.log('✅ Listing created successfully and available to all iPhone users:', savedListing?.id);
+        console.log('✅ Listing created successfully and available to all users:', savedListing?.id);
         // Add notification for listing upload
         await notifyListingUploaded(listingData.title);
-        Alert.alert('Success', 'Listing created successfully and is now available to all iPhone users!');
+        Alert.alert('Success', 'Listing created successfully and is now available to all users!');
+      }
+      
+      // Clear cache to ensure new listing appears at top immediately
+      try {
+        await AsyncStorage.removeItem('cached_api_apartments');
+        console.log('✅ Cleared cache after saving - listing will appear at top of ExploreScreen');
+      } catch (cacheError) {
+        console.warn('⚠️ Could not clear cache (non-fatal):', cacheError.message);
       }
       
       // Navigate back - screens will refresh via useFocusEffect
-      // ExploreScreen and MyListingsScreen both use useFocusEffect to reload data
+      // ExploreScreen will automatically reload and show new listing at top
       navigation.goBack();
     } catch (error) {
       console.error('Error saving listing:', error);

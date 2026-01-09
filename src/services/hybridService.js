@@ -544,7 +544,7 @@ export const hybridApartmentService = {
   },
 
   createApartment: async (apartmentData) => {
-    // Save directly to API - makes listing available to all iPhone users immediately
+    // Save directly to API - makes listing available to all users immediately
     // No fallback to local storage - API is required for cross-device visibility
     const apiResult = await apartmentService.createApartment(apartmentData);
     
@@ -552,14 +552,19 @@ export const hybridApartmentService = {
       throw new Error('Failed to save listing to API. Please check your internet connection and try again.');
     }
     
-    console.log('✅ Listing saved to API - available to all iPhone users:', apiResult.id || apiResult._id);
+    console.log('✅ Listing saved to API - available to all users:', apiResult.id || apiResult._id);
     
-    // Clear API cache so new listing appears immediately
+    // Clear API cache so new listing appears immediately at top of ExploreScreen
     try {
       await AsyncStorage.removeItem('cached_api_apartments');
-      console.log('✅ Cleared API cache - new listing will appear immediately');
+      console.log('✅ Cleared API cache - new listing will appear at top of ExploreScreen immediately');
     } catch (cacheError) {
       console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
+    }
+    
+    // Ensure the listing has a createdAt timestamp for proper sorting (newest first)
+    if (apiResult && !apiResult.createdAt) {
+      apiResult.createdAt = new Date().toISOString();
     }
     
     return apiResult;
