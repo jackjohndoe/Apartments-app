@@ -389,13 +389,23 @@ export const hybridApartmentService = {
   },
   
   // Get all apartments including default ones for ExploreScreen
-  getAllApartmentsForExplore: async () => {
+  getAllApartmentsForExplore: async (forceRefresh = false) => {
     try {
       // PRIORITY 1: Get API apartments first (these contain listings from ALL devices/users)
       // This ensures cross-platform visibility (iPhone users see Android listings and vice versa)
       // CRITICAL: API returns ALL listings regardless of platform - no filtering by device type
       let apiApartments = [];
       try {
+        // Clear cache if forcing refresh to ensure fresh data from all devices
+        if (forceRefresh) {
+          try {
+            await AsyncStorage.removeItem('cached_api_apartments');
+            console.log('🔄 Cleared API cache - fetching fresh listings from all devices');
+          } catch (cacheError) {
+            console.warn('⚠️ Could not clear cache:', cacheError.message);
+          }
+        }
+        
         // Fetch ALL listings without any platform-specific filters
         const apartments = await apartmentService.getApartments({});
         if (apartments !== null && apartments !== undefined) {
@@ -404,7 +414,10 @@ export const hybridApartmentService = {
           // Cache API apartments for offline access
           if (apiApartments.length > 0) {
             await AsyncStorage.setItem('cached_api_apartments', JSON.stringify(apiApartments));
-            console.log('✅ Loaded', apiApartments.length, 'API listings (cross-platform - Android & iOS)');
+            console.log('✅ Loaded', apiApartments.length, 'listings from API (cross-platform - all devices)');
+            console.log('🔄 These listings are visible on ALL devices (iPhone, Android, Web)');
+          } else {
+            console.warn('⚠️ API returned empty array - no listings found in backend');
           }
         }
       } catch (apiError) {
