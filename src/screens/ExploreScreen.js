@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -133,10 +134,11 @@ export default function ExploreScreen() {
     }
   }, []);
 
-  // Reload apartments when screen comes into focus (to show new listings)
+  // Reload apartments when screen comes into focus (to show new listings from all devices)
   useFocusEffect(
     React.useCallback(() => {
-      loadApartments();
+      // Always refresh when screen comes into focus to get latest listings from all devices
+      loadApartments(true); // Force refresh to get listings uploaded on other devices
       // Check if user is new and show welcome deal modal
       if (user && user.email) {
         checkAndShowWelcomeDeal();
@@ -208,9 +210,21 @@ export default function ExploreScreen() {
     setShowWelcomeDeal(false);
   };
 
-  const loadApartments = async () => {
+  const loadApartments = async (forceRefresh = false) => {
     try {
-      setLoading(true);
+      if (!refreshing) {
+        setLoading(true);
+      }
+      
+      // Clear API cache if forcing refresh to ensure fresh data from backend
+      if (forceRefresh) {
+        try {
+          await AsyncStorage.removeItem('cached_api_apartments');
+          console.log('🔄 Cleared API cache for fresh fetch - new listings will appear');
+        } catch (cacheError) {
+          console.warn('⚠️ Could not clear API cache:', cacheError.message);
+        }
+      }
       
       // Always get user listings directly first to ensure they're included
       const { getListings } = await import('../utils/listings');
@@ -219,7 +233,8 @@ export default function ExploreScreen() {
       
       // Load all apartments including user listings and default apartments
       // This ensures new listings appear with other listing cards
-      const allApartments = await hybridApartmentService.getAllApartmentsForExplore();
+      // Force fresh API fetch to get listings from all devices
+      const allApartments = await hybridApartmentService.getAllApartmentsForExplore(forceRefresh);
       
       console.log('ExploreScreen - All apartments loaded:', allApartments?.length || 0);
       
@@ -374,8 +389,16 @@ export default function ExploreScreen() {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  // Pull-to-refresh handler
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    // Force refresh by clearing cache and reloading
+    await loadApartments(true);
+  }, []);
 
   const loadFavorites = async () => {
     try {
@@ -734,6 +757,14 @@ export default function ExploreScreen() {
 
       {/* Apartment List */}
       <FlatList
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#FFD700']}
+            tintColor="#FFD700"
+          />
+        }
         data={filteredApartments}
         renderItem={renderApartmentCard}
         keyExtractor={(item) => item.id}
