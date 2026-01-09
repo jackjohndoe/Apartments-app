@@ -123,6 +123,7 @@ export default function ExploreScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('Entire place');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showWelcomeDeal, setShowWelcomeDeal] = useState(false);
   const [checkingWelcomeDeal, setCheckingWelcomeDeal] = useState(false);
 
