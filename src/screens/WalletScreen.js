@@ -391,6 +391,9 @@ export default function WalletScreen() {
         setPaymentStatus('pending');
         
         console.log('✅ Virtual account created immediately:', accountDetails);
+        
+        // Automatically show account details modal when account is created
+        setShowAccountDetails(true);
       } catch (error) {
         console.error('❌ Error creating virtual account immediately:', error);
         setVirtualAccountError(error.message || 'Failed to create virtual account. Please try again.');
