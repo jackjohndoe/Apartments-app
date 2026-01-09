@@ -126,6 +126,8 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showWelcomeDeal, setShowWelcomeDeal] = useState(false);
   const [checkingWelcomeDeal, setCheckingWelcomeDeal] = useState(false);
+  const [lastListingCount, setLastListingCount] = useState(0);
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   useEffect(() => {
     loadApartments();
@@ -138,14 +140,48 @@ export default function ExploreScreen() {
   // Reload apartments when screen comes into focus (to show new listings from all devices)
   useFocusEffect(
     React.useCallback(() => {
+      setIsScreenFocused(true);
       // Always refresh when screen comes into focus to get latest listings from all devices
       loadApartments(true); // Force refresh to get listings uploaded on other devices
       // Check if user is new and show welcome deal modal
       if (user && user.email) {
         checkAndShowWelcomeDeal();
       }
+      
+      return () => {
+        setIsScreenFocused(false);
+      };
     }, [user])
   );
+
+  // Real-time polling: Check for new listings every 15 seconds when screen is focused
+  useEffect(() => {
+    if (!isScreenFocused) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        // Quick check: Get listing count from API without full refresh
+        const { hybridApartmentService } = await import('../services/hybridService');
+        
+        // Fetch just the count/latest listings to detect changes
+        const currentListings = await hybridApartmentService.getAllApartmentsForExplore(false);
+        const currentCount = currentListings?.length || 0;
+        
+        // If count increased, new listings were added - trigger full refresh
+        if (currentCount > lastListingCount && lastListingCount > 0) {
+          console.log(`🔄 New listings detected! Count: ${lastListingCount} → ${currentCount}. Refreshing...`);
+          await loadApartments(true); // Force refresh to show new listings
+        } else if (lastListingCount === 0 && currentCount > 0) {
+          // First poll after initial load - update count
+          setLastListingCount(currentCount);
+        }
+      } catch (error) {
+        console.warn('⚠️ Real-time polling error (non-fatal):', error.message);
+      }
+    }, 15000); // Poll every 15 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isScreenFocused, lastListingCount]);
 
   // Check if user should see welcome deal modal
   // Shows for both new users (sign-up) and existing users (sign-in)
@@ -243,6 +279,8 @@ export default function ExploreScreen() {
       
       if (allApartments && allApartments.length > 0) {
         finalApartments = allApartments;
+        // Update listing count for real-time polling
+        setLastListingCount(finalApartments.length);
       } else {
         // If empty, manually merge user listings with defaults
         const formattedUserListings = userListings && userListings.length > 0
@@ -329,6 +367,8 @@ export default function ExploreScreen() {
       // Set the final list - this ensures listings are stable
       // Always set the list, even if empty (shouldn't happen)
       setApartmentList(finalApartments);
+      // Update listing count for real-time polling
+      setLastListingCount(finalApartments.length);
       console.log('ExploreScreen - Final apartments set:', finalApartments.length, 'User listings included:', userListings.length);
     } catch (error) {
       console.error('Error loading apartments:', error);
@@ -391,6 +431,11 @@ export default function ExploreScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      // Update last listing count for real-time polling
+      const finalCount = apartmentList.length || apartments?.length || 0;
+      if (finalCount > 0) {
+        setLastListingCount(finalCount);
+      }
     }
   };
 
