@@ -523,7 +523,8 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     }
     
     // Network errors, timeouts, etc. - return null to preserve frontend for non-auth endpoints
-    console.log('API network error, using local storage fallback:', error.message);
+    const errorMessage = error?.message || error?.toString() || 'Unknown network error';
+    console.log('API network error, using local storage fallback:', errorMessage);
     return null;
   }
 };
