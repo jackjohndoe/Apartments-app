@@ -120,11 +120,14 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
       },
     };
 
+    // Extract method from options (defaults to GET if not specified)
+    const method = options.method || 'GET';
+
     // Log request details for payment endpoints (in dev mode)
     if (isPaymentEndpoint && __DEV__) {
       const requestDetails = {
         url: `${BASE_URL}${endpoint}`,
-        method: options.method || 'GET',
+        method: method,
         hasAuthHeader: !!defaultHeaders['Authorization'],
         authHeaderPreview: defaultHeaders['Authorization'] ? 
           defaultHeaders['Authorization'].substring(0, 30) + '...' : 'none',
