@@ -1,33 +1,29 @@
-# EAS Build ignore file
-# Files and directories to exclude from EAS builds
-
-# System directories
+﻿# Exclude temp directories that cause EAS build issues
 AppData/
-Local/
-Temp/
-Cookies/
-NetHood/
-My Documents/
+AppData/Local/Temp/
+**/AppData/Local/Temp/
+**/Temp/
+*.ps1
+ps-script-*
 
-# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-*.iml
-
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-
-# Build artifacts
+# Exclude build artifacts
+.gradle/
+android/.gradle/
 android/app/build/
 android/build/
 ios/build/
+ios/Pods/
+*.apk
+*.aab
+*.ipa
 
-# Node modules (already in .gitignore but being explicit)
-node_modules/
+# Exclude IDE files
+.idea/
+*.iml
 
+# Exclude EAS temp files
+.eas-temp-*/
+
+# Exclude large caches
+.gradle/caches/
+android/.gradle/caches/
