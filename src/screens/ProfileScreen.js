@@ -217,7 +217,7 @@ export default function ProfileScreen() {
             </View>
           )}
           <Text style={styles.name}>{profileData?.name || user?.name || 'User'}</Text>
-          <Text style={styles.email}>{profileData?.email || user?.email || 'user@example.com'}</Text>
+          <Text style={styles.email}>{profileData?.email || user?.email || ''}</Text>
           {profileData?.whatsappNumber && (
             <View style={styles.infoRow}>
               <MaterialIcons name="phone" size={16} color="#666" />

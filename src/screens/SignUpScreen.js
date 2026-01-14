@@ -36,10 +36,22 @@ export default function SignUpScreen() {
   const [newUserEmail, setNewUserEmail] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Google Sign In disabled - placeholder credentials would cause App Store rejection
+  // To enable: Configure real OAuth credentials in Google Cloud Console and update these values
+  const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID';
+  const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID';
+  const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID';
+  
+  // Check if Google credentials are configured (not placeholders)
+  const isGoogleConfigured = 
+    GOOGLE_IOS_CLIENT_ID !== 'YOUR_IOS_CLIENT_ID' &&
+    GOOGLE_ANDROID_CLIENT_ID !== 'YOUR_ANDROID_CLIENT_ID' &&
+    GOOGLE_WEB_CLIENT_ID !== 'YOUR_WEB_CLIENT_ID';
+  
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID',
-    webClientId: 'YOUR_WEB_CLIENT_ID',
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
   });
 
   const handleClaimDeal = async () => {
@@ -503,14 +515,17 @@ export default function SignUpScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleSignUp}
-            activeOpacity={0.8}
-            disabled={!request}
-          >
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
+          {/* Google Sign In disabled until real OAuth credentials are configured */}
+          {isGoogleConfigured && (
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignUp}
+              activeOpacity={0.8}
+              disabled={!request}
+            >
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.appleButton}

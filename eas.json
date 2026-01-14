@@ -36,6 +36,9 @@
       "ios": {
         "simulator": false,
         "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_IOS_USES_NON_EXEMPT_ENCRYPTION": "false"
       }
     }
   },

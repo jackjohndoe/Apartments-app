@@ -1,29 +1,45 @@
-﻿# Exclude temp directories that cause EAS build issues
-AppData/
-AppData/Local/Temp/
-**/AppData/Local/Temp/
-**/Temp/
-*.ps1
-ps-script-*
+﻿# EAS Build ignore file
+# Files and directories to exclude from EAS builds
 
-# Exclude build artifacts
-.gradle/
-android/.gradle/
-android/app/build/
-android/build/
-ios/build/
-ios/Pods/
+# Windows system files
+AppData/
+**/AppData/**
+AppData/Local/
+AppData/LocalLow/
+AppData/Roaming/
+**/AppData/Local/**
+**/AppData/LocalLow/**
+**/AppData/Roaming/**
+
+# Cursor IDE files
+.cursor/
+**/.cursor/**
+
+# IDE files
+.idea/
+*.iml
+
+# Node modules (already excluded but ensure)
+node_modules/
+
+# Build artifacts
+.expo/
+.expo-shared/
+dist/
+web-build/
 *.apk
 *.aab
 *.ipa
 
-# Exclude IDE files
-.idea/
-*.iml
+# Environment files
+.env
+.env.local
+.env.*.local
+sendgrid.env
 
-# Exclude EAS temp files
-.eas-temp-*/
+# Git files
+.git/
 
-# Exclude large caches
-.gradle/caches/
-android/.gradle/caches/
+# Documentation (optional - remove if you want docs in build)
+*.md
+!README.md

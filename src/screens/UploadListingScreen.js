@@ -320,24 +320,12 @@ export default function UploadListingScreen() {
       const ImagePicker = getImagePicker();
       
       if (!ImagePicker) {
+        // In production builds, image picker should be available
+        // If not available, show user-friendly error without development-specific messages
         Alert.alert(
-          'Image Picker Not Available',
-          'Image picker requires a development build. The app is currently running in Expo Go which doesn\'t support native modules.\n\nTo enable image upload:\n1. Build a development build: npx expo run:android\n2. Or use EAS Build: eas build --profile development --platform android',
-          [
-            { text: 'OK' },
-            {
-              text: 'USE DEMO IMAGE',
-              onPress: () => {
-                const demoImageUrl = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
-                setSelectedImages([demoImageUrl]);
-                Alert.alert(
-                  'Demo Image Set',
-                  'Placeholder image has been set. Build a development build for real image upload from your device.',
-                  [{ text: 'OK' }]
-                );
-              }
-            },
-          ]
+          'Image Upload Unavailable',
+          'Image upload is currently unavailable. Please try again later or contact support if the issue persists.',
+          [{ text: 'OK' }]
         );
         return;
       }

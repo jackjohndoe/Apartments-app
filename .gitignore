@@ -25,8 +25,20 @@ sendgrid.env
 
 # Exclude AppData and Android Studio files
 AppData/
+**/AppData/**
+AppData/**/*
+.cursor/
+**/.cursor/**
 .idea/
 *.iml
+
+# Windows system files
+AppData/Local/
+AppData/LocalLow/
+AppData/Roaming/
+**/AppData/Local/**
+**/AppData/LocalLow/**
+**/AppData/Roaming/**
 
 # EAS temp directories
 .eas-temp-*/

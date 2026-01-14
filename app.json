@@ -27,10 +27,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFD700"
       },
-      "package": "com.nigerianapartments.app",
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "package": "com.nigerianapartments.app"
     },
     "web": {
       "bundler": "metro"
