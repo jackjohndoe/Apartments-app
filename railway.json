@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",
-    "rootDirectory": "booking-backend"
+    "rootDirectory": "."
   },
   "deploy": {
     "startCommand": "java -jar booking-0.0.1-SNAPSHOT.jar --spring.profiles.active=staging",
