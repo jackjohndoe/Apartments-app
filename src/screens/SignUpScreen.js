@@ -17,6 +17,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import { useNavigation } from '@react-navigation/native';
 import { authService } from '../services/authService';
 import { markWelcomeDealSeen } from '../utils/userStorage';
+import { logger } from '../utils/logger';
 // Welcome deal modal is now shown on the home page (ExploreScreen) instead
 
 let AppleAuthentication;
@@ -79,7 +80,7 @@ export default function SignUpScreen() {
         ]
       );
     } catch (error) {
-      console.error('Error claiming welcome deal:', error);
+      logger.error('Error claiming welcome deal:', error);
       Alert.alert('Error', 'Failed to claim deal. Please try again.');
     } finally {
       setLoading(false);
@@ -97,9 +98,9 @@ export default function SignUpScreen() {
     try {
       const { updateWalletBalance } = await import('../utils/wallet');
       await updateWalletBalance(newUserEmail, 0);
-      console.log(`✅ Wallet initialized to ₦0 for user: ${newUserEmail}`);
+      logger.log(`✅ Wallet initialized to ₦0 for user: ${newUserEmail}`);
     } catch (walletError) {
-      console.error('Error initializing wallet to zero:', walletError);
+      logger.error('Error initializing wallet to zero:', walletError);
       // Continue even if wallet initialization fails - getWalletBalance will return 0 anyway
     }
     
@@ -136,9 +137,9 @@ export default function SignUpScreen() {
             try {
               const { updateWalletBalance } = await import('../utils/wallet');
               await updateWalletBalance(userData.email, 0);
-              console.log(`✅ Wallet initialized to ₦0 for new Google user: ${userData.email}`);
+              logger.log(`✅ Wallet initialized to ₦0 for new Google user: ${userData.email}`);
             } catch (walletInitError) {
-              console.error('Error initializing wallet to zero:', walletInitError);
+              logger.error('Error initializing wallet to zero:', walletInitError);
               // Continue even if wallet initialization fails
             }
             

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api';
 import { handleTokenExpiration } from '../utils/tokenExpirationHandler';
 import { refreshToken, getValidToken } from '../utils/tokenRefresh';
+import { logger } from '../utils/logger';
 
 const BASE_URL = API_CONFIG.BASE_URL;
 
@@ -24,15 +25,15 @@ const getAuthToken = async (skipRefresh = false) => {
       const user = JSON.parse(userData);
       const token = user?.token || user?.accessToken || null;
       if (!token) {
-        console.warn('User data found but no token available');
+        logger.warn('User data found but no token available');
       }
       return token;
     } else {
-      console.warn('No user data found in AsyncStorage - user may not be logged in');
+      logger.warn('No user data found in AsyncStorage - user may not be logged in');
     }
     return null;
   } catch (error) {
-    console.error('Error getting auth token:', error);
+    logger.error('Error getting auth token:', error);
     return null;
   }
 };
@@ -48,7 +49,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
   
   // Debug logging for payment endpoints
   if (isPaymentEndpoint) {
-    console.log('🔍 Payment endpoint - Token check:', {
+      logger.log('🔍 Payment endpoint - Token check:', {
       hasToken: !!token,
       tokenType: token ? typeof token : 'none',
       tokenLength: token ? token.length : 0,
@@ -60,17 +61,17 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
         const user = JSON.parse(userData);
-        console.log('🔍 AsyncStorage user data:', {
+        logger.log('🔍 AsyncStorage user data:', {
           hasToken: !!user.token,
           hasAccessToken: !!user.accessToken,
           email: user.email,
           allKeys: Object.keys(user)
         });
       } else {
-        console.warn('⚠️ No user data in AsyncStorage');
+        logger.warn('⚠️ No user data in AsyncStorage');
       }
     } catch (debugError) {
-      console.error('Error checking AsyncStorage:', debugError);
+      logger.error('Error checking AsyncStorage:', debugError);
     }
   }
   
@@ -83,33 +84,33 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     const cleanToken = token.trim().replace(/^["']|["']$/g, '');
     defaultHeaders['Authorization'] = `Bearer ${cleanToken}`;
     if (isPaymentEndpoint && __DEV__) {
-      console.log('✅ Payment request with token:', cleanToken.substring(0, 30) + '...');
-      console.log('✅ Authorization header set:', `Bearer ${cleanToken.substring(0, 20)}...`);
-      console.log('✅ Full Authorization header length:', `Bearer ${cleanToken}`.length);
+      logger.log('✅ Payment request with token:', cleanToken.substring(0, 30) + '...');
+      logger.log('✅ Authorization header set:', `Bearer ${cleanToken.substring(0, 20)}...`);
+      logger.log('✅ Full Authorization header length:', `Bearer ${cleanToken}`.length);
     }
   } else if (isPaymentEndpoint) {
       // For payment endpoints, log warning if no token
-      console.error('❌ Payment endpoint requires authentication but no token found');
-      console.error('Make sure you are logged in. Try signing out and signing in again.');
-      console.error('Checking AsyncStorage for user data...');
+      logger.error('❌ Payment endpoint requires authentication but no token found');
+      logger.error('Make sure you are logged in. Try signing out and signing in again.');
+      logger.error('Checking AsyncStorage for user data...');
       // Try to get user data directly for debugging
       AsyncStorage.getItem('user').then(userData => {
         if (userData) {
           try {
             const user = JSON.parse(userData);
-            console.error('User data found:', {
+            logger.error('User data found:', {
               hasToken: !!user.token,
               hasAccessToken: !!user.accessToken,
               email: user.email,
               keys: Object.keys(user)
             });
           } catch (e) {
-            console.error('Could not parse user data:', e);
+            logger.error('Could not parse user data:', e);
           }
         } else {
-          console.error('No user data in AsyncStorage');
+          logger.error('No user data in AsyncStorage');
         }
-      }).catch(err => console.error('Error reading AsyncStorage:', err));
+      }).catch(err => logger.error('Error reading AsyncStorage:', err));
     }
 
     const config = {
@@ -133,9 +134,9 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
           defaultHeaders['Authorization'].substring(0, 30) + '...' : 'none',
         allHeaders: { ...defaultHeaders }
       };
-      console.log('📤 Making payment request:');
-      console.log(JSON.stringify(requestDetails, null, 2));
-      console.log('Full request object:', requestDetails);
+      logger.log('📤 Making payment request:');
+      logger.log(JSON.stringify(requestDetails, null, 2));
+      logger.log('Full request object:', requestDetails);
     }
     
     try {
@@ -157,7 +158,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     
     // Log response details for payment endpoints (in dev mode)
     if (isPaymentEndpoint && __DEV__) {
-      console.log('📥 Payment response received:', {
+      logger.log('📥 Payment response received:', {
         status: response.status,
         statusText: response.statusText,
         headers: Object.fromEntries(response.headers.entries()),
@@ -196,11 +197,36 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
         data = '[no body]';
       }
     } catch (readError) {
-      console.error('Error reading response body:', readError);
+      logger.error('Error reading response body:', readError);
       data = '[no body]';
     }
 
     if (!response.ok) {
+      // General 401 Token Refresh Logic for ALL endpoints (except Auth/Login/Register)
+      // This ensures favorites, listings, etc. also auto-refresh
+      if (response.status === 401 && retryCount === 0 && !isAuthEndpoint) {
+          logger.log('🔄 401 error detected on ' + endpoint + ', attempting token refresh and retry...');
+          try {
+            const newToken = await refreshToken();
+            if (newToken) {
+              logger.log('✅ Token refreshed, retrying request to ' + endpoint);
+              // Update token in options and retry
+              const updatedOptions = {
+                ...options,
+                headers: {
+                  ...options.headers,
+                  'Authorization': `Bearer ${newToken}`,
+                },
+              };
+              // Retry the request once with new token
+              return apiRequest(endpoint, updatedOptions, retryCount + 1);
+            }
+          } catch (refreshError) {
+            logger.warn('⚠️ Token refresh failed:', refreshError);
+            // Continue with normal error handling below
+          }
+      }
+
       // For email endpoints, don't treat 401/403 as fatal - log and return null
       const isEmailEndpoint = endpoint.includes('/email/');
       
@@ -286,7 +312,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
           const errorMessage = data?.message || 'Authentication required';
           // Only log once per endpoint call
           if (!global._emailAuthErrorLogged) {
-            console.warn(`Email API authentication error (${response.status}):`, errorMessage);
+            logger.warn(`Email API authentication error (${response.status}):`, errorMessage);
             global._emailAuthErrorLogged = true;
             setTimeout(() => { global._emailAuthErrorLogged = false; }, 5000);
           }
@@ -294,14 +320,14 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
           // 500 error means backend endpoint exists but has server-side issue
           // Only log once to reduce noise
           if (!global._email500ErrorLogged) {
-            console.warn(`Email API server error (500): Backend email service needs configuration`);
+            logger.warn(`Email API server error (500): Backend email service needs configuration`);
             global._email500ErrorLogged = true;
             setTimeout(() => { global._email500ErrorLogged = false; }, 10000);
           }
         } else if (response.status !== 200) {
           // Only log non-200 errors once
           if (!global._emailErrorLogged) {
-            console.warn(`Email API error (${response.status}):`, data?.message || data?.error || 'Unknown error');
+            logger.warn(`Email API error (${response.status}):`, data?.message || data?.error || 'Unknown error');
             global._emailErrorLogged = true;
             setTimeout(() => { global._emailErrorLogged = false; }, 5000);
           }
@@ -345,11 +371,12 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
           } else if (httpStatus === 401 || httpStatus === 403) {
             // For 401 errors, try to refresh token and retry the request
             if (httpStatus === 401 && retryCount === 0 && !isAuthEndpoint) {
-              console.log('🔄 401 error detected, attempting token refresh and retry...');
+              const { logger } = await import('../utils/logger');
+              logger.log('🔄 401 error detected, attempting token refresh and retry...');
               try {
                 const newToken = await refreshToken();
                 if (newToken) {
-                  console.log('✅ Token refreshed, retrying request...');
+                  logger.log('✅ Token refreshed, retrying request...');
                   // Update token in options and retry
                   const updatedOptions = {
                     ...options,
@@ -362,7 +389,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
                   return apiRequest(endpoint, updatedOptions, retryCount + 1);
                 }
               } catch (refreshError) {
-                console.warn('⚠️ Token refresh failed:', refreshError);
+                logger.warn('⚠️ Token refresh failed:', refreshError);
                 // Continue with normal error handling
               }
             }
@@ -375,12 +402,12 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
             if (httpStatus === 401 && retryCount > 0) {
               // Already tried refresh, handle expiration gracefully
               handleTokenExpiration(errorMessage).catch(err => {
-                console.error('Error in token expiration handler:', err);
+                logger.error('Error in token expiration handler:', err);
               });
             } else if (httpStatus === 401 && retryCount === 0) {
               // First attempt - refresh failed or not possible, handle gracefully
               handleTokenExpiration(errorMessage).catch(err => {
-                console.error('Error in token expiration handler:', err);
+                logger.error('Error in token expiration handler:', err);
               });
             }
           } else {
@@ -398,11 +425,12 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
               
               // For 401 errors, try to refresh token and retry the request
               if (httpStatus === 401 && retryCount === 0 && !isAuthEndpoint) {
-                console.log('🔄 401 error detected, attempting token refresh and retry...');
+                const { logger } = await import('../utils/logger');
+                logger.log('🔄 401 error detected, attempting token refresh and retry...');
                 try {
                   const newToken = await refreshToken();
                   if (newToken) {
-                    console.log('✅ Token refreshed, retrying request...');
+                    logger.log('✅ Token refreshed, retrying request...');
                     // Update token in options and retry
                     const updatedOptions = {
                       ...options,
@@ -415,7 +443,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
                     return apiRequest(endpoint, updatedOptions, retryCount + 1);
                   }
                 } catch (refreshError) {
-                  console.warn('⚠️ Token refresh failed:', refreshError);
+                  logger.warn('⚠️ Token refresh failed:', refreshError);
                   // Continue with normal error handling
                 }
               }
@@ -424,7 +452,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
               // User stays logged in and can continue using the app
               if (httpStatus === 401) {
                 handleTokenExpiration(errorMessage).catch(err => {
-                  console.error('Error in token expiration handler:', err);
+                  logger.error('Error in token expiration handler:', err);
                 });
               }
             }
@@ -447,9 +475,9 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
           responseHeaders: Object.fromEntries(response.headers.entries())
         };
         const endpointType = isPaymentEndpoint ? 'Payment' : (isWalletEndpoint ? 'Wallet' : 'API');
-        console.error(`❌ ${endpointType} endpoint error:`);
-        console.error(JSON.stringify(errorDetails, null, 2));
-        console.error('Full error object:', errorDetails);
+        logger.error(`❌ ${endpointType} endpoint error:`);
+        logger.error(JSON.stringify(errorDetails, null, 2));
+        logger.error('Full error object:', errorDetails);
         
         const error = new Error(errorMessage);
         error.status = response.status;
@@ -465,7 +493,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
                            endpoint.includes('/listings') || 
                            endpoint.includes('/favorites');
         if (!suppressLog) {
-          console.log('API authentication error, using local storage fallback');
+          logger.log('API authentication error, using local storage fallback');
         }
         return null;
       }
@@ -475,7 +503,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
                          endpoint.includes('/listings') || 
                          endpoint.includes('/favorites');
       if (!suppressLog) {
-        console.log(`API error ${response.status}, using local storage fallback`);
+        logger.log(`API error ${response.status}, using local storage fallback`);
       }
       return null;
     }
@@ -522,7 +550,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     if (isCorsError && __DEV__) {
       // Only log CORS warning once per session to reduce console noise
       if (!global._corsErrorLogged) {
-        console.warn('⚠️ CORS Configuration Required:', 
+        logger.warn('⚠️ CORS Configuration Required:', 
           'The backend API needs to be configured to allow requests from http://localhost:8081. ' +
           'See CORS_CONFIGURATION.md for backend configuration instructions. ' +
           'Note: This only affects web development - iOS and Android apps work fine.'
@@ -533,7 +561,7 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     
     // Network errors, timeouts, etc. - return null to preserve frontend for non-auth endpoints
     const errorMessage = error?.message || error?.toString() || 'Unknown network error';
-    console.log('API network error, using local storage fallback:', errorMessage);
+    logger.log('API network error, using local storage fallback:', errorMessage);
     return null;
   }
 };
@@ -550,6 +578,31 @@ export const api = {
 
   // POST request
   post: (endpoint, data, options = {}) => {
+    // CRITICAL: Verify images are in the request body before sending
+    if (data && (data.images || data.photos || data.image)) {
+      const bodyString = JSON.stringify(data);
+      const hasImagesInBody = bodyString.includes('data:image') || 
+                             bodyString.includes('"images"') || 
+                             bodyString.includes('"photos"') ||
+                             bodyString.includes('"image"');
+      
+      if (__DEV__) {
+        logger.log('📤 POST request with images:', {
+          endpoint,
+          hasImages: !!(data.images || data.photos || data.image),
+          imagesCount: data.images?.length || 0,
+          photosCount: data.photos?.length || 0,
+          hasImagesInBody,
+          bodySize: `${(new Blob([bodyString]).size / 1024).toFixed(2)} KB`,
+        });
+        
+        if ((data.images || data.photos || data.image) && !hasImagesInBody) {
+          logger.error('❌ CRITICAL: Images exist in data but NOT in JSON body!');
+          logger.error('  Images may be lost during JSON.stringify');
+        }
+      }
+    }
+    
     return apiRequest(endpoint, {
       ...options,
       method: 'POST',
@@ -559,6 +612,25 @@ export const api = {
 
   // PUT request
   put: (endpoint, data, options = {}) => {
+    // CRITICAL: Verify images are in the request body before sending
+    if (data && (data.images || data.photos || data.image)) {
+      const bodyString = JSON.stringify(data);
+      const hasImagesInBody = bodyString.includes('data:image') || 
+                             bodyString.includes('"images"') || 
+                             bodyString.includes('"photos"') ||
+                             bodyString.includes('"image"');
+      
+      if (__DEV__) {
+        logger.log('📤 PUT request with images:', {
+          endpoint,
+          hasImages: !!(data.images || data.photos || data.image),
+          imagesCount: data.images?.length || 0,
+          photosCount: data.photos?.length || 0,
+          hasImagesInBody,
+        });
+      }
+    }
+    
     return apiRequest(endpoint, {
       ...options,
       method: 'PUT',

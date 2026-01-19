@@ -1,6 +1,7 @@
 // Global listings utility functions
 // Listings are shared across all users - everyone can see all listings
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from './logger';
 
 const ALL_LISTINGS_KEY = 'allListings'; // Global key for all listings
 
@@ -35,10 +36,18 @@ export const addListing = async (listingData, userEmail = null) => {
     // Preserve createdBy from listingData if it exists, otherwise use email parameter
     const createdBy = listingData.createdBy || email;
     
+    // CRITICAL: Preserve API ID if provided, otherwise generate local ID
+    // This ensures listings saved from API keep their API ID for proper deduplication
+    const listingId = listingData.id || listingData._id || `listing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Extract id and _id from listingData to prevent overwriting
+    const { id: _unusedId, _id: _unused_id, ...listingDataWithoutIds } = listingData;
+    
     const newListing = {
-      id: `listing_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...listingData,
-      createdAt: new Date().toISOString(),
+      ...listingDataWithoutIds, // Spread first to get all other fields
+      id: String(listingId), // Normalize to string for consistent comparison - this overwrites any id from listingData
+      _id: listingData._id || listingData.id || String(listingId),
+      createdAt: listingData.createdAt || new Date().toISOString(),
       status: listingData.status || 'active',
       createdBy: createdBy, // Track who created this listing for deletion permission
     };
@@ -48,10 +57,10 @@ export const addListing = async (listingData, userEmail = null) => {
     
     // Save all listings globally
     await AsyncStorage.setItem(ALL_LISTINGS_KEY, JSON.stringify(allListings));
-    console.log('Listing added to global storage - visible to all users:', newListing.id);
+    logger.log('✅ Listing added to global storage - visible to all users:', newListing.id);
     return newListing;
   } catch (error) {
-    console.error('Error adding listing:', error);
+    logger.error('Error adding listing:', error);
     throw error;
   }
 };
@@ -62,9 +71,14 @@ export const addListing = async (listingData, userEmail = null) => {
 export const getListings = async () => {
   try {
     const listingsJson = await AsyncStorage.getItem(ALL_LISTINGS_KEY);
-    return listingsJson ? JSON.parse(listingsJson) : [];
+    const listings = listingsJson ? JSON.parse(listingsJson) : [];
+    logger.log('📋 getListings - Retrieved', listings.length, 'listings from storage');
+    if (listings.length > 0) {
+      logger.log('📋 getListings - First 3 listing IDs:', listings.slice(0, 3).map(l => String(l.id || l._id || '')));
+    }
+    return listings;
   } catch (error) {
-    console.error('Error getting listings:', error);
+    logger.error('Error getting listings:', error);
     return [];
   }
 };
@@ -162,7 +176,8 @@ export const deleteListing = async (listingId, userEmail = null) => {
     });
     
     if (!listing) {
-      console.log('Listing not found in local storage (may have been deleted or is API-only):', listingId);
+      // Listing not found - may have been deleted or is API-only
+      // Return true to indicate successful deletion (already deleted)
       return true; // Return true if not found - it's already deleted or doesn't exist locally
     }
 
@@ -177,7 +192,8 @@ export const deleteListing = async (listingId, userEmail = null) => {
         throw new Error('You can only delete your own listings');
       }
     } else {
-      console.warn('No user email provided, deleting listing without ownership verification:', listingId);
+      // No user email provided - proceed with deletion but log warning
+      logger.warn('No user email provided, deleting listing without ownership verification:', listingId);
     }
 
     const filteredListings = allListings.filter(l => {
@@ -186,10 +202,10 @@ export const deleteListing = async (listingId, userEmail = null) => {
     });
     
     await AsyncStorage.setItem(ALL_LISTINGS_KEY, JSON.stringify(filteredListings));
-    console.log('✅ Listing deleted from global storage:', listingId);
+    logger.log('✅ Listing deleted from global storage:', listingId);
     return true;
   } catch (error) {
-    console.error('❌ Error deleting listing:', error);
+    logger.error('❌ Error deleting listing:', error);
     throw error;
   }
 };

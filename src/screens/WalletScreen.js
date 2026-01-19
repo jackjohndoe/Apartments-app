@@ -28,6 +28,7 @@ import { notifyPaymentMade } from '../utils/notifications';
 import { getUserProfile } from '../utils/userStorage';
 import { sendBookingEmails } from '../utils/emailService';
 import { notifyHostNewBooking, notifyHostWalletFunded } from '../utils/notifications';
+import { logger } from '../utils/logger';
 import { createEscrowPayment } from '../utils/escrow';
 import { initializePayment, verifyPayment, createVirtualAccount } from '../services/flutterwaveService';
 import { walletService } from '../services/walletService';
@@ -65,13 +66,51 @@ export default function WalletScreen() {
   const [paymentStatus, setPaymentStatus] = useState(null); // 'pending', 'verifying', 'success', 'failed'
   const [creatingVirtualAccount, setCreatingVirtualAccount] = useState(false);
   const [virtualAccountError, setVirtualAccountError] = useState(null);
+  const [withdrawVirtualAccount, setWithdrawVirtualAccount] = useState(null);
+  const [creatingWithdrawAccount, setCreatingWithdrawAccount] = useState(false);
   
   // Track last comprehensive sync time
   const lastComprehensiveSyncRef = useRef(0);
 
+  // Check if user is logged in
+  React.useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to access your wallet.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign In', 
+            onPress: () => navigation.navigate('SignIn')
+          }
+        ]
+      );
+      // Navigate back to Explore
+      navigation.navigate('Explore');
+    }
+  }, [user, navigation]);
+
+  // Don't render if user is not logged in
+  if (!user) {
+    return null;
+  }
+
   const loadWalletData = useCallback(async () => {
     try {
+      // CRITICAL: Ensure user is logged in and has email
       if (!user || !user.email) {
+        logger.warn('⚠️ Wallet access attempted without user email - preventing data leakage');
+        setBalance(0);
+        setTransactions([]);
+        setRefreshing(false);
+        return;
+      }
+      
+      // CRITICAL: Validate user email to prevent cross-user access
+      const normalizedEmail = user.email.toLowerCase().trim();
+      if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+        logger.error('❌ Invalid user email detected - preventing wallet access');
         setBalance(0);
         setTransactions([]);
         setRefreshing(false);
@@ -81,22 +120,22 @@ export default function WalletScreen() {
       // PERSISTENCE: Wallet data is loaded using user email from AsyncStorage
       // This ensures wallet balance and transactions persist across sign-out/sign-in
       // Same persistence model as profile data - data is tied to user email, not session
-      const normalizedEmail = user.email.toLowerCase().trim();
+      // CRITICAL: Each user's wallet is completely isolated - no cross-user data access
       
       // Always sync with Flutterwave first to catch any pending payments
       // This ensures real-time updates when payments are processed via webhooks
       // Sync is non-blocking - if it fails, we still load wallet data
       try {
-        console.log('🔄 Syncing with Flutterwave before loading wallet data...');
+        logger.log('🔄 Syncing with Flutterwave before loading wallet data...');
         const syncResult = await walletService.syncBalance();
         if (syncResult) {
-          console.log('✅ Flutterwave sync completed');
+          logger.log('✅ Flutterwave sync completed');
         } else {
-          console.log('⚠️ Sync returned null (may be processing) - continuing with wallet load');
+          logger.log('⚠️ Sync returned null (may be processing) - continuing with wallet load');
         }
       } catch (syncError) {
         // Sync errors are non-fatal - continue loading wallet data
-        console.warn('⚠️ Sync error (non-fatal, continuing):', syncError.message || 'Unknown error');
+        logger.warn('⚠️ Sync error (non-fatal, continuing):', syncError.message || 'Unknown error');
       }
       
       // Always load both balance and transactions to ensure real-time updates
@@ -121,8 +160,8 @@ export default function WalletScreen() {
         : 0;
       
       if (Math.abs(currentStoredBalance - validBalance) > 0.01) {
-        console.log(`🔄 Updating wallet balance to match valid transactions: ₦${currentStoredBalance.toLocaleString()} → ₦${validBalance.toLocaleString()}`);
-        console.log(`📊 Valid transactions: ${walletTransactions.length}, Calculated balance: ₦${validBalance.toLocaleString()}`);
+        logger.log(`🔄 Updating wallet balance to match valid transactions: ₦${currentStoredBalance.toLocaleString()} → ₦${validBalance.toLocaleString()}`);
+        logger.log(`📊 Valid transactions: ${walletTransactions.length}, Calculated balance: ₦${validBalance.toLocaleString()}`);
         const { updateWalletBalance } = await import('../utils/wallet');
         await updateWalletBalance(normalizedEmail, validBalance);
       }
@@ -169,7 +208,7 @@ export default function WalletScreen() {
             const withReferences = filteredTransactions.map(txn => {
               // Ensure transaction has proper reference for tracking
               if (!txn.reference && !txn.paymentReference && !txn.id) {
-                console.warn(`⚠️ Transaction missing reference:`, txn);
+                logger.warn(`⚠️ Transaction missing reference:`, txn);
                 // Generate a reference if missing
                 txn.reference = txn.reference || txn.paymentReference || `txn_${txn.type}_${txn.amount}_${txn.timestamp || Date.now()}`;
                 txn.paymentReference = txn.paymentReference || txn.reference;
@@ -201,7 +240,7 @@ export default function WalletScreen() {
               
               // If all keys are duplicates, skip this transaction
               if (!added) {
-                console.warn(`⚠️ Skipping duplicate transaction:`, txn);
+                logger.warn(`⚠️ Skipping duplicate transaction:`, txn);
               }
             });
             
@@ -214,27 +253,27 @@ export default function WalletScreen() {
           })()
         : [];
       
-      console.log(`✅ Loaded ${sortedTransactions.length} transactions for wallet display`);
+      logger.log(`✅ Loaded ${sortedTransactions.length} transactions for wallet display`);
       if (sortedTransactions.length > 0) {
-        console.log(`📋 Transaction references: ${sortedTransactions.slice(0, 5).map(t => t.reference || t.paymentReference || t.id || 'N/A').join(', ')}${sortedTransactions.length > 5 ? '...' : ''}`);
+        logger.log(`📋 Transaction references: ${sortedTransactions.slice(0, 5).map(t => t.reference || t.paymentReference || t.id || 'N/A').join(', ')}${sortedTransactions.length > 5 ? '...' : ''}`);
       }
       
       setTransactions(sortedTransactions);
       
       // Log transaction count for debugging
       if (sortedTransactions.length > 0) {
-        console.log(`✅ Wallet synced: Balance: ₦${validBalance.toLocaleString()}, Transactions: ${sortedTransactions.length}`);
+        logger.log(`✅ Wallet synced: Balance: ₦${validBalance.toLocaleString()}, Transactions: ${sortedTransactions.length}`);
       }
-      console.log(`✅ Wallet data loaded EXCLUSIVELY for ${normalizedEmail} - Balance: ₦${walletBalance || 0}, Transactions: ${sortedTransactions.length}`);
-      console.log('✅ Wallet data persists across sign-out/sign-in (stored with user email key)');
-      console.log('✅ All transactions are EXCLUSIVE to this user account');
+      logger.log(`✅ Wallet data loaded EXCLUSIVELY for ${normalizedEmail} - Balance: ₦${walletBalance || 0}, Transactions: ${sortedTransactions.length}`);
+      logger.log('✅ Wallet data persists across sign-out/sign-in (stored with user email key)');
+      logger.log('✅ All transactions are EXCLUSIVE to this user account');
       
       // Log transaction details for debugging
       if (sortedTransactions.length > 0) {
-        console.log('📋 Transaction types:', sortedTransactions.map(t => `${t.type}: ${t.description || 'N/A'}`).join(', '));
+        logger.log('📋 Transaction types:', sortedTransactions.map(t => `${t.type}: ${t.description || 'N/A'}`).join(', '));
       }
     } catch (error) {
-      console.error('Error loading wallet data:', error);
+      logger.error('Error loading wallet data:', error);
       // Fallback to local storage - FRONTEND PRESERVED
       try {
         const fallbackBalance = await getWalletBalance(user.email);
@@ -248,9 +287,9 @@ export default function WalletScreen() {
             })
           : [];
         setTransactions(sortedFallback);
-        console.log('Using fallback wallet data - Balance:', fallbackBalance, 'Transactions:', sortedFallback.length);
+        logger.log('Using fallback wallet data - Balance:', fallbackBalance, 'Transactions:', sortedFallback.length);
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        logger.error('Fallback also failed:', fallbackError);
         setBalance(0);
         setTransactions([]);
       }
@@ -272,7 +311,7 @@ export default function WalletScreen() {
         // Defer validation to not block UI
         setTimeout(() => {
           validateUserTransactions(user.email).catch(err => {
-            console.error('Error validating transactions:', err);
+            logger.error('Error validating transactions:', err);
           });
         }, 0);
       }
@@ -287,13 +326,13 @@ export default function WalletScreen() {
     const syncAllOnMount = async () => {
       if (user && user.email) {
         try {
-          console.log('🔄 Comprehensive sync on mount to fetch all transactions...');
+          logger.log('🔄 Comprehensive sync on mount to fetch all transactions...');
           
           // Do comprehensive sync which forces backend to fetch from Flutterwave
           // and syncs to local storage
           await loadWalletData(true); // forceSync = true
         } catch (error) {
-          console.warn('⚠️ Error syncing all transactions on mount (non-fatal):', error.message);
+          logger.warn('⚠️ Error syncing all transactions on mount (non-fatal):', error.message);
           // Still load wallet data even if sync fails
           await loadWalletData(false);
         }
@@ -353,7 +392,7 @@ export default function WalletScreen() {
         setCreatingVirtualAccount(true);
         setVirtualAccountError(null);
         
-        console.log('🔄 Creating virtual account immediately for bank transfer...');
+        logger.log('🔄 Creating virtual account immediately for bank transfer...');
         
         const userName = user?.name || 'Guest';
         const txRef = `wallet_topup_${user.email}_${Date.now()}`;
@@ -390,12 +429,12 @@ export default function WalletScreen() {
         setPaymentReference(txRef);
         setPaymentStatus('pending');
         
-        console.log('✅ Virtual account created immediately:', accountDetails);
+        logger.log('✅ Virtual account created immediately:', accountDetails);
         
         // Automatically show account details modal when account is created
         setShowAccountDetails(true);
       } catch (error) {
-        console.error('❌ Error creating virtual account immediately:', error);
+        logger.error('❌ Error creating virtual account immediately:', error);
         setVirtualAccountError(error.message || 'Failed to create virtual account. Please try again.');
       } finally {
         setCreatingVirtualAccount(false);
@@ -417,14 +456,14 @@ export default function WalletScreen() {
     // Sync immediately on mount and sync with Flutterwave to catch pending payments
     const initialSync = async () => {
       try {
-        console.log('🔄 Initial wallet sync with Flutterwave...');
+        logger.log('🔄 Initial wallet sync with Flutterwave...');
         await walletService.syncBalance();
         await loadWalletData();
         // Update previous balance after initial load
         const currentBal = await hybridWalletService.getBalance(user.email);
         previousBalance = currentBal || 0;
       } catch (error) {
-        console.error('Error in initial sync:', error);
+        logger.error('Error in initial sync:', error);
         // Still load data even if sync fails
         await loadWalletData();
       }
@@ -444,7 +483,7 @@ export default function WalletScreen() {
       try {
         syncAttempts++;
         if (syncAttempts % 20 === 0) { // Reduced logging frequency
-          console.log(`🔄 Auto-syncing wallet (${syncAttempts} syncs completed)...`);
+          logger.log(`🔄 Auto-syncing wallet (${syncAttempts} syncs completed)...`);
         }
         
         // First verify pending transactions (this processes them)
@@ -454,7 +493,7 @@ export default function WalletScreen() {
             await walletService.verifyPendingTransactions();
           }
         } catch (verifyError) {
-          console.warn('⚠️ Pending transactions verification failed (non-fatal):', verifyError.message);
+          logger.warn('⚠️ Pending transactions verification failed (non-fatal):', verifyError.message);
         }
         
         // Sync with Flutterwave first to catch any pending payments processed via webhook
@@ -467,7 +506,7 @@ export default function WalletScreen() {
         } catch (syncError) {
           // Sync errors are non-fatal - continue with wallet load
           if (syncError.status !== 500) {
-            console.warn('⚠️ Sync error (non-fatal):', syncError.message || 'Unknown error');
+            logger.warn('⚠️ Sync error (non-fatal):', syncError.message || 'Unknown error');
           }
         }
         
@@ -479,15 +518,15 @@ export default function WalletScreen() {
         
         if (shouldDoComprehensiveSync) {
           try {
-            console.log('🔄 Performing comprehensive transaction sync (REAL-TIME - fetches ALL transactions from Flutterwave)...');
+            logger.log('🔄 Performing comprehensive transaction sync (REAL-TIME - fetches ALL transactions from Flutterwave)...');
             if (user && user.email) {
               // Comprehensive sync fetches ALL transactions from Flutterwave and verifies pending ones
               await hybridWalletService.syncAllTransactions(user.email);
               lastComprehensiveSyncRef.current = Date.now();
-              console.log('✅ Comprehensive sync completed - ALL transactions fetched and verified');
+              logger.log('✅ Comprehensive sync completed - ALL transactions fetched and verified');
             }
           } catch (syncAllError) {
-            console.warn('⚠️ Comprehensive sync error (non-fatal):', syncAllError.message);
+            logger.warn('⚠️ Comprehensive sync error (non-fatal):', syncAllError.message);
           }
         }
         
@@ -501,7 +540,7 @@ export default function WalletScreen() {
         const currentBal = await hybridWalletService.getBalance(user.email);
         if (currentBal !== previousBalance && currentBal > previousBalance) {
           const balanceIncrease = currentBal - previousBalance;
-          console.log(`✅ Balance updated! Previous: ₦${previousBalance.toLocaleString()}, New: ₦${currentBal.toLocaleString()} (+₦${balanceIncrease.toLocaleString()})`);
+          logger.log(`✅ Balance updated! Previous: ₦${previousBalance.toLocaleString()}, New: ₦${currentBal.toLocaleString()} (+₦${balanceIncrease.toLocaleString()})`);
           previousBalance = currentBal;
           
           // Update balance state immediately
@@ -519,7 +558,7 @@ export default function WalletScreen() {
           setBalance(currentBal);
         }
       } catch (error) {
-        console.error('Error in auto-sync:', error);
+        logger.error('Error in auto-sync:', error);
         // Continue syncing even if one attempt fails
       }
     }, getSyncInterval()); // Dynamic sync interval based on payment status
@@ -531,9 +570,23 @@ export default function WalletScreen() {
   }, [user, loadWalletData, paymentReference, paymentStatus]);
 
   // Function to fund wallet after payment verification
+  // CRITICAL: Helper to validate user email before any wallet operation
+  const validateUserEmail = () => {
+    if (!user || !user.email) {
+      logger.error('❌ Wallet operation attempted without user email');
+      throw new Error('User must be logged in to perform wallet operations');
+    }
+    const normalizedEmail = user.email.toLowerCase().trim();
+    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+      logger.error('❌ Invalid user email format');
+      throw new Error('Invalid user email - cannot perform wallet operation');
+    }
+    return normalizedEmail;
+  };
+
   const fundWalletAfterVerification = useCallback(async (amount, reference) => {
     try {
-      console.log(`💰 Funding wallet with ₦${amount.toLocaleString()}...`);
+      logger.log(`💰 Funding wallet with ₦${amount.toLocaleString()}...`);
       
       // Top up wallet with Flutterwave reference
       let result;
@@ -543,7 +596,7 @@ export default function WalletScreen() {
       // Retry funding wallet multiple times to ensure backend processes the payment
       while (retryCount < maxRetries) {
         try {
-          console.log(`🔄 Attempting to fund wallet (attempt ${retryCount + 1}/${maxRetries})...`);
+          logger.log(`🔄 Attempting to fund wallet (attempt ${retryCount + 1}/${maxRetries})...`);
           result = await hybridWalletService.fundWallet(
             user.email, 
             amount, 
@@ -555,11 +608,11 @@ export default function WalletScreen() {
           
           // If we got a result, break out of retry loop
           if (result && (result.balance !== undefined || result.amount !== undefined)) {
-            console.log('✅ Wallet funding successful:', result);
+            logger.log('✅ Wallet funding successful:', result);
             break;
           }
         } catch (fundError) {
-          console.error(`❌ Error funding wallet (attempt ${retryCount + 1}):`, fundError);
+          logger.error(`❌ Error funding wallet (attempt ${retryCount + 1}):`, fundError);
         }
         
         retryCount++;
@@ -571,7 +624,7 @@ export default function WalletScreen() {
       }
       
       // CRITICAL: Immediately sync balance and reload wallet data after funding
-      console.log('🔄 Syncing balance immediately after funding...');
+      logger.log('🔄 Syncing balance immediately after funding...');
       await walletService.syncBalance();
       await loadWalletData();
       
@@ -590,7 +643,7 @@ export default function WalletScreen() {
       
       // Update balance immediately
       setBalance(validBalance);
-      console.log(`✅ Balance updated immediately! New balance: ₦${validBalance.toLocaleString()}`);
+      logger.log(`✅ Balance updated immediately! New balance: ₦${validBalance.toLocaleString()}`);
       
       // Reload wallet data multiple times to ensure transaction is visible
       // More frequent reloads for real-time updates
@@ -605,14 +658,14 @@ export default function WalletScreen() {
               setBalance(currentBal);
             }
           } catch (reloadError) {
-            console.warn('Error in delayed reload:', reloadError);
+            logger.warn('Error in delayed reload:', reloadError);
           }
         }, interval);
       }
       
       Alert.alert('Success', `₦${amount.toLocaleString()} has been added to your wallet!`);
     } catch (error) {
-      console.error('Error funding wallet after verification:', error);
+      logger.error('Error funding wallet after verification:', error);
       // Still try to sync balance and reload
       try {
         await walletService.syncBalance();
@@ -624,7 +677,7 @@ export default function WalletScreen() {
           Alert.alert('Success', `Your wallet has been funded! New balance: ₦${currentBalance.toLocaleString()}`);
         }
       } catch (syncError) {
-        console.error('Error syncing balance:', syncError);
+        logger.error('Error syncing balance:', syncError);
       }
     }
   }, [user, paymentMethod, loadWalletData, walletService]);
@@ -671,16 +724,16 @@ export default function WalletScreen() {
       
       // Try to verify these transactions directly
       if (txRefsToVerify.size > 0) {
-        console.log(`🔄 Attempting to verify ${txRefsToVerify.size} transactions directly by txRef...`);
+        logger.log(`🔄 Attempting to verify ${txRefsToVerify.size} transactions directly by txRef...`);
         try {
           const verifyResult = await walletService.verifyMultipleTransactions(Array.from(txRefsToVerify));
           if (verifyResult && verifyResult.processed > 0) {
-            console.log(`✅ Verified ${verifyResult.processed} transactions directly by txRef`);
+            logger.log(`✅ Verified ${verifyResult.processed} transactions directly by txRef`);
             // Wait a bit for backend to process
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         } catch (verifyError) {
-          console.warn('⚠️ Error verifying transactions by txRef (non-fatal):', verifyError.message);
+          logger.warn('⚠️ Error verifying transactions by txRef (non-fatal):', verifyError.message);
         }
       }
       
@@ -690,11 +743,11 @@ export default function WalletScreen() {
         [{ text: 'OK' }]
       );
 
-      console.log('🔄 Manual sync triggered by user...');
+      logger.log('🔄 Manual sync triggered by user...');
       const syncResult = await hybridWalletService.syncAllTransactions(user.email);
 
       if (syncResult) {
-        console.log(`✅ Sync completed: ${syncResult.transactions.length} transactions, Balance: ₦${syncResult.balance.toLocaleString()}`);
+        logger.log(`✅ Sync completed: ${syncResult.transactions.length} transactions, Balance: ₦${syncResult.balance.toLocaleString()}`);
         
         // Update UI with synced data
         setBalance(syncResult.balance || 0);
@@ -709,7 +762,7 @@ export default function WalletScreen() {
         throw new Error('Sync returned no results');
       }
     } catch (error) {
-      console.error('❌ Error syncing all transactions:', error);
+      logger.error('❌ Error syncing all transactions:', error);
       Alert.alert(
         'Sync Error',
         `Failed to sync transactions: ${error.message || 'Unknown error'}\n\nPlease try again or contact support.`,
@@ -815,7 +868,7 @@ export default function WalletScreen() {
       if (paymentMethod === 'bank_transfer') {
         // Check if virtual account was already created (should be created immediately when bank_transfer is selected)
         if (bankAccountDetails && paymentReference) {
-          console.log('✅ Using pre-created virtual account:', bankAccountDetails);
+          logger.log('✅ Using pre-created virtual account:', bankAccountDetails);
           
           // Clear loading and close fund modal
           setLoading(false);
@@ -824,10 +877,10 @@ export default function WalletScreen() {
           // Show account details modal immediately
           setShowAccountDetails(true);
           
-          console.log('✅ Showing account details modal with pre-created account');
+          logger.log('✅ Showing account details modal with pre-created account');
         } else if (creatingVirtualAccount) {
           // Account is being created, wait a bit and try again
-          console.log('⏳ Virtual account is being created, please wait...');
+          logger.log('⏳ Virtual account is being created, please wait...');
           Alert.alert(
             'Creating Account',
             'Virtual account is being created. Please wait a moment and try again.',
@@ -837,7 +890,7 @@ export default function WalletScreen() {
           return;
         } else if (virtualAccountError) {
           // There was an error creating the account
-          console.error('❌ Virtual account creation failed:', virtualAccountError);
+          logger.error('❌ Virtual account creation failed:', virtualAccountError);
           Alert.alert(
             'Payment Service Unavailable',
             virtualAccountError + '\n\nYou can still fund your wallet using card payment.',
@@ -852,7 +905,7 @@ export default function WalletScreen() {
           return;
         } else {
           // Fallback: Try to create account now (shouldn't happen if useEffect worked)
-          console.warn('⚠️ Virtual account not pre-created, creating now...');
+          logger.warn('⚠️ Virtual account not pre-created, creating now...');
           try {
             const userName = user?.name || 'Guest';
             const txRef = `wallet_topup_${user.email}_${Date.now()}`;
@@ -890,7 +943,7 @@ export default function WalletScreen() {
             setShowFundModal(false);
             setShowAccountDetails(true);
           } catch (accountError) {
-            console.error('❌ Error creating virtual account (fallback):', accountError);
+            logger.error('❌ Error creating virtual account (fallback):', accountError);
             setLoading(false);
             setShowFundModal(false);
             
@@ -948,7 +1001,7 @@ export default function WalletScreen() {
         }
       }
     } catch (error) {
-      console.error('Error initializing Flutterwave payment:', error);
+      logger.error('Error initializing Flutterwave payment:', error);
       setPaymentStatus('failed');
       const errorMessage = error.message || 'Failed to initialize payment. Please try again.';
       Alert.alert('Payment Error', errorMessage);
@@ -978,7 +1031,7 @@ export default function WalletScreen() {
       const amount = parseFloat(fundAmount);
       setPaymentStatus('success');
       
-      console.log(`✅ Payment verified successfully. Reference: ${paymentReference}, Amount: ₦${amount.toLocaleString()}`);
+      logger.log(`✅ Payment verified successfully. Reference: ${paymentReference}, Amount: ₦${amount.toLocaleString()}`);
       
       // Top up wallet with Flutterwave reference - this should trigger backend to process webhook
       let result;
@@ -988,7 +1041,7 @@ export default function WalletScreen() {
       // Retry funding wallet multiple times to ensure backend processes the payment
       while (retryCount < maxRetries) {
         try {
-          console.log(`🔄 Attempting to fund wallet (attempt ${retryCount + 1}/${maxRetries})...`);
+          logger.log(`🔄 Attempting to fund wallet (attempt ${retryCount + 1}/${maxRetries})...`);
           result = await hybridWalletService.fundWallet(
             user.email, 
             amount, 
@@ -1000,11 +1053,11 @@ export default function WalletScreen() {
           
           // If we got a result, break out of retry loop
           if (result && (result.balance !== undefined || result.amount !== undefined)) {
-            console.log('✅ Wallet funding successful:', result);
+            logger.log('✅ Wallet funding successful:', result);
             break;
           }
         } catch (fundError) {
-          console.error(`❌ Error funding wallet (attempt ${retryCount + 1}):`, fundError);
+          logger.error(`❌ Error funding wallet (attempt ${retryCount + 1}):`, fundError);
         }
         
         retryCount++;
@@ -1017,11 +1070,11 @@ export default function WalletScreen() {
       
       // If funding still failed, try to sync balance - webhook may have already updated it
       if (!result || (!result.balance && !result.amount)) {
-        console.log('🔄 Funding failed, attempting to sync balance as payment may have been processed via webhook...');
+        logger.log('🔄 Funding failed, attempting to sync balance as payment may have been processed via webhook...');
         try {
           await walletService.syncBalance();
         } catch (syncError) {
-          console.warn('⚠️ Sync failed (non-fatal):', syncError);
+          logger.warn('⚠️ Sync failed (non-fatal):', syncError);
         }
       }
       
@@ -1029,19 +1082,19 @@ export default function WalletScreen() {
       let updatedBalance = result?.balance || result?.amount;
       if (!updatedBalance || isNaN(parseFloat(updatedBalance))) {
         // If result doesn't have balance, fetch it directly
-        console.log('🔄 Fetching updated balance from API...');
+        logger.log('🔄 Fetching updated balance from API...');
         updatedBalance = await hybridWalletService.getBalance(user.email);
         
         // If balance is still 0, wait a bit and try again (webhook might be processing)
         if (updatedBalance === 0) {
-          console.log('⏳ Balance is still 0, waiting for webhook processing...');
+          logger.log('⏳ Balance is still 0, waiting for webhook processing...');
           await new Promise(resolve => setTimeout(resolve, 2000));
           
           // Try syncing and fetching again
           try {
             await walletService.syncBalance();
           } catch (syncError) {
-            console.warn('⚠️ Sync failed (non-fatal):', syncError);
+            logger.warn('⚠️ Sync failed (non-fatal):', syncError);
           }
           updatedBalance = await hybridWalletService.getBalance(user.email);
         }
@@ -1052,10 +1105,10 @@ export default function WalletScreen() {
       
       // Only update if balance actually increased
       if (validBalance > balance) {
-        console.log(`✅ Balance updated! Previous: ₦${balance.toLocaleString()}, New: ₦${validBalance.toLocaleString()}`);
+        logger.log(`✅ Balance updated! Previous: ₦${balance.toLocaleString()}, New: ₦${validBalance.toLocaleString()}`);
         setBalance(validBalance);
       } else if (validBalance === balance && balance === 0) {
-        console.warn('⚠️ Balance is still 0 after payment verification. Backend may still be processing webhook.');
+        logger.warn('⚠️ Balance is still 0 after payment verification. Backend may still be processing webhook.');
         // Still set the balance to ensure UI is updated
         setBalance(validBalance);
       } else {
@@ -1079,30 +1132,30 @@ export default function WalletScreen() {
       // Retry loading after short delays to ensure backend has processed the transaction
       // This ensures transactions are recorded in real-time
       setTimeout(async () => {
-        console.log('🔄 Reloading wallet data to ensure transaction is recorded...');
+        logger.log('🔄 Reloading wallet data to ensure transaction is recorded...');
         await walletService.syncBalance();
         await loadWalletData();
       }, 1000);
       
       setTimeout(async () => {
-        console.log('🔄 Second reload to catch any delayed transactions...');
+        logger.log('🔄 Second reload to catch any delayed transactions...');
         await walletService.syncBalance();
         await loadWalletData();
       }, 3000);
       
       setTimeout(async () => {
-        console.log('🔄 Final reload to ensure all transactions are visible...');
+        logger.log('🔄 Final reload to ensure all transactions are visible...');
         await walletService.syncBalance();
         await loadWalletData();
       }, 6000);
       
       Alert.alert('Success', `₦${amount.toLocaleString()} has been added to your wallet!`);
     } catch (error) {
-      console.error('Error verifying payment:', error);
+      logger.error('Error verifying payment:', error);
       setPaymentStatus('failed');
       
       // If verification fails but payment was made, try to sync balance
-      console.log('🔄 Payment verification had issues, attempting to sync balance...');
+      logger.log('🔄 Payment verification had issues, attempting to sync balance...');
       try {
         await walletService.syncBalance();
         await loadWalletData();
@@ -1116,7 +1169,7 @@ export default function WalletScreen() {
           return;
         }
       } catch (syncError) {
-        console.error('Error syncing balance:', syncError);
+        logger.error('Error syncing balance:', syncError);
       }
       
       const errorMessage = error.message || 'Payment verification failed. Please try again.';
@@ -1209,7 +1262,7 @@ export default function WalletScreen() {
               
               Alert.alert('Success', `Payment of ${formatPrice(amount)} has been processed.`);
             } catch (error) {
-              console.error('Error processing payment:', error);
+              logger.error('Error processing payment:', error);
               Alert.alert('Error', error.message || 'Failed to process payment. Please try again.');
             } finally {
               setLoading(false);
@@ -1218,6 +1271,47 @@ export default function WalletScreen() {
         },
       ]
     );
+  };
+
+  // Generate virtual account for withdrawals
+  const generateWithdrawVirtualAccount = async () => {
+    if (!user || !user.email) {
+      Alert.alert('Error', 'You must be logged in to generate a virtual account.');
+      return;
+    }
+
+    setCreatingWithdrawAccount(true);
+    setVirtualAccountError(null);
+
+    try {
+      const userName = user?.name || user?.email || 'User';
+      const txRef = `withdraw_${user.email}_${Date.now()}`;
+      
+      // Generate virtual account for withdrawal amount (use a placeholder amount, Flutterwave will create the account)
+      const accountDetails = await createVirtualAccount(
+        user.email,
+        1000, // Minimum amount for virtual account creation
+        userName,
+        txRef
+      );
+
+      if (accountDetails && accountDetails.accountNumber) {
+        setWithdrawVirtualAccount(accountDetails);
+        setWithdrawAccountDetails(`${accountDetails.accountNumber} - ${accountDetails.bankName}`);
+        Alert.alert(
+          'Virtual Account Generated',
+          `Your virtual account has been generated:\n\nAccount Number: ${accountDetails.accountNumber}\nBank: ${accountDetails.bankName}\n\nYou can now use this account for withdrawals.`
+        );
+      } else {
+        throw new Error('Failed to generate virtual account. Please try again.');
+      }
+    } catch (error) {
+      logger.error('Error generating virtual account for withdrawal:', error);
+      setVirtualAccountError(error.message || 'Failed to generate virtual account. Please try again.');
+      Alert.alert('Error', error.message || 'Failed to generate virtual account. You can still enter bank details manually.');
+    } finally {
+      setCreatingWithdrawAccount(false);
+    }
   };
 
   const handleWithdraw = async () => {
@@ -1244,6 +1338,22 @@ export default function WalletScreen() {
       return;
     }
 
+    // Check if account details are provided
+    if (!withdrawAccountDetails || !withdrawAccountDetails.trim()) {
+      Alert.alert(
+        'Account Details Required',
+        'Please provide bank account details or generate a virtual account for withdrawal.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Generate Virtual Account',
+            onPress: () => generateWithdrawVirtualAccount()
+          }
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
       'Confirm Withdrawal',
       `Withdraw ${formatPrice(amount)} via ${withdrawMethod}?`,
@@ -1264,6 +1374,7 @@ export default function WalletScreen() {
               setBalance(newBalance);
               setWithdrawAmount('');
               setWithdrawAccountDetails('');
+              setWithdrawVirtualAccount(null);
               setShowWithdrawModal(false);
               
               // Immediately reload wallet data to show new transaction in real-time
@@ -1274,7 +1385,7 @@ export default function WalletScreen() {
                 `Your withdrawal of ${formatPrice(amount)} has been initiated via Flutterwave. The transfer will be processed and you'll receive a notification when it's completed.`
               );
             } catch (error) {
-              console.error('Error processing withdrawal:', error);
+              logger.error('Error processing withdrawal:', error);
               Alert.alert('Error', error.message || 'Failed to process withdrawal. Please try again.');
             } finally {
               setLoading(false);
@@ -1345,7 +1456,7 @@ export default function WalletScreen() {
           }
         }
       } catch (error) {
-        console.error('Error checking date conflict:', error);
+        logger.error('Error checking date conflict:', error);
         // Continue with payment if check fails (don't block user)
       }
     }
@@ -1419,9 +1530,9 @@ export default function WalletScreen() {
                   }
                 );
                 flutterwaveReference = paymentInit?.reference || null;
-                console.log('✅ Flutterwave payment initialized for booking:', flutterwaveReference);
+                logger.log('✅ Flutterwave payment initialized for booking:', flutterwaveReference);
               } catch (flutterwaveError) {
-                console.error('Error initializing Flutterwave payment:', flutterwaveError);
+                logger.error('Error initializing Flutterwave payment:', flutterwaveError);
                 // Continue with booking even if Flutterwave initialization fails
                 // The wallet payment has already been deducted
               }
@@ -1439,7 +1550,7 @@ export default function WalletScreen() {
                   userAddress = userProfile.address || null;
                 }
               } catch (profileError) {
-                console.log('Could not load user profile for email:', profileError);
+                logger.log('Could not load user profile for email:', profileError);
               }
 
               // Add booking with ESCROW status
@@ -1469,7 +1580,7 @@ export default function WalletScreen() {
                   savedBooking = await addBooking(user.email, bookingData);
                 }
               } catch (error) {
-                console.error('Error saving booking:', error);
+                logger.error('Error saving booking:', error);
                 savedBooking = await addBooking(user.email, bookingData);
               }
 
@@ -1485,7 +1596,7 @@ export default function WalletScreen() {
               // Get host email - will be normalized later for wallet funding
               let hostEmail = apartment?.hostEmail || apartment?.createdBy || null;
               if (user.email) {
-                console.log('📧 Sending booking confirmation emails after booking creation...');
+                logger.log('📧 Sending booking confirmation emails after booking creation...');
                 try {
                   // Import individual email functions to ensure proper receipt emails
                   const { sendUserBookingConfirmationEmail, sendHostBookingNotificationEmail } = await import('../utils/emailService');
@@ -1498,7 +1609,7 @@ export default function WalletScreen() {
                     null, // No top-up for wallet payments (wallet already has funds)
                     null  // No new balance to show
                   );
-                  console.log('✅ Guest booking confirmation email sent');
+                  logger.log('✅ Guest booking confirmation email sent');
                   
                   // Send host email with booking details and receipt
                   if (hostEmail) {
@@ -1510,10 +1621,10 @@ export default function WalletScreen() {
                       userPhone,
                       userAddress
                     );
-                    console.log('✅ Host booking notification email sent');
+                    logger.log('✅ Host booking notification email sent');
                   }
                 } catch (emailError) {
-                  console.error('❌ Error sending booking confirmation emails:', emailError);
+                  logger.error('❌ Error sending booking confirmation emails:', emailError);
                   // Don't block payment flow if email fails
                 }
               }
@@ -1533,9 +1644,9 @@ export default function WalletScreen() {
                     apartmentTitle: apartment?.title || 'Apartment',
                   }
                 );
-                console.log(`✅ Escrow payment created for booking ${bookingId} with Flutterwave reference: ${flutterwaveReference}`);
+                logger.log(`✅ Escrow payment created for booking ${bookingId} with Flutterwave reference: ${flutterwaveReference}`);
               } catch (escrowError) {
-                console.error('Error creating escrow payment:', escrowError);
+                logger.error('Error creating escrow payment:', escrowError);
               }
               
               // CRITICAL: Also store booking for the host (even if host is not signed in)
@@ -1562,17 +1673,17 @@ export default function WalletScreen() {
                     hostPaymentAmount: hostPaymentAmount, // Amount host receives
                   };
                   
-                  console.log(`💾 Storing host booking for: ${normalizedHostEmail} (original: ${hostEmail})`);
+                  logger.log(`💾 Storing host booking for: ${normalizedHostEmail} (original: ${hostEmail})`);
                   await addHostBooking(normalizedHostEmail, hostBookingData);
-                  console.log(`✅ Booking stored for host: ${normalizedHostEmail}`);
+                  logger.log(`✅ Booking stored for host: ${normalizedHostEmail}`);
                 } catch (hostBookingError) {
-                  console.error('❌ Error storing booking for host:', hostBookingError);
-                  console.error('❌ Error details:', hostBookingError.message, hostBookingError.stack);
+                  logger.error('❌ Error storing booking for host:', hostBookingError);
+                  logger.error('❌ Error details:', hostBookingError.message, hostBookingError.stack);
                   // Don't block payment flow if host booking storage fails
                 }
               } else {
-                console.warn('⚠️ Cannot store host booking: Host email not found');
-                console.warn('Apartment data:', { hostEmail: apartment?.hostEmail, createdBy: apartment?.createdBy });
+                logger.warn('⚠️ Cannot store host booking: Host email not found');
+                logger.warn('Apartment data:', { hostEmail: apartment?.hostEmail, createdBy: apartment?.createdBy });
               }
 
               // NOTE: Funds are NOT released to host wallet yet
@@ -1585,9 +1696,9 @@ export default function WalletScreen() {
               const totalServiceFees = cleaningFee + serviceFee;
               const hostPaymentAmount = Math.max(0, totalPaid - totalServiceFees);
               
-              console.log(`💰 Payment of ₦${totalPaid.toLocaleString()} held in escrow for booking ${bookingId}`);
+              logger.log(`💰 Payment of ₦${totalPaid.toLocaleString()} held in escrow for booking ${bookingId}`);
               
-              console.log(`💰 Payment Breakdown:
+              logger.log(`💰 Payment Breakdown:
                 Total Paid: ₦${totalPaid.toLocaleString()}
                 Cleaning Fee: -₦${cleaningFee.toLocaleString()}
                 Service Fee: -₦${serviceFee.toLocaleString()}
@@ -1599,7 +1710,7 @@ export default function WalletScreen() {
                 hostEmail = hostEmail.toLowerCase().trim();
               }
               
-              console.log(`🏠 Host wallet funding - Email: ${hostEmail}, Amount: ₦${hostPaymentAmount.toLocaleString()}, Apartment: ${apartment?.title || 'N/A'}`);
+              logger.log(`🏠 Host wallet funding - Email: ${hostEmail}, Amount: ₦${hostPaymentAmount.toLocaleString()}, Apartment: ${apartment?.title || 'N/A'}`);
               
               // userName already loaded above with user profile information
               // No need to reload - use the existing userName variable
@@ -1617,7 +1728,7 @@ export default function WalletScreen() {
                   
                   // Verify the funding was successful
                   const hostBalance = await hybridWalletService.getBalance(hostEmail);
-                  console.log(`✅ Host wallet funded successfully! Email: ${hostEmail}, Amount added: ₦${hostPaymentAmount.toLocaleString()}, New balance: ₦${hostBalance.toLocaleString()}`);
+                  logger.log(`✅ Host wallet funded successfully! Email: ${hostEmail}, Amount added: ₦${hostPaymentAmount.toLocaleString()}, New balance: ₦${hostBalance.toLocaleString()}`);
                   
                   // Notify host about wallet funding in real-time
                   await notifyHostWalletFunded(
@@ -1626,18 +1737,18 @@ export default function WalletScreen() {
                     apartment?.title || 'Apartment'
                   );
                 } catch (hostWalletError) {
-                  console.error(`❌ Error funding host wallet for ${hostEmail}:`, hostWalletError);
-                  console.error('Error details:', hostWalletError.message || hostWalletError);
+                  logger.error(`❌ Error funding host wallet for ${hostEmail}:`, hostWalletError);
+                  logger.error('Error details:', hostWalletError.message || hostWalletError);
                   // Don't block payment flow if host wallet funding fails, but log the error
                   Alert.alert('Warning', `Payment successful, but host wallet funding encountered an issue. Please contact support.`);
                 }
               } else {
                 if (!hostEmail) {
-                  console.warn('⚠️ Cannot fund host wallet: Host email not found in apartment data');
-                  console.warn('Apartment data:', { hostEmail: apartment?.hostEmail, createdBy: apartment?.createdBy });
+                  logger.warn('⚠️ Cannot fund host wallet: Host email not found in apartment data');
+                  logger.warn('Apartment data:', { hostEmail: apartment?.hostEmail, createdBy: apartment?.createdBy });
                 }
                 if (hostPaymentAmount <= 0) {
-                  console.warn(`⚠️ Host payment amount is invalid: ₦${hostPaymentAmount.toLocaleString()}`);
+                  logger.warn(`⚠️ Host payment amount is invalid: ₦${hostPaymentAmount.toLocaleString()}`);
                 }
               }
               
@@ -1655,9 +1766,9 @@ export default function WalletScreen() {
                     totalAmount,
                     'Wallet'
                   );
-                  console.log(`✅ Host notification sent to ${hostEmail} about new booking with full details`);
+                  logger.log(`✅ Host notification sent to ${hostEmail} about new booking with full details`);
                 } catch (notificationError) {
-                  console.error('Error sending host booking notification:', notificationError);
+                  logger.error('Error sending host booking notification:', notificationError);
                   // Don't block payment flow if notification fails
                 }
               }
@@ -1681,7 +1792,7 @@ export default function WalletScreen() {
                 ]
               );
             } catch (error) {
-              console.error('Error processing payment:', error);
+              logger.error('Error processing payment:', error);
               Alert.alert('Error', error.message || 'Failed to process payment. Please try again.');
             } finally {
               setLoading(false);
@@ -2332,9 +2443,43 @@ export default function WalletScreen() {
               <Text style={styles.modalLabel}>
                 Account Details {withdrawMethod === 'Bank Transfer' ? '(Account Number)' : '(Phone Number)'}
               </Text>
+              
+              {withdrawMethod === 'Bank Transfer' && (
+                <TouchableOpacity
+                  style={[styles.generateAccountButton, creatingWithdrawAccount && styles.generateAccountButtonDisabled]}
+                  onPress={generateWithdrawVirtualAccount}
+                  disabled={creatingWithdrawAccount}
+                >
+                  {creatingWithdrawAccount ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.generateAccountButtonText}>Generating Virtual Account...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <MaterialIcons name="account-balance" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                      <Text style={styles.generateAccountButtonText}>Generate Virtual Account</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              
+              {withdrawVirtualAccount && (
+                <View style={styles.virtualAccountInfo}>
+                  <Text style={styles.virtualAccountLabel}>Virtual Account Generated:</Text>
+                  <Text style={styles.virtualAccountDetails}>
+                    {withdrawVirtualAccount.accountNumber} - {withdrawVirtualAccount.bankName}
+                  </Text>
+                </View>
+              )}
+              
+              {virtualAccountError && (
+                <Text style={styles.errorText}>{virtualAccountError}</Text>
+              )}
+              
               <TextInput
                 style={styles.modalInput}
-                placeholder={withdrawMethod === 'Bank Transfer' ? 'Enter account number' : 'Enter phone number'}
+                placeholder={withdrawMethod === 'Bank Transfer' ? 'Enter account number or use virtual account above' : 'Enter phone number'}
                 value={withdrawAccountDetails}
                 onChangeText={setWithdrawAccountDetails}
                 keyboardType="numeric"
@@ -2841,6 +2986,40 @@ const styles = StyleSheet.create({
     color: '#F44336',
     marginTop: 8,
     textAlign: 'center',
+  },
+  generateAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  generateAccountButtonDisabled: {
+    opacity: 0.6,
+  },
+  generateAccountButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  virtualAccountInfo: {
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  virtualAccountLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  virtualAccountDetails: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
   },
   webViewContainer: {
     flex: 1,

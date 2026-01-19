@@ -2,9 +2,15 @@
 // Handles automatic token refresh when tokens expire
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_CONFIG } from '../config/api';
+import { logger } from './logger';
 
 let isRefreshing = false;
 let refreshPromise = null;
+let lastRefreshAttempt = 0;
+let refreshFailureCount = 0;
+const REFRESH_COOLDOWN = 2000; // 2 seconds cooldown to avoid tight loops
+const MAX_REFRESH_FAILURES = 20; // allow more attempts before stopping (increased from 5)
+const FAILURE_RESET_TIME = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Attempt to refresh the token by calling refresh endpoint or re-authenticating
@@ -12,16 +18,37 @@ let refreshPromise = null;
  */
 const attemptTokenRefresh = async () => {
   try {
+    // Check cooldown - don't attempt refresh too frequently
+    const now = Date.now();
+    
+    // Reset failure count if it's been a while since the last attempt
+    if (now - lastRefreshAttempt > FAILURE_RESET_TIME) {
+      refreshFailureCount = 0;
+    }
+
+    if (REFRESH_COOLDOWN > 0 && (now - lastRefreshAttempt < REFRESH_COOLDOWN)) {
+      logger.log('⏸️ Token refresh on cooldown, skipping...');
+      return null;
+    }
+
+    // Check if we've failed too many times
+    if (refreshFailureCount >= MAX_REFRESH_FAILURES) {
+      logger.warn('⚠️ Token refresh disabled after multiple failures. User should sign out and sign in again.');
+      return null;
+    }
+
+    lastRefreshAttempt = now;
+
     // Get user data to extract email
     const userData = await AsyncStorage.getItem('user');
     if (!userData) {
-      console.warn('⚠️ No user data found for token refresh');
+      logger.warn('⚠️ No user data found for token refresh');
       return null;
     }
 
     const user = JSON.parse(userData);
     if (!user.email) {
-      console.warn('⚠️ No email found in user data for token refresh');
+      logger.warn('⚠️ No email found in user data for token refresh');
       return null;
     }
 
@@ -46,16 +73,21 @@ const attemptTokenRefresh = async () => {
         const data = await response.json();
         const newToken = data.token || data.accessToken || data.data?.token || data.data?.accessToken;
         if (newToken) {
-          console.log('✅ Token refreshed via refresh endpoint');
+          logger.log('✅ Token refreshed via refresh endpoint');
+          refreshFailureCount = 0; // Reset failure count on success
           return newToken;
         }
+      } else if (response.status === 401) {
+        // 401 means token is expired/invalid - refresh endpoint exists but token is bad
+        logger.log('ℹ️ Refresh endpoint returned 401 - token is expired');
+        refreshFailureCount++;
       } else if (response.status !== 404) {
         // 404 means endpoint doesn't exist, which is fine
-        console.log(`ℹ️ Refresh endpoint returned ${response.status}, trying alternative...`);
+        logger.log(`ℹ️ Refresh endpoint returned ${response.status}, trying alternative...`);
       }
     } catch (refreshError) {
       // Refresh endpoint doesn't exist or failed - that's okay, try alternative
-      console.log('ℹ️ Token refresh endpoint not available or failed, trying alternative method');
+      logger.log('ℹ️ Token refresh endpoint not available or failed, trying alternative method');
     }
 
     // Method 2: Try to validate/extend current token by calling a lightweight endpoint
@@ -78,26 +110,34 @@ const attemptTokenRefresh = async () => {
         if (authHeader) {
           const newToken = authHeader.replace('Bearer ', '').trim();
           if (newToken && newToken !== currentToken) {
-            console.log('✅ New token received from validation endpoint');
+            logger.log('✅ New token received from validation endpoint');
+            refreshFailureCount = 0; // Reset failure count on success
             return newToken;
           }
         }
         // If validation succeeds, token might still be valid (backend extended it)
         // Return current token as it's still valid
-        console.log('ℹ️ Token validation succeeded, token may have been extended by backend');
+        logger.log('ℹ️ Token validation succeeded, token may have been extended by backend');
+        refreshFailureCount = 0; // Reset failure count on success
         return currentToken;
+      } else if (response.status === 401) {
+        refreshFailureCount++;
       }
     } catch (validateError) {
       // Validation failed - token is definitely expired
-      console.log('ℹ️ Token validation failed, token is expired');
+      logger.log('ℹ️ Token validation failed, token is expired');
+      refreshFailureCount++;
     }
 
     // If all methods fail, we can't automatically refresh without password
     // Return null to indicate refresh is not possible
-    console.warn('⚠️ Token refresh not possible - backend refresh endpoint not available');
+    if (refreshFailureCount < MAX_REFRESH_FAILURES) {
+      logger.warn('⚠️ Token refresh not possible - backend refresh endpoint not available');
+    }
     return null;
   } catch (error) {
-    console.error('❌ Error attempting token refresh:', error);
+    logger.error('❌ Error attempting token refresh:', error);
+    refreshFailureCount++;
     return null;
   }
 };
@@ -109,7 +149,7 @@ const attemptTokenRefresh = async () => {
 export const refreshToken = async () => {
   // If already refreshing, return the existing promise
   if (isRefreshing && refreshPromise) {
-    console.log('🔄 Token refresh already in progress, waiting...');
+    logger.log('🔄 Token refresh already in progress, waiting...');
     return refreshPromise;
   }
 
@@ -126,14 +166,15 @@ export const refreshToken = async () => {
           user.token = newToken;
           user.accessToken = newToken;
           await AsyncStorage.setItem('user', JSON.stringify(user));
-          console.log('✅ Token updated in storage');
+          logger.log('✅ Token updated in storage');
         }
         return newToken;
       }
       
       return null;
     } catch (error) {
-      console.error('❌ Error refreshing token:', error);
+      logger.error('❌ Error refreshing token:', error);
+      refreshFailureCount++;
       return null;
     } finally {
       isRefreshing = false;
@@ -194,15 +235,30 @@ export const getValidToken = async () => {
 
     // Check if token is expired or about to expire
     if (isTokenExpired(token)) {
-      console.log('🔄 Token expired or about to expire, attempting refresh...');
-      const newToken = await refreshToken();
-      return newToken || token; // Return new token if available, otherwise return old one
+      // Only attempt refresh if we haven't failed too many times
+      if (refreshFailureCount < MAX_REFRESH_FAILURES) {
+        logger.log('🔄 Token expired or about to expire, attempting refresh...');
+        const newToken = await refreshToken();
+        return newToken || token; // Return new token if available, otherwise return old one
+      } else {
+        // Too many failures - just return the old token and let the API call fail gracefully
+        logger.warn('⚠️ Token refresh disabled due to repeated failures');
+        return token;
+      }
     }
 
     return token;
   } catch (error) {
-    console.error('Error getting valid token:', error);
+    logger.error('Error getting valid token:', error);
     return null;
   }
 };
 
+/**
+ * Reset refresh failure count (call this after successful login)
+ */
+export const resetRefreshFailureCount = () => {
+  refreshFailureCount = 0;
+  lastRefreshAttempt = 0;
+  logger.log('✅ Token refresh failure count reset');
+};

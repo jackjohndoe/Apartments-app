@@ -16,6 +16,12 @@ WORKDIR /app
 # Copy the built JAR (keep original name for Railway compatibility)
 COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.jar
 
+# Create uploads directory and set permissions
+RUN mkdir -p /app/uploads
+
+# Define volume for persistent storage
+VOLUME /app/uploads
+
 # Expose port
 EXPOSE 8080
 

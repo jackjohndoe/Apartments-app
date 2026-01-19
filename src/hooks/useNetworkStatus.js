@@ -1,6 +1,7 @@
 // Network status monitoring hook
 import { useState, useEffect } from 'react';
 import { checkNetworkConnectivity, isNetworkOnline } from '../utils/network';
+import { logger } from '../utils/logger';
 
 /**
  * Hook to monitor network connectivity status
@@ -25,7 +26,7 @@ export const useNetworkStatus = (checkInterval = 30000) => {
           setIsOnline(online);
         }
       } catch (error) {
-        console.error('Error checking network status:', error);
+        logger.error('Error checking network status:', error);
         if (isMounted) {
           setIsOnline(false);
         }
@@ -63,7 +64,7 @@ export const useNetworkStatus = (checkInterval = 30000) => {
         setIsOnline(online);
         return online;
       } catch (error) {
-        console.error('Error checking network status:', error);
+        logger.error('Error checking network status:', error);
         setIsOnline(false);
         return false;
       } finally {

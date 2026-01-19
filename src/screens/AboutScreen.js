@@ -10,12 +10,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { logger } from '../utils/logger';
 
 export default function AboutScreen() {
   const navigation = useNavigation();
 
   const openLink = (url) => {
-    Linking.openURL(url).catch(err => console.error('Failed to open URL:', err));
+    Linking.openURL(url).catch(err => logger.error('Failed to open URL:', err));
   };
 
   return (
@@ -222,77 +223,54 @@ export default function AboutScreen() {
           
           <TouchableOpacity 
             style={styles.contactItem}
-            onPress={() => openLink('mailto:support@apartmentrental.com')}
+            onPress={() => openLink('mailto:support@apartifyafrica.site')}
           >
             <MaterialIcons name="email" size={24} color="#FFD700" />
             <View style={styles.contactContent}>
               <Text style={styles.contactLabel}>Email</Text>
-              <Text style={styles.contactValue}>support@apartmentrental.com</Text>
+              <Text style={styles.contactValue}>support@apartifyafrica.site</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.contactItem}
-            onPress={() => openLink('tel:+2341234567890')}
+            onPress={() => openLink('tel:+2347036588568')}
           >
             <MaterialIcons name="phone" size={24} color="#FFD700" />
             <View style={styles.contactContent}>
-              <Text style={styles.contactLabel}>Phone</Text>
-              <Text style={styles.contactValue}>+234 123 456 7890</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.contactItem}
-            onPress={() => openLink('https://www.apartmentrental.com')}
-          >
-            <MaterialIcons name="language" size={24} color="#FFD700" />
-            <View style={styles.contactContent}>
-              <Text style={styles.contactLabel}>Website</Text>
-              <Text style={styles.contactValue}>www.apartmentrental.com</Text>
+              <Text style={styles.contactLabel}>Phone / WhatsApp</Text>
+              <Text style={styles.contactValue}>+234 703 658 8568</Text>
             </View>
           </TouchableOpacity>
 
           <View style={styles.contactItem}>
             <MaterialIcons name="location-on" size={24} color="#FFD700" />
             <View style={styles.contactContent}>
-              <Text style={styles.contactLabel}>Address</Text>
+              <Text style={styles.contactLabel}>Location</Text>
               <Text style={styles.contactValue}>
-                123 Rental Street, Lagos, Nigeria
+                Lagos, Nigeria
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Social Media */}
+        {/* Privacy Policy Link */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Follow Us</Text>
-          <View style={styles.socialContainer}>
-            <TouchableOpacity 
-              style={styles.socialButton}
-              onPress={() => openLink('https://facebook.com/apartmentrental')}
-            >
-              <MaterialIcons name="facebook" size={24} color="#1877F2" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.socialButton}
-              onPress={() => openLink('https://twitter.com/apartmentrental')}
-            >
-              <MaterialIcons name="alternate-email" size={24} color="#1DA1F2" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.socialButton}
-              onPress={() => openLink('https://instagram.com/apartmentrental')}
-            >
-              <MaterialIcons name="camera-alt" size={24} color="#E4405F" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.socialButton}
-              onPress={() => openLink('https://linkedin.com/company/apartmentrental')}
-            >
-              <MaterialIcons name="work" size={24} color="#0077B5" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionTitle}>Privacy & Legal</Text>
+          
+          <TouchableOpacity 
+            style={styles.legalItem}
+            onPress={() => navigation.navigate('About')}
+          >
+            <MaterialIcons name="privacy-tip" size={24} color="#FFD700" />
+            <View style={styles.legalContent}>
+              <Text style={styles.legalTitle}>Privacy Policy</Text>
+              <Text style={styles.legalDescription}>
+                View our complete privacy policy and data handling practices
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color="#999" />
+          </TouchableOpacity>
         </View>
 
         {/* Copyright */}
@@ -468,5 +446,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4,
   },
+  legalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  legalContent: {
+    flex: 1,
+  },
+  legalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  legalDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
 });
-

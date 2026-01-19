@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import { notifyProfileUpdated } from '../utils/notifications';
+import { logger } from '../utils/logger';
 
 // Import ImagePicker - use require for better Metro compatibility
 const ImagePicker = require('expo-image-picker');
@@ -43,10 +44,10 @@ export default function EditProfileScreen() {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         // Permission not granted, but don't show alert on initial load
-        console.log('Media library permission not granted');
+        logger.log('Media library permission not granted');
       }
     } catch (error) {
-      console.error('Error requesting image permission:', error);
+      logger.error('Error requesting image permission:', error);
     }
   };
 
@@ -78,7 +79,7 @@ export default function EditProfileScreen() {
         setEmail(user?.email || '');
       }
     } catch (error) {
-      console.error('Error loading profile data:', error);
+      logger.error('Error loading profile data:', error);
       // On error, use user data from auth
       setName(user?.name || '');
       setEmail(user?.email || '');
@@ -106,14 +107,14 @@ export default function EditProfileScreen() {
       reader.onload = (event) => {
         const dataUrl = event.target?.result;
         if (dataUrl) {
-          console.log('Image selected from web:', dataUrl.substring(0, 50) + '...');
+          logger.log('Image selected from web:', dataUrl.substring(0, 50) + '...');
           setProfilePicture(dataUrl);
           Alert.alert('Image Selected', 'Profile picture updated! Tap Save to apply changes.');
         }
       };
       
       reader.onerror = () => {
-        console.error('Error reading file:', file.name);
+        logger.error('Error reading file:', file.name);
         Alert.alert('Error', 'Failed to read image file. Please try again.');
       };
       
@@ -155,7 +156,7 @@ export default function EditProfileScreen() {
       // Directly open photo library - gives immediate access to device media
       await pickImage('library');
     } catch (error) {
-      console.error('Error selecting image:', error);
+      logger.error('Error selecting image:', error);
       Alert.alert(
         'Error', 
         `Failed to open image picker: ${error.message || 'Unknown error'}. Please try again.`,
@@ -200,7 +201,7 @@ export default function EditProfileScreen() {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         // Update profile picture in real time - this will show immediately
         let imageUri = result.assets[0].uri;
-        console.log('Image selected from device:', imageUri);
+        logger.log('Image selected from device:', imageUri);
         
         // On web, if we get a blob URL, convert it to a data URL for persistence
         if (Platform.OS === 'web' && imageUri.startsWith('blob:')) {
@@ -210,18 +211,18 @@ export default function EditProfileScreen() {
             const reader = new FileReader();
             reader.onloadend = () => {
               const dataUrl = reader.result;
-              console.log('Converted blob to data URL:', dataUrl.substring(0, 50) + '...');
+              logger.log('Converted blob to data URL:', dataUrl.substring(0, 50) + '...');
               setProfilePicture(dataUrl);
               Alert.alert('Image Selected', 'Profile picture updated! Tap Save to apply changes.');
             };
             reader.onerror = () => {
-              console.error('Error converting blob to data URL');
+              logger.error('Error converting blob to data URL');
               Alert.alert('Error', 'Failed to process image. Please try again.');
             };
             reader.readAsDataURL(blob);
             return; // Exit early, will set profile picture in reader.onloadend
           } catch (error) {
-            console.error('Error converting blob URL:', error);
+            logger.error('Error converting blob URL:', error);
             // Fall through to use the blob URL anyway (will work temporarily)
           }
         }
@@ -231,10 +232,10 @@ export default function EditProfileScreen() {
         // Show confirmation
         Alert.alert('Image Selected', 'Profile picture updated! Tap Save to apply changes.');
       } else {
-        console.log('Image selection canceled');
+        logger.log('Image selection canceled');
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to select image from device. Please try again.');
     }
   };
@@ -268,7 +269,7 @@ export default function EditProfileScreen() {
       // Save to user-specific storage
       const { saveUserProfile } = await import('../utils/userStorage');
       await saveUserProfile(user.email, profileData);
-      console.log('EditProfileScreen - Profile saved to userStorage:', { 
+      logger.log('EditProfileScreen - Profile saved to userStorage:', { 
         ...profileData, 
         profilePicture: profilePicture ? 'Image set' : 'No image',
         pictureUri: profilePicture ? (profilePicture.length > 50 ? profilePicture.substring(0, 50) + '...' : profilePicture) : null
@@ -277,7 +278,7 @@ export default function EditProfileScreen() {
       // Verify the save by reading it back (same as phone number)
       const { getUserProfile } = await import('../utils/userStorage');
       const verifyProfile = await getUserProfile(user.email);
-      console.log('EditProfileScreen - Verified saved profile:', {
+        logger.log('EditProfileScreen - Verified saved profile:', {
         hasPicture: !!verifyProfile?.profilePicture,
         hasPhone: !!verifyProfile?.whatsappNumber,
         pictureMatches: verifyProfile?.profilePicture === profilePicture
@@ -293,7 +294,7 @@ export default function EditProfileScreen() {
         };
         await signIn(updatedUser);
       } catch (signInError) {
-        console.error('Error updating auth context:', signInError);
+        logger.error('Error updating auth context:', signInError);
         // Continue even if signIn fails - profile is already saved to userStorage
       }
 
@@ -301,7 +302,7 @@ export default function EditProfileScreen() {
       try {
         await notifyProfileUpdated();
       } catch (notificationError) {
-        console.error('Error adding notification:', notificationError);
+        logger.error('Error adding notification:', notificationError);
         // Continue even if notification fails - profile is already saved
       }
 
@@ -314,7 +315,7 @@ export default function EditProfileScreen() {
         Alert.alert('Success', 'Profile updated successfully!');
       }, 300);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       // Check if it's a 500 error or other server error
       const errorMessage = error.status === 500 
         ? 'Server error. Your profile has been saved locally.'

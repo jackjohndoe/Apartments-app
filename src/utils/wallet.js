@@ -28,6 +28,7 @@
 // - No cross-user transaction data leakage - complete isolation per account
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserStorageKey } from './userStorage';
+import { logger } from './logger';
 
 /**
  * Clean up any old global transaction data to prevent cross-user leakage
@@ -40,10 +41,10 @@ export const cleanupOldGlobalTransactions = async () => {
     const oldData = await AsyncStorage.getItem(oldKey);
     if (oldData) {
       await AsyncStorage.removeItem(oldKey);
-      console.log('✅ Cleaned up old global transaction data');
+      logger.log('✅ Cleaned up old global transaction data');
     }
   } catch (error) {
-    console.error('Error cleaning up old global transactions:', error);
+    logger.error('Error cleaning up old global transactions:', error);
   }
 };
 
@@ -75,12 +76,12 @@ export const validateUserTransactions = async (userEmail) => {
     if (validTransactions.length !== transactions.length) {
       const key = getUserStorageKey('walletTransactions', normalizedEmail);
       await AsyncStorage.setItem(key, JSON.stringify(validTransactions));
-      console.log(`✅ Cleaned ${transactions.length - validTransactions.length} invalid transactions for ${normalizedEmail}`);
+      logger.log(`✅ Cleaned ${transactions.length - validTransactions.length} invalid transactions for ${normalizedEmail}`);
     }
     
     return validTransactions;
   } catch (error) {
-    console.error('Error validating user transactions:', error);
+    logger.error('Error validating user transactions:', error);
     return [];
   }
 };
@@ -104,7 +105,7 @@ export const MAX_PAYMENT_AMOUNT = 10000000;
 export const getWalletBalance = async (userEmail) => {
   try {
     if (!userEmail) {
-      console.warn('getWalletBalance: No user email provided - returning 0 to prevent data leakage');
+      logger.warn('getWalletBalance: No user email provided - returning 0 to prevent data leakage');
       return 0;
     }
     // Use user-specific key to ensure complete isolation
@@ -126,7 +127,7 @@ export const getWalletBalance = async (userEmail) => {
     // If balance is corrupted (too high, negative, or NaN), reset to 0
     // NOTE: Large balances (up to MAX_WALLET_BALANCE) are legitimate for hosts receiving booking payments
     if (isNaN(parsedBalance) || parsedBalance < 0 || parsedBalance > MAX_WALLET_BALANCE) {
-      console.warn(`⚠️ Corrupted wallet balance detected for ${userEmail}: ${balance}. Resetting to 0.`);
+      logger.warn(`⚠️ Corrupted wallet balance detected for ${userEmail}: ${balance}. Resetting to 0.`);
       // Reset corrupted balance to 0
       const key = getUserStorageKey('walletBalance', userEmail);
       await AsyncStorage.setItem(key, '0');
@@ -135,7 +136,7 @@ export const getWalletBalance = async (userEmail) => {
     
     return parsedBalance;
   } catch (error) {
-    console.error('Error getting wallet balance:', error);
+    logger.error('Error getting wallet balance:', error);
     // Always return 0 on error to prevent data leakage
     return 0;
   }
@@ -148,22 +149,29 @@ export const getWalletBalance = async (userEmail) => {
  */
 export const updateWalletBalance = async (userEmail, newBalance) => {
   try {
+    // CRITICAL: Validate user email to prevent cross-user access
     if (!userEmail) {
       throw new Error('User email is required');
+    }
+    
+    // CRITICAL: Validate email format
+    const normalizedEmail = userEmail.toLowerCase().trim();
+    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+      throw new Error('Invalid user email format - cannot update wallet balance');
     }
     
     // VALIDATION: Ensure balance is a valid integer (wallet uses whole naira amounts)
     // Use Math.floor to ensure integer values and avoid floating point precision issues
     const validatedBalance = Math.floor(parseFloat(newBalance));
     if (isNaN(validatedBalance) || validatedBalance < 0) {
-      console.warn(`⚠️ Invalid balance value: ${newBalance}. Setting to 0.`);
+      logger.warn(`⚠️ Invalid balance value: ${newBalance}. Setting to 0.`);
       await AsyncStorage.setItem(getUserStorageKey('walletBalance', userEmail), '0');
       return 0;
     }
     
     // Maximum reasonable balance: ₦10,000,000 (10 million)
     if (validatedBalance > MAX_WALLET_BALANCE) {
-      console.warn(`⚠️ Balance exceeds maximum limit: ${validatedBalance}. Capping at ₦${MAX_WALLET_BALANCE.toLocaleString()}.`);
+      logger.warn(`⚠️ Balance exceeds maximum limit: ${validatedBalance}. Capping at ₦${MAX_WALLET_BALANCE.toLocaleString()}.`);
       const cappedBalance = MAX_WALLET_BALANCE;
       await AsyncStorage.setItem(getUserStorageKey('walletBalance', userEmail), cappedBalance.toString());
       return cappedBalance;
@@ -172,10 +180,10 @@ export const updateWalletBalance = async (userEmail, newBalance) => {
     // Store as integer string to preserve precision for large amounts
     const key = getUserStorageKey('walletBalance', userEmail);
     await AsyncStorage.setItem(key, validatedBalance.toString());
-    console.log(`✅ Wallet balance updated for ${userEmail}: ₦${validatedBalance.toLocaleString()}`);
+    logger.log(`✅ Wallet balance updated for ${userEmail}: ₦${validatedBalance.toLocaleString()}`);
     return validatedBalance;
   } catch (error) {
-    console.error('Error updating wallet balance:', error);
+    logger.error('Error updating wallet balance:', error);
     throw error;
   }
 };
@@ -191,8 +199,15 @@ export const updateWalletBalance = async (userEmail, newBalance) => {
  */
 export const addFunds = async (userEmail, amount, method = 'Bank Transfer', senderName = null, senderEmail = null, paymentReference = null) => {
   try {
+    // CRITICAL: Validate user email to prevent cross-user access
     if (!userEmail) {
       throw new Error('User email is required');
+    }
+    
+    // CRITICAL: Validate email format
+    const normalizedEmail = userEmail.toLowerCase().trim();
+    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+      throw new Error('Invalid user email format - cannot add funds');
     }
     
     // VALIDATION: Ensure amount is valid integer (wallet uses whole naira amounts)
@@ -202,17 +217,17 @@ export const addFunds = async (userEmail, amount, method = 'Bank Transfer', send
       throw new Error(`Invalid amount: ${amount}. Amount must be a positive number.`);
     }
     
-    const currentBalance = await getWalletBalance(userEmail);
+    const currentBalance = await getWalletBalance(normalizedEmail);
     // Ensure integer arithmetic for large amounts
     const newBalance = Math.floor(currentBalance + validatedAmount);
     
     // Additional validation: Check if new balance would exceed maximum
     if (newBalance > MAX_WALLET_BALANCE) {
-      console.warn(`⚠️ Adding ${validatedAmount} would exceed maximum balance. Current: ${currentBalance}, Requested: ${validatedAmount}`);
+      logger.warn(`⚠️ Adding ${validatedAmount} would exceed maximum balance. Current: ${currentBalance}, Requested: ${validatedAmount}`);
       throw new Error(`Balance would exceed maximum limit of ₦${MAX_WALLET_BALANCE.toLocaleString()}`);
     }
     
-    await updateWalletBalance(userEmail, newBalance);
+    await updateWalletBalance(normalizedEmail, newBalance);
     
     // Add transaction with detailed description
     // PERSISTENCE: Transaction is stored with user-specific key (walletTransactions_{userEmail})
@@ -251,7 +266,7 @@ export const addFunds = async (userEmail, amount, method = 'Bank Transfer', send
     
     // Add transaction with detailed information
     // CRITICAL: Explicitly include senderName and senderEmail at top level so recipient can see who sent funds
-    const transactionResult = await addTransaction(userEmail, {
+    const transactionResult = await addTransaction(normalizedEmail, {
       type: 'deposit',
       amount: validatedAmount,
       description: transactionDescription,
@@ -263,14 +278,14 @@ export const addFunds = async (userEmail, amount, method = 'Bank Transfer', send
       ...transactionMetadata, // Also include in metadata for consistency
     });
     
-    // Verify transaction was stored
-    if (transactionResult && transactionResult.id) {
-      console.log(`✅ Transaction stored EXCLUSIVELY for ${userEmail}: ${transactionDescription} - ₦${validatedAmount.toLocaleString()}`);
-      console.log(`✅ Transaction ID: ${transactionResult.id}`);
-      console.log(`✅ Transaction will be visible in wallet when user signs back in (persists across sign-out/sign-in)`);
-      
-      // Verify transaction is retrievable
-      const verifyTransactions = await getTransactions(userEmail);
+      // Verify transaction was stored
+      if (transactionResult && transactionResult.id) {
+        console.log(`✅ Transaction stored EXCLUSIVELY for ${normalizedEmail}: ${transactionDescription} - ₦${validatedAmount.toLocaleString()}`);
+        console.log(`✅ Transaction ID: ${transactionResult.id}`);
+        console.log(`✅ Transaction will be visible in wallet when user signs back in (persists across sign-out/sign-in)`);
+        
+        // Verify transaction is retrievable
+        const verifyTransactions = await getTransactions(normalizedEmail);
       const foundTransaction = verifyTransactions.find(t => t.id === transactionResult.id);
       if (foundTransaction) {
         console.log(`✅ Transaction verified in storage - will appear in wallet history`);
@@ -302,15 +317,16 @@ export const addFunds = async (userEmail, amount, method = 'Bank Transfer', send
  */
 export const getTransactions = async (userEmail) => {
   try {
+    // CRITICAL: Validate user email to prevent cross-user access
     if (!userEmail) {
       console.warn('getTransactions: No user email provided - returning empty array to prevent data leakage');
       return [];
     }
     
-    // VALIDATION: Normalize user email
+    // CRITICAL: Validate email format to ensure it's a real user email
     const normalizedEmail = userEmail.toLowerCase().trim();
-    if (!normalizedEmail || normalizedEmail.length === 0) {
-      console.warn('getTransactions: Invalid user email - returning empty array');
+    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+      console.error('getTransactions: Invalid user email format - returning empty array to prevent data leakage');
       return [];
     }
     

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/authService';
+import { logger } from '../utils/logger';
 
 export const AuthContext = createContext();
 
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
         userData = await AsyncStorage.getItem('user');
       } catch (storageError) {
         // On web, if AsyncStorage fails, continue without user data
-        console.warn('AsyncStorage not available on web, continuing without stored user:', storageError);
+        logger.warn('AsyncStorage not available on web, continuing without stored user:', storageError);
         setIsLoading(false);
         return;
       }
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
               // Update AsyncStorage with restored profile data
               await AsyncStorage.setItem('user', JSON.stringify(user));
               
-              console.log('✅ Restored user profile data on app startup:', {
+              logger.log('✅ Restored user profile data on app startup:', {
                 name: profileData.name,
                 hasPicture: !!profileData.profilePicture,
                 hasPhone: !!profileData.whatsappNumber,
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }) => {
               });
             }
           } catch (profileError) {
-            console.error('Error loading profile data:', profileError);
+            logger.error('Error loading profile data:', profileError);
             // Continue without profile data
           }
         }
@@ -71,15 +72,15 @@ export const AuthProvider = ({ children }) => {
             // Don't mark as ineligible - let ExploreScreen check if they've seen it
             const { hasSeenWelcomeDeal } = await import('../utils/userStorage');
             const hasSeen = await hasSeenWelcomeDeal(user.email);
-            console.log(`✅ User session restored: ${user.email} - Welcome deal will be shown if not seen (hasSeen: ${hasSeen})`);
+            logger.log(`✅ User session restored: ${user.email} - Welcome deal will be shown if not seen (hasSeen: ${hasSeen})`);
           } catch (migrationError) {
             // Silently handle migration errors - don't block app startup
-            console.error('Error during data migration:', migrationError);
+            logger.error('Error during data migration:', migrationError);
           }
         }
       }
     } catch (error) {
-      console.error('Error checking auth state:', error);
+      logger.error('Error checking auth state:', error);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +109,7 @@ export const AuthProvider = ({ children }) => {
             if (profileData.whatsappNumber) userToStore.whatsappNumber = profileData.whatsappNumber;
             if (profileData.address) userToStore.address = profileData.address;
             
-            console.log('✅ Restored user profile data on sign-in:', {
+            logger.log('✅ Restored user profile data on sign-in:', {
               name: profileData.name,
               hasPicture: !!profileData.profilePicture,
               hasPhone: !!profileData.whatsappNumber,
@@ -116,10 +117,10 @@ export const AuthProvider = ({ children }) => {
             });
           } else {
             // No saved profile yet - will be created when user updates profile
-            console.log('ℹ️ No saved profile data found - will use default from auth');
+            logger.log('ℹ️ No saved profile data found - will use default from auth');
           }
         } catch (profileError) {
-          console.error('Error loading profile data on sign in:', profileError);
+          logger.error('Error loading profile data on sign in:', profileError);
           // Continue without profile data - user can update profile later
         }
       }
@@ -151,7 +152,7 @@ export const AuthProvider = ({ children }) => {
           // Verify bookings
           const bookings = await getBookings(userToStore.email);
           
-          console.log('✅ User data persistence verified on sign-in:', {
+          logger.log('✅ User data persistence verified on sign-in:', {
             email: userToStore.email,
             walletBalance: walletBalance,
             transactionCount: transactions?.length || 0,
@@ -164,24 +165,24 @@ export const AuthProvider = ({ children }) => {
           const { hasSeenWelcomeDeal } = await import('../utils/userStorage');
           const hasSeen = await hasSeenWelcomeDeal(userToStore.email);
           if (!isNewUser) {
-            console.log(`✅ Existing user signed in: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
+            logger.log(`✅ Existing user signed in: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
           } else {
-            console.log(`✅ New user signed up: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
+            logger.log(`✅ New user signed up: ${userToStore.email} - Welcome deal will be shown if not seen before (hasSeen: ${hasSeen})`);
           }
           
-          console.log('✅ User signed in - ALL user data restored and verified:');
-          console.log('   - Profile data (name, picture, phone, address)');
-          console.log('   - Wallet balance and transaction history');
-          console.log('   - Booking history');
-          console.log('   - Favorites list');
-          console.log('   - All data will be automatically loaded when navigating to respective screens');
+          logger.log('✅ User signed in - ALL user data restored and verified:');
+          logger.log('   - Profile data (name, picture, phone, address)');
+          logger.log('   - Wallet balance and transaction history');
+          logger.log('   - Booking history');
+          logger.log('   - Favorites list');
+          logger.log('   - All data will be automatically loaded when navigating to respective screens');
         } catch (migrationError) {
           // Silently handle migration errors - don't block sign in
-          console.error('Error during data migration:', migrationError);
+          logger.error('Error during data migration:', migrationError);
         }
       }
     } catch (error) {
-      console.error('Error signing in:', error);
+      logger.error('Error signing in:', error);
       throw error;
     }
   };
@@ -208,7 +209,7 @@ export const AuthProvider = ({ children }) => {
       try {
         await AsyncStorage.removeItem('user');
       } catch (storageError) {
-        console.error('Error removing user from AsyncStorage:', storageError);
+        logger.error('Error removing user from AsyncStorage:', storageError);
         // Continue anyway - we'll clear user state
       }
       
@@ -216,27 +217,27 @@ export const AuthProvider = ({ children }) => {
       // This will trigger App.js to automatically show SignIn screen
       setUser(null);
       
-      console.log('✅ User signed out - authentication cleared');
-      console.log('✅ User will be automatically navigated to Sign In screen');
-      console.log('✅ All user data preserved (wallet balance, transactions, profile, bookings, favorites, notifications)');
-      console.log('✅ Wallet data will be automatically loaded when user signs back in');
+      logger.log('✅ User signed out - authentication cleared');
+      logger.log('✅ User will be automatically navigated to Sign In screen');
+      logger.log('✅ All user data preserved (wallet balance, transactions, profile, bookings, favorites, notifications)');
+      logger.log('✅ Wallet data will be automatically loaded when user signs back in');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out:', error);
       // Even if logout fails, clear local user authentication
       // User data remains intact in AsyncStorage with user-specific keys
       try {
         await AsyncStorage.removeItem('user');
-        console.log('✅ User data removed from AsyncStorage (fallback)');
+        logger.log('✅ User data removed from AsyncStorage (fallback)');
       } catch (clearError) {
-        console.error('Error clearing AsyncStorage (fallback):', clearError);
+        logger.error('Error clearing AsyncStorage (fallback):', clearError);
       }
       
       // Always clear user state to ensure navigation happens
       // This is critical - even if storage fails, we need to clear the in-memory state
       setUser(null);
       
-      console.log('✅ Authentication cleared - user will be navigated to Sign In screen');
-      console.log('✅ User data (wallet, transactions, etc.) preserved in AsyncStorage');
+      logger.log('✅ Authentication cleared - user will be navigated to Sign In screen');
+      logger.log('✅ User data (wallet, transactions, etc.) preserved in AsyncStorage');
       // Don't throw error - user should still be logged out even if backend call fails
     }
   };

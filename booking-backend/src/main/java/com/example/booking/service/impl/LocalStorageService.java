@@ -100,10 +100,15 @@ public class LocalStorageService implements StorageService {
         if (path == null || path.isBlank()) {
             return null;
         }
+        // If the path is already an absolute URL, return as-is
+        String normalized = path.replace("\\", "/");
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            return normalized;
+        }
         String base = properties.getPublicUrl();
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        return base + "/" + path.replace("\\", "/");
+        return base + "/" + normalized;
     }
 }

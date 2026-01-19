@@ -13,6 +13,7 @@ import MyListingsScreen from '../screens/MyListingsScreen';
 import UploadListingScreen from '../screens/UploadListingScreen';
 import AboutScreen from '../screens/AboutScreen';
 import HelpSupportScreen from '../screens/HelpSupportScreen';
+import TermsAndConditionsScreen from '../screens/TermsAndConditionsScreen';
 import ApartmentDetailsScreen from '../screens/ApartmentDetailsScreen';
 import PaymentConfirmationScreen from '../screens/PaymentConfirmationScreen';
 import CardPaymentScreen from '../screens/CardPaymentScreen';
@@ -21,8 +22,11 @@ import HostProfileScreen from '../screens/HostProfileScreen';
 import HostBookedListingsScreen from '../screens/HostBookedListingsScreen';
 import HostBookingDetailsScreen from '../screens/HostBookingDetailsScreen';
 import UserBookingDetailsScreen from '../screens/UserBookingDetailsScreen';
-import { Text, View, StyleSheet } from 'react-native';
+import SignInScreen from '../screens/SignInScreen';
+import { Text, View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '../hooks/useAuth';
+import { useNavigation } from '@react-navigation/native';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -175,6 +179,11 @@ function ProfileStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen 
+        name="TermsAndConditions" 
+        component={TermsAndConditionsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
         name="HostBookedListings" 
         component={HostBookedListingsScreen}
         options={{ headerShown: false }}
@@ -188,7 +197,111 @@ function ProfileStack() {
   );
 }
 
+// Guest screens that require login
+function RequireLoginScreen({ navigation, screenName, children }) {
+  const { user } = useAuth();
+  
+  React.useEffect(() => {
+    if (!user) {
+      if (Platform.OS === 'web') {
+        const confirmed = window.confirm('Sign In Required\n\nPlease sign in to access this feature.');
+        if (confirmed) {
+          // Try to navigate to SignIn
+          const parent = navigation.getParent();
+          if (parent) {
+            parent.navigate('SignIn');
+          } else {
+            navigation.navigate('SignIn');
+          }
+        }
+        // Navigate back to Explore
+        const parent = navigation.getParent();
+        if (parent) {
+          parent.navigate('Explore');
+        } else {
+          navigation.navigate('Explore');
+        }
+      } else {
+        Alert.alert(
+          'Sign In Required',
+          'Please sign in to access this feature.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Sign In', 
+              onPress: () => {
+                const parent = navigation.getParent();
+                if (parent) {
+                  parent.navigate('SignIn');
+                } else {
+                  navigation.navigate('SignIn');
+                }
+              }
+            }
+          ]
+        );
+        // Navigate back to Explore
+        const parent = navigation.getParent();
+        if (parent) {
+          parent.navigate('Explore');
+        } else {
+          navigation.navigate('Explore');
+        }
+      }
+    }
+  }, [user, navigation]);
+  
+  if (!user) {
+    return null; // Don't render the screen if not logged in
+  }
+  
+  return children;
+}
+
 export default function MainTabNavigator() {
+  const { user } = useAuth();
+  const navigation = useNavigation();
+  
+  // Helper function to navigate to SignIn that works on both web and mobile
+  const navigateToSignIn = () => {
+    // Try parent navigator first (for mobile)
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate('SignIn');
+    } else {
+      // Fallback for web or if parent doesn't exist
+      // On web, we might need to use the root navigator
+      try {
+        navigation.navigate('SignIn');
+      } catch (error) {
+        // If that fails, try to find the root navigator
+        let rootNav = navigation;
+        while (rootNav.getParent) {
+          const parent = rootNav.getParent();
+          if (parent) {
+            rootNav = parent;
+          } else {
+            break;
+          }
+        }
+        rootNav.navigate('SignIn');
+      }
+    }
+  };
+  
+  // Helper function for alerts that works on web
+  const showAlert = (title, message, buttons) => {
+    if (Platform.OS === 'web') {
+      // On web, use window.confirm or a custom modal
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      if (confirmed && buttons && buttons.length > 1 && buttons[1].onPress) {
+        buttons[1].onPress();
+      }
+    } else {
+      Alert.alert(title, message, buttons);
+    }
+  };
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -199,9 +312,10 @@ export default function MainTabNavigator() {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E0E0E0',
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: Platform.OS === 'web' ? 70 : 60,
+          paddingBottom: Platform.OS === 'web' ? 12 : 8,
+          paddingTop: Platform.OS === 'web' ? 12 : 8,
+          position: Platform.OS === 'web' ? 'relative' : 'absolute',
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -222,6 +336,24 @@ export default function MainTabNavigator() {
         options={{
           tabBarIcon: ({ focused }) => <TabIcon iconName="favorite" focused={focused} />,
         }}
+        listeners={({ navigation: tabNavigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              showAlert(
+                'Sign In Required',
+                'Please sign in to view your favorites.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Sign In', 
+                    onPress: navigateToSignIn
+                  }
+                ]
+              );
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="Wallet"
@@ -229,6 +361,24 @@ export default function MainTabNavigator() {
         options={{
           tabBarIcon: ({ focused }) => <TabIcon iconName="account-balance-wallet" focused={focused} />,
         }}
+        listeners={({ navigation: tabNavigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              showAlert(
+                'Sign In Required',
+                'Please sign in to access your wallet.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Sign In', 
+                    onPress: navigateToSignIn
+                  }
+                ]
+              );
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="Profile"
@@ -236,6 +386,24 @@ export default function MainTabNavigator() {
         options={{
           tabBarIcon: ({ focused }) => <TabIcon iconName="person" focused={focused} />,
         }}
+        listeners={({ navigation: tabNavigation }) => ({
+          tabPress: (e) => {
+            if (!user) {
+              e.preventDefault();
+              showAlert(
+                'Sign In Required',
+                'Please sign in to access your profile.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Sign In', 
+                    onPress: navigateToSignIn
+                  }
+                ]
+              );
+            }
+          },
+        })}
       />
     </Tab.Navigator>
   );

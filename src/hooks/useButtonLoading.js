@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Custom hook to manage button loading state
@@ -29,7 +30,7 @@ export const useButtonLoading = () => {
       try {
         await asyncFn(...args);
       } catch (error) {
-        console.error('Button action error:', error);
+        logger.error('Button action error:', error);
         throw error; // Re-throw so caller can handle
       } finally {
         setLoading(false);

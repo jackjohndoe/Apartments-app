@@ -21,28 +21,71 @@ public class Base64ToMultipartFile implements MultipartFile {
             throw new IllegalArgumentException("Base64 data URI cannot be null or empty");
         }
 
-        // Parse data URI format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
-        String[] parts = base64DataUri.split(",");
-        if (parts.length != 2) {
-            throw new IllegalArgumentException("Invalid base64 data URI format");
-        }
+        String cleaned = base64DataUri.replaceAll("\\s+", "");
+        String header = null;
+        String base64Data = null;
 
-        String header = parts[0]; // data:image/jpeg;base64
-        String base64Data = parts[1]; // actual base64 string
-
-        // Extract content type
-        if (header.contains(";base64")) {
-            this.contentType = header.substring(5, header.indexOf(";base64"));
+        if (cleaned.startsWith("data:")) {
+            int commaIdx = cleaned.indexOf(',');
+            if (commaIdx > 0) {
+                header = cleaned.substring(0, commaIdx);
+                base64Data = cleaned.substring(commaIdx + 1);
+            } else {
+                int base64TagIdx = cleaned.indexOf(";base64");
+                if (base64TagIdx > 0) {
+                    header = cleaned.substring(0, base64TagIdx);
+                    base64Data = cleaned.substring(base64TagIdx + 8);
+                } else {
+                    throw new IllegalArgumentException("Invalid data URI format");
+                }
+            }
         } else {
-            this.contentType = "image/jpeg"; // default
+            int tagIdx = cleaned.indexOf(";base64,");
+            if (tagIdx > 0) {
+                header = cleaned.substring(0, tagIdx);
+                base64Data = cleaned.substring(tagIdx + 8);
+                if (!header.startsWith("data:")) {
+                    header = "data:image/jpeg";
+                }
+            } else if (cleaned.matches("^[A-Za-z0-9+/=_-]+$")) {
+                header = "data:image/jpeg";
+                base64Data = cleaned;
+            } else {
+                throw new IllegalArgumentException("Invalid base64 string");
+            }
         }
 
-        // Decode base64
-        try {
-            this.content = Base64.getDecoder().decode(base64Data);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid base64 data: " + e.getMessage());
+        String ct = "image/jpeg";
+        if (header != null && header.toLowerCase().startsWith("data:")) {
+            String withoutPrefix = header.substring(5);
+            int semiIdx = withoutPrefix.indexOf(';');
+            int commaHeaderIdx = withoutPrefix.indexOf(',');
+            String typePart;
+            if (semiIdx >= 0) {
+                typePart = withoutPrefix.substring(0, semiIdx);
+            } else if (commaHeaderIdx >= 0) {
+                typePart = withoutPrefix.substring(0, commaHeaderIdx);
+            } else {
+                typePart = withoutPrefix;
+            }
+            if (typePart != null && !typePart.isBlank()) {
+                ct = typePart.trim();
+            }
         }
+        this.contentType = ct;
+
+        String normalizedData = base64Data != null ? base64Data.replaceAll("\\s+", "") : "";
+        byte[] decoded = null;
+        try {
+            decoded = Base64.getDecoder().decode(normalizedData);
+        } catch (IllegalArgumentException e) {
+            try {
+                decoded = Base64.getUrlDecoder().decode(normalizedData);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid base64 data: " + ex.getMessage());
+            }
+        }
+        this.content = decoded;
 
         // Generate filename
         String extension = getExtensionFromContentType(this.contentType);
@@ -62,6 +105,18 @@ public class Base64ToMultipartFile implements MultipartFile {
             return ".gif";
         } else if (contentType.contains("webp")) {
             return ".webp";
+        } else if (contentType.contains("heic")) {
+            return ".heic";
+        } else if (contentType.contains("heif")) {
+            return ".heif";
+        } else if (contentType.contains("bmp")) {
+            return ".bmp";
+        } else if (contentType.contains("tiff")) {
+            return ".tiff";
+        } else if (contentType.contains("svg")) {
+            return ".svg";
+        } else if (contentType.contains("avif")) {
+            return ".avif";
         }
         return ".jpg"; // default
     }

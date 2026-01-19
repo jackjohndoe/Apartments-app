@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -14,8 +15,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { notifyFavoriteRemoved } from '../utils/notifications';
 import { hybridFavoriteService } from '../services/hybridService';
 import { hybridApartmentService } from '../services/hybridService';
+import { useAuth } from '../hooks/useAuth';
+import { logger } from '../utils/logger';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
+import { PlaceholderImage } from '../components/PlaceholderImage';
 
 const { width } = Dimensions.get('window');
+const DEFAULT_PLACEHOLDER = getApartmentPlaceholder();
 
 const allApartments = [
   {
@@ -25,7 +31,7 @@ const allApartments = [
     location: 'Lagos',
     beds: 3,
     baths: 2,
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '2',
@@ -34,7 +40,7 @@ const allApartments = [
     location: 'Lagos',
     beds: 2,
     baths: 2,
-    image: 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '3',
@@ -43,7 +49,7 @@ const allApartments = [
     location: 'Abuja',
     beds: 1,
     baths: 1,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '4',
@@ -52,7 +58,7 @@ const allApartments = [
     location: 'Port Harcourt',
     beds: 4,
     baths: 3,
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '5',
@@ -61,7 +67,7 @@ const allApartments = [
     location: 'Ibadan',
     beds: 2,
     baths: 2,
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '6',
@@ -70,7 +76,7 @@ const allApartments = [
     location: 'Kano',
     beds: 3,
     baths: 3,
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '7',
@@ -79,7 +85,7 @@ const allApartments = [
     location: 'Lagos',
     beds: 2,
     baths: 2,
-    image: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
   {
     id: '8',
@@ -88,53 +94,94 @@ const allApartments = [
     location: 'Abuja',
     beds: 5,
     baths: 4,
-    image: 'https://images.unsplash.com/photo-1600585152915-d208bec867a1?w=800',
+    image: DEFAULT_PLACEHOLDER,
   },
 ];
 
 export default function FavoritesScreen() {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [favorites, setFavorites] = useState([]);
   const intervalRef = useRef(null);
 
+  // Check if user is logged in
+  React.useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to view your favorites.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign In', 
+            onPress: () => navigation.navigate('SignIn')
+          }
+        ]
+      );
+      // Navigate back to Explore
+      navigation.navigate('Explore');
+    }
+  }, [user, navigation]);
+
+  // Don't render if user is not logged in
+  if (!user) {
+    return null;
+  }
+
   const loadFavorites = useCallback(async () => {
     try {
-      console.log('🔄 Loading favorites...');
+      // CRITICAL: Validate user email before loading favorites
+      if (!user || !user.email) {
+        logger.warn('⚠️ Favorites access attempted without user email - preventing data leakage');
+        setFavorites([]);
+        return;
+      }
+      
+      // CRITICAL: Validate email format to prevent cross-user access
+      const normalizedEmail = user.email.toLowerCase().trim();
+      if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
+        logger.error('❌ Invalid user email format - preventing favorites access');
+        setFavorites([]);
+        return;
+      }
+      
+      logger.log('🔄 Loading favorites for user:', normalizedEmail);
       
       // Get user-specific favorites (persists across logout/login)
-      const favoriteIds = await hybridFavoriteService.getFavorites();
-      console.log('📋 Favorite IDs loaded:', favoriteIds);
+      // CRITICAL: Pass user email to ensure account-specific favorites
+      const favoriteIds = await hybridFavoriteService.getFavorites(normalizedEmail);
+      logger.log('📋 Favorite IDs loaded:', favoriteIds, 'for user:', normalizedEmail);
       
       if (!favoriteIds || favoriteIds.length === 0) {
-        console.log('ℹ️ No favorites found');
+        logger.log('ℹ️ No favorites found');
         setFavorites([]);
         return;
       }
       
       // Get all apartments (from global listings + defaults)
-      console.log('🏠 Loading all apartments...');
+      logger.log('🏠 Loading all apartments...');
       const allApartments = await hybridApartmentService.getAllApartmentsForExplore();
-      console.log('🏠 All apartments loaded:', allApartments.length);
+      logger.log('🏠 All apartments loaded:', allApartments.length);
       
       // Normalize all favorite IDs to strings for consistent comparison
       const normalizedFavoriteIds = favoriteIds.map(id => String(id));
-      console.log('📋 Normalized favorite IDs:', normalizedFavoriteIds);
+      logger.log('📋 Normalized favorite IDs:', normalizedFavoriteIds);
       
       // Filter to only show favorite apartments
       const favoriteApartments = allApartments.filter((apt) => {
         const aptId = String(apt.id || apt._id || '');
         const isFavorite = normalizedFavoriteIds.includes(aptId);
         if (isFavorite) {
-          console.log('✅ Found favorite apartment:', aptId, apt.title);
+          logger.log('✅ Found favorite apartment:', aptId, apt.title);
         }
         return isFavorite;
       });
       
-      console.log('❤️ Favorite apartments found:', favoriteApartments.length);
+      logger.log('❤️ Favorite apartments found:', favoriteApartments.length);
       setFavorites(favoriteApartments);
     } catch (error) {
-      console.error('❌ Error loading favorites:', error);
-      console.error('❌ Error stack:', error.stack);
+      logger.error('❌ Error loading favorites:', error);
+      logger.error('❌ Error stack:', error.stack);
       setFavorites([]);
     }
   }, []);
@@ -184,9 +231,17 @@ export default function FavoritesScreen() {
       setFavorites(updatedFavorites);
       
       // Remove from user-specific favorites (persists across logout/login)
+      // CRITICAL: Pass user email to ensure account-specific favorites
+      const userEmail = user?.email?.toLowerCase()?.trim();
+      if (!userEmail || !userEmail.includes('@')) {
+        logger.error('❌ Cannot remove favorite - invalid user email');
+        loadFavorites(); // Reload to restore state
+        return;
+      }
+      
       // This happens in the background after UI update for instant feedback
-      hybridFavoriteService.removeFavorite(id).catch((error) => {
-        console.error('Error removing favorite from storage:', error);
+      hybridFavoriteService.removeFavorite(id, userEmail).catch((error) => {
+        logger.error('Error removing favorite from storage:', error);
         // If removal fails, reload favorites to restore state
         loadFavorites();
       });
@@ -196,7 +251,7 @@ export default function FavoritesScreen() {
         await notifyFavoriteRemoved(apartment.title || apartment.name);
       }
     } catch (error) {
-      console.error('Error removing favorite:', error);
+      logger.error('Error removing favorite:', error);
       // Reload favorites on error to ensure consistency
       loadFavorites();
     }
@@ -231,13 +286,21 @@ export default function FavoritesScreen() {
     }
   };
 
-  const renderFavoriteCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate('ApartmentDetails', { apartment: item })}
-      activeOpacity={0.8}
-    >
-      <Image source={{ uri: item.image }} style={styles.image} />
+  const renderFavoriteCard = ({ item }) => {
+    const hasValidImage = item.image && typeof item.image === 'string' && item.image.trim() !== '' && !isPlaceholderImage(item.image);
+    const shouldShowPlaceholder = !hasValidImage || isPlaceholderImage(item.image);
+    
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate('ApartmentDetails', { apartment: item })}
+        activeOpacity={0.8}
+      >
+        {shouldShowPlaceholder ? (
+          <PlaceholderImage style={styles.image} iconSize={64} iconColor="#FFF" />
+        ) : (
+          <Image source={{ uri: item.image }} style={styles.image} />
+        )}
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
           <View style={styles.cardInfo}>
@@ -260,7 +323,8 @@ export default function FavoritesScreen() {
         </View>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   if (favorites.length === 0) {
     return (
@@ -408,4 +472,3 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
-

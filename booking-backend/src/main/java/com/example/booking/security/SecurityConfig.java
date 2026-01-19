@@ -52,6 +52,10 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/listings/my-listings").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/apartments/my-listings").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/listings/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/apartments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/listings/*/reviews/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/files/**").permitAll()
                         // Swagger/OpenAPI endpoints

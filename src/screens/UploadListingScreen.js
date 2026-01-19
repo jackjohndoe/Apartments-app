@@ -20,6 +20,8 @@ import { addListing, updateListing } from '../utils/listings';
 import { hybridApartmentService } from '../services/hybridService';
 import { notifyListingUploaded } from '../utils/notifications';
 import { getUserProfile } from '../utils/userStorage';
+import { logger } from '../utils/logger';
+import { getApartmentPlaceholder } from '../utils/imagePlaceholder';
 
 // Helper to get ImagePicker - uses require with error handling
 const getImagePicker = () => {
@@ -84,7 +86,6 @@ export default function UploadListingScreen() {
             setHostName(profileData.name || initialName);
           }
         } catch (error) {
-          console.error('Error loading profile data:', error);
           // Keep initial values on error
         }
       };
@@ -157,7 +158,6 @@ export default function UploadListingScreen() {
             setProfileData(freshProfileData);
           }
         } catch (error) {
-          console.error('Error loading fresh profile data:', error);
           // Continue with existing data
         }
       }
@@ -185,51 +185,101 @@ export default function UploadListingScreen() {
         hostEmail: currentProfileData?.email || user?.email || null,
         hostProfilePicture: currentProfileData?.profilePicture || null, // CRITICAL: Always include profile picture
         isSuperhost: false, // Can be determined later based on host performance
-        image: selectedImages[0] || null,
-        images: selectedImages.length > 0 ? selectedImages : [],
+        image: selectedImages[0] || getApartmentPlaceholder(400, 300),
+        images: selectedImages.length > 0 ? selectedImages : [getApartmentPlaceholder(400, 300)],
         amenities: amenities,
         status: 'active',
         createdBy: user.email, // CRITICAL: Track who created this listing
       };
       
-      console.log('UploadListingScreen - Saving listing with hostProfilePicture:', {
-        hasPicture: !!listingData.hostProfilePicture,
-        pictureUri: listingData.hostProfilePicture ? (listingData.hostProfilePicture.length > 50 ? listingData.hostProfilePicture.substring(0, 50) + '...' : listingData.hostProfilePicture) : null,
-        hostEmail: listingData.hostEmail,
-        hostName: listingData.hostName
-      });
-
       let savedListing = null;
       
       if (isEdit && listing) {
         // Save directly to API - makes listing available to all users immediately
         savedListing = await hybridApartmentService.updateApartment(listing.id, listingData);
-        console.log('✅ Listing updated successfully and available to all users:', savedListing?.id || listing.id);
-        Alert.alert('Success', 'Listing updated successfully!');
+        if (Platform.OS === 'web') {
+          window.alert('Success\n\nListing updated successfully!');
+        } else {
+          Alert.alert('Success', 'Listing updated successfully!');
+        }
       } else {
         // Save directly to API - makes listing available to all users immediately
         savedListing = await hybridApartmentService.createApartment(listingData);
-        console.log('✅ Listing created successfully and available to all users:', savedListing?.id);
         // Add notification for listing upload
         await notifyListingUploaded(listingData.title);
-        Alert.alert('Success', 'Listing created successfully and is now available to all users!');
+        
+        // Check if images were stored by backend
+        const imagesStored = savedListing?._meta?.imagesStored;
+        const backendIssue = savedListing?._meta?.backendIssue;
+        
+        if (backendIssue) {
+          // Backend didn't store images - show warning
+          const warningMessage = 'Listing created successfully, but images were not stored by the backend.\n\n' +
+            'Other users may not see images for this listing. This is a backend configuration issue.\n\n' +
+            'Images are saved locally, so you can see them, but other users cannot.';
+          if (Platform.OS === 'web') {
+            window.alert('Warning\n\n' + warningMessage);
+          } else {
+            Alert.alert('Warning', warningMessage);
+          }
+        } else {
+          // Success - images were stored
+          if (Platform.OS === 'web') {
+            window.alert('Success\n\nListing created successfully and is now available to all users!');
+          } else {
+            Alert.alert('Success', 'Listing created successfully and is now available to all users!');
+          }
+        }
       }
       
       // Clear cache to ensure new listing appears at top immediately
       try {
         await AsyncStorage.removeItem('cached_api_apartments');
-        console.log('✅ Cleared cache after saving - listing will appear at top of ExploreScreen');
+        logger.log('✅ Cleared API cache - new listing will appear immediately');
       } catch (cacheError) {
-        console.warn('⚠️ Could not clear cache (non-fatal):', cacheError.message);
+        logger.warn('⚠️ Cache clear failed (non-fatal):', cacheError.message);
       }
       
       // Navigate back - screens will refresh via useFocusEffect
       // ExploreScreen will automatically reload and show new listing at top
+      // The listing is already saved to local storage, so it will appear immediately
+      
+      // CRITICAL: In browser, ensure AsyncStorage is flushed and verified before navigation
+      if (Platform.OS === 'web') {
+        // Wait longer in browser to ensure AsyncStorage write is complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify listing is in storage before navigating
+        try {
+          const { getListings } = await import('../utils/listings');
+          const allSavedListings = await getListings();
+          const listingIdToFind = String(savedListing?.id || savedListing?._id || '');
+          const foundListing = allSavedListings.find(l => {
+            const savedId = String(l.id || l._id || '');
+            return savedId === listingIdToFind && listingIdToFind !== '';
+          });
+          if (foundListing) {
+            logger.log('✅ Verified listing in storage before navigation:', foundListing.id, foundListing.title || 'Untitled');
+          } else {
+            logger.warn('⚠️ Listing not found in storage - may need manual refresh. Looking for ID:', listingIdToFind);
+            if (allSavedListings.length > 0) {
+              logger.warn('  Available listing IDs:', allSavedListings.slice(0, 3).map(l => String(l.id || l._id || '')));
+            }
+          }
+        } catch (verifyError) {
+          logger.warn('⚠️ Could not verify listing before navigation:', verifyError.message);
+        }
+      }
+      
       navigation.goBack();
     } catch (error) {
-      console.error('Error saving listing:', error);
+      logger.error('Error saving listing:', error);
       const errorMessage = error.message || 'Failed to save listing to API. Please check your internet connection and try again.';
-      Alert.alert('Error', errorMessage);
+      if (Platform.OS === 'web') {
+        window.alert(`Error\n\n${errorMessage}`);
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -288,7 +338,6 @@ export default function UploadListingScreen() {
           }
         };
         reader.onerror = () => {
-          console.error('Error reading file:', file.name);
           processedCount++;
           if (processedCount === files.length && newImageUris.length > 0) {
             setSelectedImages(prev => {
@@ -362,7 +411,7 @@ export default function UploadListingScreen() {
         ]
       );
     } catch (error) {
-      console.error('Error selecting image:', error);
+      logger.error('Error selecting image:', error);
       Alert.alert('Error', `Failed to open image picker: ${error.message}. Please try again.`);
     }
   };
@@ -395,7 +444,7 @@ export default function UploadListingScreen() {
       
       pickImage('camera');
     } catch (error) {
-      console.error('Error taking photo:', error);
+      logger.error('Error taking photo:', error);
       Alert.alert('Error', `Failed to open camera: ${error.message}. Please try again.`);
     }
   };
@@ -416,6 +465,7 @@ export default function UploadListingScreen() {
           allowsEditing: true,
           aspect: [4, 3],
           quality: 0.8,
+          base64: true,
         });
       } else {
         // For photo library, allow multiple selection
@@ -425,12 +475,18 @@ export default function UploadListingScreen() {
           allowsMultipleSelection: true,
           quality: 0.8,
           selectionLimit: 0, // 0 = unlimited selection
+          base64: true,
         });
       }
 
       // Check if user selected images (not canceled)
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newImageUris = result.assets.map(asset => asset.uri);
+        const newImageUris = result.assets.map(asset => {
+          if (asset.base64 && typeof asset.base64 === 'string' && asset.base64.trim() !== '') {
+            return `data:image/jpeg;base64,${asset.base64}`;
+          }
+          return asset.uri;
+        });
         
         // Add new images to existing ones (avoid duplicates)
         setSelectedImages(prev => {
@@ -445,7 +501,7 @@ export default function UploadListingScreen() {
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Error', `Failed to select image: ${error.message}. Please try again.`);
     }
   };
@@ -1054,4 +1110,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

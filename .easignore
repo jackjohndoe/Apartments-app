@@ -1,7 +1,7 @@
 ﻿# EAS Build ignore file
 # Files and directories to exclude from EAS builds
 
-# Windows system files
+# Windows system files - exclude all AppData directories
 AppData/
 **/AppData/**
 AppData/Local/
@@ -10,6 +10,18 @@ AppData/Roaming/
 **/AppData/Local/**
 **/AppData/LocalLow/**
 **/AppData/Roaming/**
+**/AppData/Local/Google/**
+**/AppData/LocalLow/uTorrent.WebView2/**
+**/AppData/LocalLow/**/EBWebView/**
+**/Chrome/**
+**/uTorrent.WebView2/**
+**/*.indexeddb.leveldb/**
+**/*.ldb
+**/*.log
+**/Profile */
+**/User Data/**
+**/Cache/**
+**/Cache_Data/**
 
 # Cursor IDE files
 .cursor/

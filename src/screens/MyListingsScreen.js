@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
   FlatList,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -17,6 +18,8 @@ import { getListings, deleteListing, getMyListings } from '../utils/listings';
 import { hybridApartmentService } from '../services/hybridService';
 import { notifyListingDeleted } from '../utils/notifications';
 import { useAuth } from '../hooks/useAuth';
+import { logger } from '../utils/logger';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
 
 export default function MyListingsScreen() {
   const navigation = useNavigation();
@@ -31,7 +34,7 @@ export default function MyListingsScreen() {
       // Get current user's listings from global storage (filtered by user email)
       // Use top-level import for faster loading
       const userListings = await getMyListings();
-      console.log('MyListingsScreen - Loaded my listings:', userListings.length);
+      logger.log('MyListingsScreen - Loaded my listings:', userListings.length);
       
       // Also try API, but user listings take priority
       let apiListings = [];
@@ -41,21 +44,28 @@ export default function MyListingsScreen() {
           apiListings = apiResult;
         }
       } catch (apiError) {
-        console.log('API listings not available, using local only');
+        logger.log('API listings not available, using local only');
       }
       
       // Combine: user listings first, then API listings (avoid duplicates)
-      const userListingIds = new Set(userListings.map(l => l.id || String(l.id)));
+      // Normalize IDs to strings for consistent comparison
+      const userListingIds = new Set(userListings.map(l => {
+        const id = l.id || l._id || String(l.id);
+        return String(id);
+      }));
       const uniqueApiListings = apiListings.filter(l => {
         const id = l.id || l._id || String(l.id);
-        return !userListingIds.has(id);
+        return !userListingIds.has(String(id));
       });
       
       const allListings = [...userListings, ...uniqueApiListings];
       
       // Map to match local structure - PRESERVES FRONTEND
-      const mappedListings = allListings.map(listing => ({
-        id: listing.id || listing._id || String(listing.id),
+      // Normalize IDs to strings for consistent comparison
+      const mappedListings = allListings.map(listing => {
+        const normalizedId = listing.id || listing._id || String(listing.id);
+        return {
+        id: String(normalizedId), // Always use string for consistent comparison
         title: listing.title || listing.name || 'Untitled Listing',
         description: listing.description || '',
         location: listing.location || listing.address || 'Nigeria',
@@ -71,24 +81,23 @@ export default function MyListingsScreen() {
         amenities: listing.amenities || {},
         status: listing.status || 'active',
         createdAt: listing.createdAt || listing.date || new Date().toISOString(),
-      }));
+        };
+      });
       
       // Sort by date (most recent first)
       const sortedListings = mappedListings.sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
+        new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
       );
       
-      console.log('MyListingsScreen - Setting listings:', sortedListings.length);
       setListings(sortedListings);
     } catch (error) {
-      console.error('Error loading listings:', error);
+      logger.error('Error loading listings:', error);
       // Try direct load as fallback
       try {
         const directListings = await getMyListings();
-        console.log('MyListingsScreen - Fallback loaded:', directListings.length);
-        setListings(directListings);
+        setListings(directListings || []);
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        logger.error('Fallback also failed:', fallbackError);
         setListings([]);
       }
     } finally {
@@ -109,56 +118,88 @@ export default function MyListingsScreen() {
     loadListings();
   }, []);
 
-  const handleDeleteListing = (listingId, listingTitle) => {
-    Alert.alert(
-      'Delete Listing',
-      `Are you sure you want to delete "${listingTitle}"? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🗑️ Deleting listing:', listingId, listingTitle);
-              
-              // Verify user is authenticated
-              if (!user || !user.email) {
-                throw new Error('You must be logged in to delete listings');
-              }
-              
-              // Optimistically remove from UI immediately for better UX
-              setListings(prevListings => prevListings.filter(listing => listing.id !== listingId));
-              
-              // Use hybrid service to delete (removes from API, local storage, sync queue, and cache)
-              await hybridApartmentService.deleteApartment(listingId);
-              
-              // Add notification for listing deletion
-              try {
-                await notifyListingDeleted(listingTitle);
-              } catch (notifError) {
-                console.warn('Could not send deletion notification:', notifError);
-              }
-              
-              // Reload to ensure consistency (in case of any edge cases)
-              await loadListings();
-              
-              // Show success message
-              Alert.alert('Success', 'Listing deleted successfully');
-            } catch (error) {
-              console.error('❌ Error deleting listing:', error);
-              
-              // Reload listings to restore the deleted item if deletion failed
-              await loadListings();
-              
-              // Show error message
-              const errorMessage = error.message || 'Failed to delete listing. Please try again.';
-              Alert.alert('Error', errorMessage);
-            }
-          },
-        },
-      ]
-    );
+  const handleDeleteListing = async (listingId, listingTitle) => {
+    // Browser-compatible confirmation
+    const confirmDelete = () => {
+      if (Platform.OS === 'web') {
+        return window.confirm(`Delete Listing\n\nAre you sure you want to delete "${listingTitle}"? This action cannot be undone.`);
+      } else {
+        return new Promise((resolve) => {
+          Alert.alert(
+            'Delete Listing',
+            `Are you sure you want to delete "${listingTitle}"? This action cannot be undone.`,
+            [
+              { 
+                text: 'Cancel', 
+                style: 'cancel',
+                onPress: () => resolve(false)
+              },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => resolve(true)
+              },
+            ]
+          );
+        });
+      }
+    };
+
+    const confirmed = await confirmDelete();
+    if (!confirmed) {
+      return; // User cancelled
+    }
+
+    try {
+      logger.log('🗑️ Deleting listing:', listingId, listingTitle);
+      
+      // Verify user is authenticated
+      if (!user || !user.email) {
+        throw new Error('You must be logged in to delete listings');
+      }
+      
+      // Optimistically remove from UI immediately for better UX
+      // Handle both string and number ID comparisons - normalize both to strings
+      setListings(prevListings => prevListings.filter(listing => {
+        const listingIdToCompare = String(listing.id || listing._id || '');
+        const deleteIdToCompare = String(listingId);
+        // Return true to keep listing (if IDs don't match)
+        return listingIdToCompare !== deleteIdToCompare;
+      }));
+      
+      // Use hybrid service to delete (removes from API, local storage, sync queue, and cache)
+      await hybridApartmentService.deleteApartment(listingId);
+      
+      // Add notification for listing deletion
+      try {
+        await notifyListingDeleted(listingTitle);
+      } catch (notifError) {
+        logger.warn('Could not send deletion notification:', notifError);
+      }
+      
+      // Reload to ensure consistency (in case of any edge cases)
+      await loadListings();
+      
+      // Show success message
+      if (Platform.OS === 'web') {
+        window.alert('Success\n\nListing deleted successfully');
+      } else {
+        Alert.alert('Success', 'Listing deleted successfully');
+      }
+    } catch (error) {
+      logger.error('❌ Error deleting listing:', error);
+      
+      // Reload listings to restore the deleted item if deletion failed
+      await loadListings();
+      
+      // Show error message
+      const errorMessage = error.message || 'Failed to delete listing. Please try again.';
+      if (Platform.OS === 'web') {
+        window.alert(`Error\n\n${errorMessage}`);
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
+    }
   };
 
   const formatPrice = (price) => {
@@ -191,25 +232,17 @@ export default function MyListingsScreen() {
     <View style={styles.listingCard}>
       {/* Listing Image - Show uploaded image if available, otherwise placeholder */}
       {(() => {
-        // Check for valid uploaded image
-        const hasValidImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '') ||
-                              (item.images && Array.isArray(item.images) && item.images.length > 0 && 
-                               item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '');
-        const imageUri = item.image && typeof item.image === 'string' && item.image.trim() !== '' 
-          ? item.image 
-          : (item.images && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '' 
-            ? item.images[0] 
-            : null);
-        
-        return hasValidImage && imageUri ? (
+        const rawImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '')
+          ? item.image
+          : (item.images && Array.isArray(item.images) && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== ''
+              ? item.images[0]
+              : null);
+        const imageUri = rawImage && !isPlaceholderImage(rawImage) ? rawImage : getApartmentPlaceholder(400, 300);
+        return (
           <Image 
             source={{ uri: imageUri }} 
             style={styles.listingImage} 
           />
-        ) : (
-          <View style={styles.listingImagePlaceholder}>
-            <MaterialIcons name="home" size={48} color="#CCC" />
-          </View>
         );
       })()}
 
@@ -313,7 +346,7 @@ export default function MyListingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() => handleDeleteListing(item.id, item.title || 'Listing')}
+              onPress={() => handleDeleteListing(String(item.id || item._id || ''), item.title || 'Listing')}
             >
               <MaterialIcons name="delete-outline" size={20} color="#F44336" />
             </TouchableOpacity>
@@ -372,7 +405,7 @@ export default function MyListingsScreen() {
         <FlatList
           data={listings}
           renderItem={renderListingCard}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id || item._id || '')}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -621,4 +654,3 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
-
