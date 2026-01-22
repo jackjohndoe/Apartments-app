@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Apartify Africa",
-    "slug": "nigerian-apartments-app",
+    "slug": "ApartifyAfrica",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nigerianapartments.app",
+      "bundleIdentifier": "site.apartifyafrica.app",
       "buildNumber": "1",
       "displayName": "Apartify Africa",
       "infoPlist": {
@@ -29,12 +29,12 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFD700"
       },
-      "package": "com.nigerianapartments.app"
+      "package": "site.apartifyafrica.app"
     },
     "web": {
       "bundler": "metro"
     },
-    "scheme": "nigerianapartments",
+    "scheme": "apartifyafrica",
     "plugins": [
       "expo-dev-client",
       "expo-web-browser",
