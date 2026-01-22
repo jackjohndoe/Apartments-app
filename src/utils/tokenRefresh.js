@@ -8,8 +8,9 @@ let isRefreshing = false;
 let refreshPromise = null;
 let lastRefreshAttempt = 0;
 let refreshFailureCount = 0;
-const REFRESH_COOLDOWN = 60000; // 1 minute cooldown between refresh attempts
-const MAX_REFRESH_FAILURES = 3; // Stop trying after 3 consecutive failures
+const REFRESH_COOLDOWN = 2000; // 2 seconds cooldown to avoid tight loops
+const MAX_REFRESH_FAILURES = 20; // allow more attempts before stopping (increased from 5)
+const FAILURE_RESET_TIME = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Attempt to refresh the token by calling refresh endpoint or re-authenticating
@@ -19,7 +20,12 @@ const attemptTokenRefresh = async () => {
   try {
     // Check cooldown - don't attempt refresh too frequently
     const now = Date.now();
-    if (now - lastRefreshAttempt < REFRESH_COOLDOWN) {
+    // Reset failure count if it's been a while since the last attempt
+    if (now - lastRefreshAttempt > FAILURE_RESET_TIME) {
+      refreshFailureCount = 0;
+    }
+
+    if (REFRESH_COOLDOWN > 0 && (now - lastRefreshAttempt < REFRESH_COOLDOWN)) {
       logger.log('⏸️ Token refresh on cooldown, skipping...');
       return null;
     }

@@ -1,4 +1,4 @@
-﻿// API Configuration
+// API Configuration
 // Update this file if the backend URL changes
 
 export const API_CONFIG = {
@@ -21,13 +21,13 @@ export const API_ENDPOINTS = {
   },
   // Apartments
   APARTMENTS: {
-    LIST: '/api/apartments',
-    DETAIL: (id) => `/api/apartments/${id}`,
-    CREATE: '/api/apartments',
-    UPDATE: (id) => `/api/apartments/${id}`,
-    DELETE: (id) => `/api/apartments/${id}`,
-    MY_LISTINGS: '/api/apartments/my-listings',
-    SEARCH: '/api/apartments/search',
+    LIST: '/api/listings',
+    DETAIL: (id) => `/api/listings/${id}`,
+    CREATE: '/api/listings',
+    UPDATE: (id) => `/api/listings/${id}`,
+    DELETE: (id) => `/api/listings/${id}`,
+    MY_LISTINGS: '/api/listings/my-listings',
+    SEARCH: '/api/listings/search',
   },
   // Bookings
   BOOKINGS: {

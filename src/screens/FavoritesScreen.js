@@ -472,4 +472,3 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
-

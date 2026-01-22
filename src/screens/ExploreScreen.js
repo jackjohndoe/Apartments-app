@@ -772,106 +772,100 @@ export default function ExploreScreen() {
     navigation.navigate('ApartmentDetails', { apartment });
   }, [navigation]);
 
-  const renderApartmentCard = React.useCallback(({ item }) => (
-    <ApartmentCard 
-      item={item}
-      onPress={handleCardPress}
-      onToggleFavorite={toggleFavorite}
-    />
-  ), [handleCardPress, toggleFavorite]);
+  const renderItem = React.useCallback(({ item }) => {
+    return (
+      <ApartmentCard
+        item={item}
+        onPress={handleCardPress}
+        onToggleFavorite={toggleFavorite}
+      />
+    );
+  }, [handleCardPress, toggleFavorite]);
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={20} color="#666" style={styles.searchIcon} />
+      <View style={styles.header}>
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={24} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search destination, city..."
+            placeholder="Search apartments..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          <TouchableOpacity style={styles.filterIcon}>
-            <MaterialIcons name="tune" size={20} color="#666" />
-          </TouchableOpacity>
         </View>
-        <Text style={styles.searchSubtext}>Anywhere • Any week • Add guests</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <MaterialIcons name="tune" size={24} color="#333" />
+        </TouchableOpacity>
       </View>
 
-      {/* Filter Buttons */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {filters.map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[
-              styles.filterButton,
-              selectedFilter === filter && styles.filterButtonActive
-            ]}
-            onPress={() => setSelectedFilter(filter)}
-          >
-            <Text style={[
-              styles.filterButtonText,
-              selectedFilter === filter && styles.filterButtonTextActive
-            ]}>
-              {filter}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Filter Categories */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+          {filters.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterChip,
+                selectedFilter === filter && styles.activeFilterChip,
+              ]}
+              onPress={() => setSelectedFilter(filter === selectedFilter ? null : filter)}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  selectedFilter === filter && styles.activeFilterText,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Apartment List */}
       <FlatList
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#FFD700']}
-            tintColor="#FFD700"
-          />
-        }
         data={filteredApartments}
-        renderItem={renderApartmentCard}
+        renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={[
-          styles.listContent,
-          filteredApartments.length === 0 && styles.emptyListContent
-        ]}
+        contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        numColumns={2}
+        columnWrapperStyle={styles.columnWrapper}
         ListEmptyComponent={
-          searchQuery.trim() ? (
-            <View style={styles.emptyContainer}>
-              <MaterialIcons name="search-off" size={64} color="#999" />
-              <Text style={styles.emptyText}>No results found</Text>
-              <Text style={styles.emptySubtext}>
-                Try searching with different keywords like location, number of bedrooms, or apartment type
-              </Text>
-            </View>
-          ) : null
+          <View style={styles.emptyContainer}>
+            {!loading ? (
+              <>
+                <MaterialIcons name="home-work" size={64} color="#ccc" />
+                <Text style={styles.emptyText}>
+                  {searchQuery 
+                    ? `No apartments found for "${searchQuery}"` 
+                    : "No apartments available"}
+                </Text>
+                <TouchableOpacity style={styles.refreshButton} onPress={() => loadApartments(true)}>
+                  <Text style={styles.refreshButtonText}>Refresh</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <ActivityIndicator size="large" color="#FFD700" />
+            )}
+          </View>
         }
       />
-
-      {/* Map Button */}
-      <TouchableOpacity style={styles.mapButton}>
-        <MaterialIcons name="map" size={20} color="#FFFFFF" />
-        <Text style={styles.mapButtonText}>Map</Text>
-      </TouchableOpacity>
-
-      {/* Welcome Deal Modal - Shows immediately when new user reaches home page */}
+      
+      {/* Welcome Deal Modal */}
       <WelcomeDealModal
         visible={showWelcomeDeal}
-        onClaim={handleClaimDeal}
         onClose={handleCloseDeal}
+        onClaim={handleClaimDeal}
       />
     </View>
   );
@@ -880,233 +874,95 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? 40 : 50,
   },
-  loadingContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  searchContainer: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  searchBar: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 8,
+    paddingHorizontal: 15,
+    height: 50,
+    marginRight: 15,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: '#333',
   },
-  filterIcon: {
-    marginLeft: 8,
-  },
-  searchSubtext: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+  filterButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   filterContainer: {
-    maxHeight: 60,
-    marginBottom: 10,
-    marginTop: 4,
+    marginBottom: 15,
   },
   filterContent: {
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    alignItems: 'center',
   },
-  filterButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f5f5f5',
     marginRight: 10,
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  filterButtonActive: {
+  activeFilterChip: {
     backgroundColor: '#FFD700',
   },
-  filterButtonText: {
+  filterText: {
     fontSize: 14,
-    color: '#333',
+    color: '#666',
     fontWeight: '500',
   },
-  filterButtonTextActive: {
-    color: '#333',
+  activeFilterText: {
+    color: '#000',
     fontWeight: '600',
   },
-  listContent: {
+  listContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 80,
+    paddingBottom: 20,
   },
-  emptyListContent: {
-    flexGrow: 1,
-  },
-  row: {
+  columnWrapper: {
     justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    marginBottom: 0,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 160,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 18,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardContent: {
-    padding: 10,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 3,
-    lineHeight: 18,
-  },
-  location: {
-    fontSize: 11,
-    color: '#666',
-    marginBottom: 6,
-  },
-  priceRatingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  price: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  rating: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
-  },
-  mapButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: '50%',
-    marginLeft: -60,
-    backgroundColor: '#000000',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
-  },
-  mapButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    marginTop: 100,
+    paddingTop: 100,
   },
   emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  emptySubtext: {
     fontSize: 16,
-    color: '#666',
+    color: '#999',
+    marginTop: 10,
     textAlign: 'center',
-    lineHeight: 24,
+  },
+  refreshButton: {
+    marginTop: 20,
     paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#FFD700',
+    borderRadius: 8,
   },
-  imagePlaceholder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  imageHidden: {
-    opacity: 0,
+  refreshButtonText: {
+    color: '#000',
+    fontWeight: '600',
   },
 });
-

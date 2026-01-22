@@ -19,6 +19,7 @@ import { hybridApartmentService } from '../services/hybridService';
 import { notifyListingDeleted } from '../utils/notifications';
 import { useAuth } from '../hooks/useAuth';
 import { logger } from '../utils/logger';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
 
 export default function MyListingsScreen() {
   const navigation = useNavigation();
@@ -231,25 +232,17 @@ export default function MyListingsScreen() {
     <View style={styles.listingCard}>
       {/* Listing Image - Show uploaded image if available, otherwise placeholder */}
       {(() => {
-        // Check for valid uploaded image
-        const hasValidImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '') ||
-                              (item.images && Array.isArray(item.images) && item.images.length > 0 && 
-                               item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '');
-        const imageUri = item.image && typeof item.image === 'string' && item.image.trim() !== '' 
-          ? item.image 
-          : (item.images && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== '' 
-            ? item.images[0] 
-            : null);
-        
-        return hasValidImage && imageUri ? (
+        const rawImage = (item.image && typeof item.image === 'string' && item.image.trim() !== '')
+          ? item.image
+          : (item.images && Array.isArray(item.images) && item.images[0] && typeof item.images[0] === 'string' && item.images[0].trim() !== ''
+              ? item.images[0]
+              : null);
+        const imageUri = rawImage && !isPlaceholderImage(rawImage) ? rawImage : getApartmentPlaceholder(400, 300);
+        return (
           <Image 
             source={{ uri: imageUri }} 
             style={styles.listingImage} 
           />
-        ) : (
-          <View style={styles.listingImagePlaceholder}>
-            <MaterialIcons name="home" size={48} color="#CCC" />
-          </View>
         );
       })()}
 
@@ -661,4 +654,3 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
-

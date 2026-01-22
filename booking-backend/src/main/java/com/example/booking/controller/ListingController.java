@@ -133,6 +133,28 @@ public class ListingController {
         ));
     }
 
+    @Operation(summary = "Get user's listings", description = "Retrieves all listings owned by the authenticated user. Requires authentication.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User listings retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = ListingResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - authentication required")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/my-listings")
+    public ResponseEntity<List<ListingResponse>> getMyListings(
+            @AuthenticationPrincipal BookingUserDetails userDetails) {
+        if (userDetails == null || userDetails.getUser() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        Pageable pageable = Pageable.unpaged();
+        var allListings = listingService.getAllListings(null, pageable, null, userDetails.getUser());
+        Long currentUserId = userDetails.getUser().getId();
+        List<ListingResponse> myListings = allListings.getContent().stream()
+                .filter(listing -> listing.hostId() != null && listing.hostId().equals(currentUserId))
+                .toList();
+        return ResponseEntity.ok(myListings);
+    }
+
     @Operation(summary = "Add photos to a listing", description = "Uploads one or more photos for a listing. Requires HOST role and ownership, or ADMIN role (can bypass ownership).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Photos uploaded successfully"),

@@ -232,6 +232,17 @@ export default function AboutScreen() {
             </View>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={styles.contactItem}
+            onPress={() => openLink('tel:+2347036588568')}
+          >
+            <MaterialIcons name="phone" size={24} color="#FFD700" />
+            <View style={styles.contactContent}>
+              <Text style={styles.contactLabel}>Phone / WhatsApp</Text>
+              <Text style={styles.contactValue}>+234 703 658 8568</Text>
+            </View>
+          </TouchableOpacity>
+
           <View style={styles.contactItem}>
             <MaterialIcons name="location-on" size={24} color="#FFD700" />
             <View style={styles.contactContent}>
@@ -456,4 +467,3 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
-

@@ -202,6 +202,31 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
     }
 
     if (!response.ok) {
+      // General 401 Token Refresh Logic for ALL endpoints (except Auth/Login/Register)
+      // This ensures favorites, listings, etc. also auto-refresh
+      if (response.status === 401 && retryCount === 0 && !isAuthEndpoint) {
+          logger.log('🔄 401 error detected on ' + endpoint + ', attempting token refresh and retry...');
+          try {
+            const newToken = await refreshToken();
+            if (newToken) {
+              logger.log('✅ Token refreshed, retrying request to ' + endpoint);
+              // Update token in options and retry
+              const updatedOptions = {
+                ...options,
+                headers: {
+                  ...options.headers,
+                  'Authorization': `Bearer ${newToken}`,
+                },
+              };
+              // Retry the request once with new token
+              return apiRequest(endpoint, updatedOptions, retryCount + 1);
+            }
+          } catch (refreshError) {
+            logger.warn('⚠️ Token refresh failed:', refreshError);
+            // Continue with normal error handling below
+          }
+      }
+
       // For email endpoints, don't treat 401/403 as fatal - log and return null
       const isEmailEndpoint = endpoint.includes('/email/');
       

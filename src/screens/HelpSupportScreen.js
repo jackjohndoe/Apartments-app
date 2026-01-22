@@ -35,6 +35,13 @@ export default function HelpSupportScreen() {
       Alert.alert('Error', 'Unable to open website. Please visit apartifyafrica.site');
     });
   };
+  
+  const openPhone = () => {
+    const phoneNumber = '+2347036588568';
+    Linking.openURL(`tel:${phoneNumber}`).catch(() => {
+      Alert.alert('Error', 'Unable to open phone dialer. Please call +234 703 658 8568');
+    });
+  };
 
   const toggleSection = (section) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -127,6 +134,22 @@ export default function HelpSupportScreen() {
             <MaterialIcons name="chevron-right" size={24} color="#999" />
           </TouchableOpacity>
 
+          {/* Phone */}
+          <TouchableOpacity 
+            style={styles.contactCard}
+            onPress={openPhone}
+          >
+            <View style={styles.contactIconContainer}>
+              <MaterialIcons name="phone" size={28} color="#FFD700" />
+            </View>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>Phone / WhatsApp</Text>
+              <Text style={styles.contactValue}>+234 703 658 8568</Text>
+              <Text style={styles.contactHint}>Tap to call</Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color="#999" />
+          </TouchableOpacity>
+
           {/* Website */}
           <TouchableOpacity 
             style={styles.contactCard}
@@ -143,21 +166,7 @@ export default function HelpSupportScreen() {
             <MaterialIcons name="chevron-right" size={24} color="#999" />
           </TouchableOpacity>
 
-          {/* Phone */}
-          <TouchableOpacity 
-            style={styles.contactCard}
-            onPress={() => Linking.openURL('tel:+2348000000000')}
-          >
-            <View style={styles.contactIconContainer}>
-              <MaterialIcons name="phone" size={28} color="#FFD700" />
-            </View>
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactLabel}>Phone Support</Text>
-              <Text style={styles.contactValue}>+234 800 000 0000</Text>
-              <Text style={styles.contactHint}>Available Mon-Fri, 9AM-6PM</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#999" />
-          </TouchableOpacity>
+
         </View>
 
         {/* Quick Contact Form */}
@@ -487,4 +496,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

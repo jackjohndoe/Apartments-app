@@ -300,4 +300,39 @@ class ListingServiceImplTest {
         verify(listingPhotoRepository).delete(photo);
         assertThat(listing.getPhotos()).isEmpty();
     }
+
+    @Test
+    @DisplayName("createListing processes base64 images into ListingPhoto and maps URLs")
+    void createListing_processesBase64Images() {
+        ListingRequest request = new ListingRequest();
+        request.setTitle("Modern Loft");
+        request.setDescription("Central location");
+        request.setPrice(BigDecimal.valueOf(250));
+        request.setLocation("Lagos");
+        String base64Png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        request.setPhotos(List.of(base64Png));
+
+        Listing saved = Listing.builder()
+                .id(100L)
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .location(request.getLocation())
+                .host(host)
+                .build();
+
+        when(listingRepository.save(any(Listing.class))).thenReturn(saved);
+        when(listingRepository.findById(saved.getId())).thenReturn(Optional.of(saved));
+        when(listingPhotoRepository.save(any(ListingPhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(storageService.store(any(), eq("listings/" + saved.getId()))).thenReturn("listings/" + saved.getId() + "/image.png");
+        when(storageService.resolveUrl("listings/" + saved.getId() + "/image.png")).thenReturn("https://example.com/api/files/listings/" + saved.getId() + "/image.png");
+
+        ListingResponse response = listingService.createListing(request, host);
+
+        assertThat(response.getPhotos()).isNotEmpty();
+        assertThat(response.getPhotos().iterator().next()).startsWith("https://example.com/api/files/");
+        assertThat(saved.getPhotos()).hasSize(1);
+        verify(listingPhotoRepository, atLeastOnce()).save(any(ListingPhoto.class));
+        verify(storageService, atLeastOnce()).store(any(), eq("listings/" + saved.getId()));
+    }
 }

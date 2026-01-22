@@ -21,6 +21,7 @@ import { hybridApartmentService } from '../services/hybridService';
 import { notifyListingUploaded } from '../utils/notifications';
 import { getUserProfile } from '../utils/userStorage';
 import { logger } from '../utils/logger';
+import { getApartmentPlaceholder } from '../utils/imagePlaceholder';
 
 // Helper to get ImagePicker - uses require with error handling
 const getImagePicker = () => {
@@ -184,8 +185,8 @@ export default function UploadListingScreen() {
         hostEmail: currentProfileData?.email || user?.email || null,
         hostProfilePicture: currentProfileData?.profilePicture || null, // CRITICAL: Always include profile picture
         isSuperhost: false, // Can be determined later based on host performance
-        image: selectedImages[0] || null,
-        images: selectedImages.length > 0 ? selectedImages : [],
+        image: selectedImages[0] || getApartmentPlaceholder(400, 300),
+        images: selectedImages.length > 0 ? selectedImages : [getApartmentPlaceholder(400, 300)],
         amenities: amenities,
         status: 'active',
         createdBy: user.email, // CRITICAL: Track who created this listing
@@ -464,6 +465,7 @@ export default function UploadListingScreen() {
           allowsEditing: true,
           aspect: [4, 3],
           quality: 0.8,
+          base64: true,
         });
       } else {
         // For photo library, allow multiple selection
@@ -473,12 +475,18 @@ export default function UploadListingScreen() {
           allowsMultipleSelection: true,
           quality: 0.8,
           selectionLimit: 0, // 0 = unlimited selection
+          base64: true,
         });
       }
 
       // Check if user selected images (not canceled)
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newImageUris = result.assets.map(asset => asset.uri);
+        const newImageUris = result.assets.map(asset => {
+          if (asset.base64 && typeof asset.base64 === 'string' && asset.base64.trim() !== '') {
+            return `data:image/jpeg;base64,${asset.base64}`;
+          }
+          return asset.uri;
+        });
         
         // Add new images to existing ones (avoid duplicates)
         setSelectedImages(prev => {
@@ -1102,4 +1110,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

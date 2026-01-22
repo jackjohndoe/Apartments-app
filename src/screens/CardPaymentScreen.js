@@ -17,6 +17,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { initializePayment, verifyPayment, verifyAndFundWallet } from '../services/flutterwaveService';
+import { logger } from '../utils/logger';
 
 export default function CardPaymentScreen() {
   const route = useRoute();
@@ -151,13 +152,13 @@ export default function CardPaymentScreen() {
           throw new Error('Payment was not completed');
         }
       } catch (paymentError) {
-        console.error('Error processing payment:', paymentError);
+        logger.error('Error processing payment:', paymentError);
         // Show user-friendly error message
         const errorMsg = paymentError.message || 'Failed to process payment. Please check your card details and try again.';
         Alert.alert('Payment Error', errorMsg);
       }
     } catch (error) {
-      console.error('Error in payment flow:', error);
+      logger.error('Error in payment flow:', error);
       Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setProcessing(false);
@@ -174,12 +175,12 @@ export default function CardPaymentScreen() {
         throw new Error('Payment reference not found');
       }
 
-      console.log('🔄 Processing successful wallet funding:', { paymentRef, amount });
+      logger.log('🔄 Processing successful wallet funding:', { paymentRef, amount });
 
       // CRITICAL: Verify payment and automatically fund wallet
       try {
         if (user && user.email && amount) {
-          console.log('💰 Verifying payment and funding wallet...');
+          logger.log('💰 Verifying payment and funding wallet...');
           
           try {
             const walletFundingResult = await verifyAndFundWallet(
@@ -190,8 +191,8 @@ export default function CardPaymentScreen() {
             );
             
             if (walletFundingResult.verified && walletFundingResult.funded) {
-              console.log('✅ Payment verified and wallet funded successfully!');
-              console.log('✅ Updated balance:', walletFundingResult.balance);
+              logger.log('✅ Payment verified and wallet funded successfully!');
+              logger.log('✅ Updated balance:', walletFundingResult.balance);
               
               // Wallet top-up email is already sent by verifyAndFundWallet
               Alert.alert(
@@ -650,4 +651,3 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
-

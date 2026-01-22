@@ -439,6 +439,7 @@ export default function TermsAndConditionsScreen() {
           </Text>
           <Text style={styles.sectionText}>
             <Text style={styles.bold}>Email:</Text> support@apartifyafrica.site{'\n'}
+            <Text style={styles.bold}>Phone/WhatsApp:</Text> +234 703 658 8568{'\n'}
             <Text style={styles.bold}>Website:</Text> apartifyafrica.site{'\n'}
             <Text style={styles.bold}>Location:</Text> Lagos, Nigeria
           </Text>
