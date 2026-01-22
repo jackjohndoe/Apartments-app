@@ -17,10 +17,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nigerianapartments.app",
       "buildNumber": "1",
+      "displayName": "Apartify Africa",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "The app accesses your photos to let you set your profile picture.",
         "NSCameraUsageDescription": "The app accesses your camera to let you take a profile picture.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPrivacyPolicyURL": "https://apartifyafrica.site/privacy"
       }
     },
     "android": {

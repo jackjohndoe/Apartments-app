@@ -20,19 +20,19 @@ export default function HelpSupportScreen() {
   const [message, setMessage] = useState('');
 
   const openEmail = () => {
-    const email = 'help@apartments.com';
+    const email = 'support@apartifyafrica.site';
     const subject = encodeURIComponent(subject || 'Support Request');
     const body = encodeURIComponent(message || '');
     const url = `mailto:${email}?subject=${subject}&body=${body}`;
     
     Linking.openURL(url).catch(err => {
-      Alert.alert('Error', 'Unable to open email client. Please email us at help@apartments.com');
+      Alert.alert('Error', 'Unable to open email client. Please email us at support@apartifyafrica.site');
     });
   };
 
   const openWebsite = () => {
-    Linking.openURL('https://www.apartments.com/support').catch(err => {
-      Alert.alert('Error', 'Unable to open website. Please visit www.apartments.com/support');
+    Linking.openURL('https://apartifyafrica.site/support').catch(err => {
+      Alert.alert('Error', 'Unable to open website. Please visit apartifyafrica.site');
     });
   };
 
@@ -121,7 +121,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Email Support</Text>
-              <Text style={styles.contactValue}>help@apartments.com</Text>
+              <Text style={styles.contactValue}>support@apartifyafrica.site</Text>
               <Text style={styles.contactHint}>Tap to send an email</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
@@ -137,7 +137,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Visit Our Website</Text>
-              <Text style={styles.contactValue}>www.apartments.com/support</Text>
+              <Text style={styles.contactValue}>apartifyafrica.site/support</Text>
               <Text style={styles.contactHint}>Tap to open in browser</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
@@ -146,14 +146,14 @@ export default function HelpSupportScreen() {
           {/* Phone */}
           <TouchableOpacity 
             style={styles.contactCard}
-            onPress={() => Linking.openURL('tel:+2341234567890')}
+            onPress={() => Linking.openURL('tel:+2348000000000')}
           >
             <View style={styles.contactIconContainer}>
               <MaterialIcons name="phone" size={28} color="#FFD700" />
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Phone Support</Text>
-              <Text style={styles.contactValue}>+234 123 456 7890</Text>
+              <Text style={styles.contactValue}>+234 800 000 0000</Text>
               <Text style={styles.contactHint}>Available Mon-Fri, 9AM-6PM</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
@@ -247,28 +247,6 @@ export default function HelpSupportScreen() {
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
           </TouchableOpacity>
-
-          <View style={styles.resourceCard}>
-            <MaterialIcons name="video-library" size={24} color="#FFD700" />
-            <View style={styles.resourceContent}>
-              <Text style={styles.resourceTitle}>Video Tutorials</Text>
-              <Text style={styles.resourceDescription}>
-                Watch step-by-step guides on using the app
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#999" />
-          </View>
-
-          <View style={styles.resourceCard}>
-            <MaterialIcons name="article" size={24} color="#FFD700" />
-            <View style={styles.resourceContent}>
-              <Text style={styles.resourceTitle}>Help Articles</Text>
-              <Text style={styles.resourceDescription}>
-                Browse our knowledge base for detailed guides
-              </Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color="#999" />
-          </View>
         </View>
 
         {/* Support Hours */}

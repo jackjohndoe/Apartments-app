@@ -5,43 +5,28 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Image,
-  ImageBackground,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialIcons } from '@expo/vector-icons';
+import { logger } from '../utils/logger';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
-  const [imageError, setImageError] = useState(false);
-  
   const handleNavigate = (screen) => {
     try {
       if (navigation && navigation.navigate) {
         navigation.navigate(screen);
       }
     } catch (error) {
-      console.error('Navigation error:', error);
+      logger.error('Navigation error:', error);
     }
   };
-
-  // Background image URL - using a beautiful Nigerian apartment/home image
-  const backgroundImage = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80';
-  const defaultBackground = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80';
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
-      <ImageBackground
-        source={{ uri: imageError ? defaultBackground : backgroundImage }}
-        style={styles.backgroundImage}
-        imageStyle={styles.backgroundImageStyle}
-        onError={() => {
-          console.log('Background image failed to load, using default');
-          setImageError(true);
-        }}
-      >
+      <View style={styles.backgroundImage}>
         <View style={styles.overlay} />
         <View style={styles.content}>
           <View style={styles.logoContainer}>
@@ -67,8 +52,8 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.linkText}>Already have an account? Sign In</Text>
           </TouchableOpacity>
         </View>
+        </View>
       </View>
-      </ImageBackground>
     </View>
   );
 }
@@ -84,10 +69,8 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backgroundImageStyle: {
+    backgroundColor: '#FFD700',
     opacity: 0.3,
-    resizeMode: 'cover',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

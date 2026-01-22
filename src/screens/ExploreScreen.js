@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -21,100 +22,80 @@ import { notifyFavoriteAdded, notifyFavoriteRemoved } from '../utils/notificatio
 import { hybridApartmentService, hybridFavoriteService } from '../services/hybridService';
 import { useAuth } from '../hooks/useAuth';
 import WelcomeDealModal from '../components/WelcomeDealModal';
+import ApartmentCard from '../components/ApartmentCard';
 import { hasSeenWelcomeDeal, markWelcomeDealSeen } from '../utils/userStorage';
+import { logger } from '../utils/logger';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const DEFAULT_PLACEHOLDER = getApartmentPlaceholder();
 
-const apartments = [
-  {
-    id: '1',
-    title: 'Modern 3-Bedroom Apartment in Victoria Island',
-    price: 83333, // Daily rate (within 100K range)
-    location: 'Lagos',
-    beds: 3,
-    baths: 2,
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
-    isFavorite: false,
-    rating: 4.92,
-  },
-  {
-    id: '2',
-    title: 'Luxury 2-Bedroom Penthouse in Lekki',
-    price: 95000, // Daily rate (under 100K)
-    location: 'Lagos',
-    beds: 2,
-    baths: 2,
-    image: 'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?w=800',
-    isFavorite: false,
-    rating: 4.85,
-  },
-  {
-    id: '3',
-    title: 'Cozy 1-Bedroom Studio in Garki',
-    price: 26667, // Daily rate (within 100K range)
-    location: 'Abuja',
-    beds: 1,
-    baths: 1,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-    isFavorite: false,
-    rating: 4.98,
-  },
-  {
-    id: '4',
-    title: 'Spacious 4-Bedroom Family Home in Port Harcourt',
-    price: 60000, // Daily rate (within 100K range)
-    location: 'Port Harcourt',
-    beds: 4,
-    baths: 3,
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-    isFavorite: false,
-    rating: 4.91,
-  },
-  {
-    id: '5',
-    title: 'Elegant 2-Bedroom Apartment in Ibadan',
-    price: 20000, // Daily rate (within 100K range)
-    location: 'Ibadan',
-    beds: 2,
-    baths: 2,
-    image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
-    isFavorite: false,
-    rating: 4.99,
-  },
-  {
-    id: '6',
-    title: 'Contemporary 3-Bedroom Duplex in Kano',
-    price: 40000, // Daily rate (within 100K range)
-    location: 'Kano',
-    beds: 3,
-    baths: 3,
-    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
-    isFavorite: false,
-    rating: 4.88,
-  },
-  {
-    id: '7',
-    title: 'Stylish 2-Bedroom Apartment in Ikeja',
-    price: 50000, // Daily rate (within 100K range)
-    location: 'Lagos',
-    beds: 2,
-    baths: 2,
-    image: 'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800',
-    isFavorite: false,
-    rating: 4.93,
-  },
-  {
-    id: '8',
-    title: 'Luxury 5-Bedroom Mansion in Asokoro',
-    price: 98000, // Daily rate (under 100K)
-    location: 'Abuja',
-    beds: 5,
-    baths: 4,
-    image: 'https://images.unsplash.com/photo-1600585152915-d208bec867a1?w=800',
-    isFavorite: false,
-    rating: 4.95,
-  },
-];
+// Helper to check if an image URI is valid
+const isValidImageUri = (uri) => {
+  return uri && typeof uri === 'string' && uri.trim() !== '';
+};
+
+// Enhanced helper to extract image URL from various photo structures
+// Matches the logic in hybridService.js
+const extractImageFromPhoto = (photo, depth = 0) => {
+  if (depth > 2) return null;
+  
+  if (typeof photo === 'string') {
+    const trimmed = photo.trim();
+    if (trimmed && (trimmed.startsWith('http') || trimmed.startsWith('data:image') || trimmed.startsWith('/'))) {
+      return trimmed;
+    }
+    return null;
+  }
+  
+  if (photo && typeof photo === 'object' && !Array.isArray(photo)) {
+    const urlProperties = ['url', 'imageUrl', 'src', 'thumbnail', 'original', 'path', 'file', 'link', 'image', 'photo'];
+    
+    for (const prop of urlProperties) {
+      if (photo[prop]) {
+        if (typeof photo[prop] === 'string') {
+          const trimmed = photo[prop].trim();
+          if (trimmed && (trimmed.startsWith('http') || trimmed.startsWith('data:image') || trimmed.startsWith('/'))) {
+            return trimmed;
+          }
+        } else if (typeof photo[prop] === 'object' && depth < 2) {
+          const nestedUrl = extractImageFromPhoto(photo[prop], depth + 1);
+          if (nestedUrl) return nestedUrl;
+        }
+      }
+    }
+    
+    for (const key in photo) {
+      if (photo.hasOwnProperty(key) && typeof photo[key] === 'string') {
+        const trimmed = photo[key].trim();
+        if (trimmed && (trimmed.startsWith('http') || trimmed.startsWith('data:image') || trimmed.startsWith('/'))) {
+          return trimmed;
+        }
+      }
+    }
+  }
+  
+  return null;
+};
+
+// Helper to extract images from photos array
+const extractImagesFromPhotosArray = (photos) => {
+  if (!photos || !Array.isArray(photos) || photos.length === 0) {
+    return [];
+  }
+  
+  const validImages = [];
+  for (const photo of photos) {
+    const imageUrl = extractImageFromPhoto(photo);
+    if (imageUrl && !validImages.includes(imageUrl)) {
+      validImages.push(imageUrl);
+    }
+  }
+  
+  return validImages;
+};
+
+const apartments = [];
 
 export default function ExploreScreen() {
   const navigation = useNavigation();
@@ -142,10 +123,12 @@ export default function ExploreScreen() {
   useFocusEffect(
     React.useCallback(() => {
       setIsScreenFocused(true);
-      // Always refresh when screen comes into focus to get latest listings from all devices
-      // This ensures newly uploaded listings appear at the top immediately
-      console.log('🔄 ExploreScreen focused - refreshing to show new listings at top');
-      loadApartments(true); // Force refresh to get listings uploaded on other devices
+      
+      // Only refresh if we don't have data yet
+      if (apartmentList.length === 0) {
+        loadApartments(false);
+      }
+      
       // Check if user is new and show welcome deal modal
       if (user && user.email) {
         checkAndShowWelcomeDeal();
@@ -154,51 +137,11 @@ export default function ExploreScreen() {
       return () => {
         setIsScreenFocused(false);
       };
-    }, [user])
+    }, [user, apartmentList.length])
   );
 
-  // Real-time polling: Check for new listings every 5 seconds when screen is focused
-  useEffect(() => {
-    if (!isScreenFocused) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        // Always force refresh to bypass cache and get latest from API
-        // This ensures listings uploaded on other devices appear immediately
-        const { hybridApartmentService } = await import('../services/hybridService');
-        
-        // Clear cache before fetching to ensure fresh data
-        try {
-          await AsyncStorage.removeItem('cached_api_apartments');
-        } catch (cacheError) {
-          // Ignore cache errors
-        }
-        
-        // Fetch latest listings from API (bypass cache)
-        const currentListings = await hybridApartmentService.getAllApartmentsForExplore(true);
-        const currentCount = currentListings?.length || 0;
-        
-        // If count increased, new listings were added - trigger full refresh
-        if (currentCount > lastListingCount && lastListingCount > 0) {
-          console.log(`🔄 New listings detected! Count: ${lastListingCount} → ${currentCount}. Refreshing...`);
-          await loadApartments(true); // Force refresh to show new listings
-        } else if (lastListingCount === 0 && currentCount > 0) {
-          // First poll after initial load - update count and refresh
-          setLastListingCount(currentCount);
-          await loadApartments(true);
-        } else if (currentCount !== lastListingCount) {
-          // Count changed (could be increase or decrease) - refresh
-          console.log(`🔄 Listing count changed: ${lastListingCount} → ${currentCount}. Refreshing...`);
-          setLastListingCount(currentCount);
-          await loadApartments(true);
-        }
-      } catch (error) {
-        console.warn('⚠️ Real-time polling error (non-fatal):', error.message);
-      }
-    }, 5000); // Poll every 5 seconds for faster updates
-
-    return () => clearInterval(pollInterval);
-  }, [isScreenFocused, lastListingCount]);
+  // Real-time polling removed to prevent image glitching/reloading
+  // User can pull-to-refresh to get latest updates
 
   // Check if user should see welcome deal modal
   // Shows for both new users (sign-up) and existing users (sign-in)
@@ -213,12 +156,12 @@ export default function ExploreScreen() {
       if (!hasSeenDeal) {
         // Show welcome deal modal on home page for both new and existing users
         setShowWelcomeDeal(true);
-        console.log('🎉 Welcome deal modal shown on home page for user:', user.email);
+        logger.log('🎉 Welcome deal modal shown on home page for user:', user.email);
       } else {
-        console.log(`✅ User ${user.email} has already seen the welcome deal`);
+        logger.log(`✅ User ${user.email} has already seen the welcome deal`);
       }
     } catch (error) {
-      console.error('Error checking welcome deal:', error);
+      logger.error('Error checking welcome deal:', error);
     } finally {
       setCheckingWelcomeDeal(false);
     }
@@ -240,7 +183,7 @@ export default function ExploreScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error claiming welcome deal:', error);
+      logger.error('Error claiming welcome deal:', error);
       Alert.alert('Error', 'Failed to claim deal. Please try again.');
     }
   };
@@ -256,9 +199,9 @@ export default function ExploreScreen() {
     try {
       const { updateWalletBalance } = await import('../utils/wallet');
       await updateWalletBalance(user.email, 0);
-      console.log(`✅ Wallet initialized to ₦0 for user: ${user.email}`);
+      logger.log(`✅ Wallet initialized to ₦0 for user: ${user.email}`);
     } catch (walletError) {
-      console.error('Error initializing wallet to zero:', walletError);
+      logger.error('Error initializing wallet to zero:', walletError);
     }
     
     setShowWelcomeDeal(false);
@@ -274,28 +217,116 @@ export default function ExploreScreen() {
       if (forceRefresh) {
         try {
           await AsyncStorage.removeItem('cached_api_apartments');
-          console.log('🔄 Cleared API cache for fresh fetch - new listings will appear');
+          logger.log('🔄 Cleared API cache for fresh fetch - new listings will appear');
         } catch (cacheError) {
-          console.warn('⚠️ Could not clear API cache:', cacheError.message);
+          logger.warn('⚠️ Could not clear API cache:', cacheError.message);
         }
       }
       
       // Always get user listings directly first to ensure they're included
       const { getListings } = await import('../utils/listings');
       const userListings = await getListings();
-      console.log('ExploreScreen - Direct user listings check:', userListings.length);
+      logger.log('ExploreScreen - Direct user listings check:', userListings.length);
+      if (userListings.length > 0) {
+        logger.log('ExploreScreen - User listing IDs:', userListings.slice(0, 3).map(l => String(l.id || l._id || '')));
+      }
       
       // Load all apartments including user listings and default apartments
       // This ensures new listings appear with other listing cards
       // Force fresh API fetch to get listings from all devices
       const allApartments = await hybridApartmentService.getAllApartmentsForExplore(forceRefresh);
       
-      console.log('ExploreScreen - All apartments loaded:', allApartments?.length || 0);
+      logger.log('ExploreScreen - All apartments loaded:', allApartments?.length || 0);
+      if (allApartments && allApartments.length > 0) {
+        logger.log('ExploreScreen - First 5 apartment IDs:', allApartments.slice(0, 5).map(a => String(a.id || a._id || '')));
+        logger.log('ExploreScreen - First 5 apartment titles:', allApartments.slice(0, 5).map(a => a.title || 'Untitled'));
+      } else {
+        logger.warn('⚠️ ExploreScreen - No apartments loaded!');
+      }
+      
+      // CRITICAL: Trust API as source of truth
+      // If API returned empty array, that means no listings exist (valid state)
+      // Don't manually add local listings - hybridService already handles this properly
+      // Only show local listings when API is truly unavailable (offline mode)
+      // The hybridService.getAllApartmentsForExplore() already merges API + local listings correctly
+      
+      // Check if API returned empty results (may indicate backend filtering issue)
+      if (allApartments && allApartments.length === 0 && userListings.length === 0) {
+        logger.warn('⚠️ No listings found from API or local storage');
+        // Only show alert once per session to avoid spam
+        if (!global._listingsEmptyAlertShown) {
+          global._listingsEmptyAlertShown = true;
+          setTimeout(() => { global._listingsEmptyAlertShown = false; }, 30000); // Reset after 30 seconds
+          
+          // Show user-friendly message (non-blocking)
+          setTimeout(() => {
+            Alert.alert(
+              'No Listings Available',
+              'Unable to load listings. This may be because:\n\n' +
+              '• Backend is filtering by user (should show all listings)\n' +
+              '• No listings exist in the database\n' +
+              '• Network connection issue\n\n' +
+              'Please check your connection and try again.',
+              [{ text: 'OK' }]
+            );
+          }, 1000);
+        }
+      }
       
       let finalApartments = [];
       
       if (allApartments && allApartments.length > 0) {
         finalApartments = allApartments;
+        
+        // CRITICAL: Double-check that user listings are included
+        // If we have user listings but they're not in finalApartments, add them
+        if (userListings.length > 0) {
+          const finalIds = new Set(finalApartments.map(a => String(a.id || a._id || '')));
+          const missingListings = userListings.filter(listing => {
+            const listingId = String(listing.id || listing._id || '');
+            return listingId && !finalIds.has(listingId);
+          });
+          
+          if (missingListings.length > 0) {
+            logger.log('🔄 ExploreScreen - Found', missingListings.length, 'user listings not in final list. Adding them...');
+            const formattedMissing = missingListings.map(listing => ({
+              id: String(listing.id || listing._id || ''),
+              title: listing.title || 'Apartment',
+              price: listing.price || 0,
+              location: listing.location || 'Nigeria',
+              beds: listing.bedrooms || listing.beds || 1,
+              baths: listing.bathrooms || listing.baths || 1,
+              bedrooms: listing.bedrooms || listing.beds || null,
+              bathrooms: listing.bathrooms || listing.baths || null,
+              area: listing.area || null,
+              maxGuests: listing.maxGuests || null,
+              description: listing.description || null,
+              amenities: listing.amenities || null,
+              image: (() => {
+                if (listing.image && typeof listing.image === 'string' && listing.image.trim() !== '') {
+                  return listing.image;
+                }
+                if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
+                  const validImage = listing.images.find(img => img && typeof img === 'string' && img.trim() !== '');
+                  if (validImage) return validImage;
+                }
+                return DEFAULT_PLACEHOLDER;
+              })(),
+              images: listing.images || (listing.image ? [listing.image] : []),
+              isFavorite: false,
+              rating: listing.rating || 4.5,
+              createdAt: listing.createdAt || new Date().toISOString(),
+              hostName: listing.hostName || null,
+              isSuperhost: listing.isSuperhost || false,
+              hostEmail: listing.hostEmail || null,
+              hostProfilePicture: listing.hostProfilePicture || null,
+            }));
+            // Add missing listings to the beginning (most recent first)
+            finalApartments = [...formattedMissing, ...finalApartments];
+            logger.log('✅ ExploreScreen - Added', formattedMissing.length, 'missing user listings to final list');
+          }
+        }
+        
         // Update listing count for real-time polling
         setLastListingCount(finalApartments.length);
       } else {
@@ -329,7 +360,7 @@ export default function ExploreScreen() {
                   return listing.photo;
                 }
                 // Only use placeholder if no valid image exists
-                return 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
+                return DEFAULT_PLACEHOLDER;
               })(),
               images: (() => {
                 // If listing has images array, use it (filter out invalid images)
@@ -365,8 +396,12 @@ export default function ExploreScreen() {
       }
       
       // Load favorites and merge with apartments
+      // CRITICAL: Pass user email to ensure account-specific favorites
       try {
-        const favoriteIds = await hybridFavoriteService.getFavorites();
+        const userEmail = user?.email?.toLowerCase()?.trim();
+        const favoriteIds = userEmail && userEmail.includes('@') 
+          ? await hybridFavoriteService.getFavorites(userEmail)
+          : [];
         // favoriteIds are already normalized to strings in hybridFavoriteService.getFavorites
         finalApartments = finalApartments.map((apt) => {
           const aptId = String(apt.id || apt._id || '');
@@ -375,9 +410,9 @@ export default function ExploreScreen() {
             isFavorite: favoriteIds.includes(aptId),
           };
         });
-        console.log('✅ ExploreScreen - Merged favorites with apartments. Favorites count:', favoriteIds.length);
+        logger.log('✅ ExploreScreen - Merged favorites with apartments. Favorites count:', favoriteIds.length);
       } catch (favoritesError) {
-        console.error('Error loading favorites:', favoritesError);
+        logger.error('Error loading favorites:', favoritesError);
         // Continue without favorites
       }
       
@@ -393,9 +428,9 @@ export default function ExploreScreen() {
       setApartmentList(finalApartments);
       // Update listing count for real-time polling
       setLastListingCount(finalApartments.length);
-      console.log('✅ ExploreScreen - Final apartments set:', finalApartments.length, 'Sorted by most recent first. User listings included:', userListings.length);
+      logger.log('✅ ExploreScreen - Final apartments set:', finalApartments.length, 'Sorted by most recent first. User listings included:', userListings.length);
     } catch (error) {
-      console.error('Error loading apartments:', error);
+      logger.error('Error loading apartments:', error);
       // Fallback: try to get user listings and merge with defaults
       try {
         const { getListings } = await import('../utils/listings');
@@ -414,7 +449,7 @@ export default function ExploreScreen() {
               maxGuests: listing.maxGuests || null,
               description: listing.description || null,
               amenities: listing.amenities || null,
-              image: listing.image || listing.images?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+              image: listing.image || listing.images?.[0] || DEFAULT_PLACEHOLDER,
               images: (() => {
                 // If listing has images array, use it
                 if (listing.images && Array.isArray(listing.images) && listing.images.length > 0) {
@@ -438,9 +473,13 @@ export default function ExploreScreen() {
           : [];
         formattedUserListings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         
-        const favoriteIds = await hybridFavoriteService.getFavorites();
+        // CRITICAL: Pass user email to ensure account-specific favorites
+        const userEmail = user?.email?.toLowerCase()?.trim();
+        const favoriteIds = userEmail && userEmail.includes('@') 
+          ? await hybridFavoriteService.getFavorites(userEmail)
+          : [];
         // favoriteIds are already normalized to strings in hybridFavoriteService.getFavorites
-        const combined = [...formattedUserListings, ...apartments].map((apt) => {
+        const combined = [...formattedUserListings].map((apt) => {
           const aptId = String(apt.id || apt._id || '');
           return {
             ...apt,
@@ -449,14 +488,14 @@ export default function ExploreScreen() {
         });
         setApartmentList(combined);
       } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
-        setApartmentList(apartments);
+        logger.error('Fallback error:', fallbackError);
+        setApartmentList([]);
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
       // Update last listing count for real-time polling
-      const finalCount = apartmentList.length || apartments?.length || 0;
+      const finalCount = apartmentList.length || 0;
       if (finalCount > 0) {
         setLastListingCount(finalCount);
       }
@@ -472,7 +511,11 @@ export default function ExploreScreen() {
 
   const loadFavorites = async () => {
     try {
-      const favoriteIds = await hybridFavoriteService.getFavorites();
+      // CRITICAL: Pass user email to ensure account-specific favorites
+      const userEmail = user?.email?.toLowerCase()?.trim();
+      const favoriteIds = userEmail && userEmail.includes('@') 
+        ? await hybridFavoriteService.getFavorites(userEmail)
+        : [];
       // favoriteIds are already normalized to strings in hybridFavoriteService.getFavorites
       setApartmentList(prevList => prevList.map((apt) => {
         const aptId = String(apt.id || apt._id || '');
@@ -482,11 +525,11 @@ export default function ExploreScreen() {
         };
       }));
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      logger.error('Error loading favorites:', error);
     }
   };
 
-  const toggleFavorite = async (id) => {
+  const toggleFavorite = React.useCallback(async (id) => {
     // Use functional update to ensure we have the latest state
     let apartment = null;
     let wasFavorite = false;
@@ -510,16 +553,21 @@ export default function ExploreScreen() {
       // Normalize ID to string for consistent saving
       const normalizedId = String(id);
       try {
-        await hybridFavoriteService.addFavorite(normalizedId);
-        console.log('✅ ExploreScreen - Favorite added:', normalizedId, apartment?.title || 'Unknown');
+        // CRITICAL: Pass user email to ensure account-specific favorites
+        const userEmail = user?.email?.toLowerCase()?.trim();
+        if (!userEmail || !userEmail.includes('@')) {
+          throw new Error('User must be logged in to add favorites');
+        }
+        await hybridFavoriteService.addFavorite(normalizedId, userEmail);
+        logger.log('✅ ExploreScreen - Favorite added:', normalizedId, apartment?.title || 'Unknown');
         if (apartment) {
           await notifyFavoriteAdded(apartment.title);
         }
         // Force a small delay to ensure AsyncStorage is flushed
         await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('✅ ExploreScreen - Favorite save confirmed');
+        logger.log('✅ ExploreScreen - Favorite save confirmed');
       } catch (error) {
-        console.error('❌ ExploreScreen - Error adding favorite:', error);
+        logger.error('❌ ExploreScreen - Error adding favorite:', error);
         // Revert UI state on error
         setApartmentList(prevList => prevList.map((apt) => {
           if (apt.id === id) {
@@ -532,16 +580,21 @@ export default function ExploreScreen() {
       // Normalize ID to string for consistent removal
       const normalizedId = String(id);
       try {
-        await hybridFavoriteService.removeFavorite(normalizedId);
-        console.log('✅ ExploreScreen - Favorite removed:', normalizedId, apartment?.title || 'Unknown');
+        // CRITICAL: Pass user email to ensure account-specific favorites
+        const userEmail = user?.email?.toLowerCase()?.trim();
+        if (!userEmail || !userEmail.includes('@')) {
+          throw new Error('User must be logged in to remove favorites');
+        }
+        await hybridFavoriteService.removeFavorite(normalizedId, userEmail);
+        logger.log('✅ ExploreScreen - Favorite removed:', normalizedId, apartment?.title || 'Unknown');
         if (apartment) {
           await notifyFavoriteRemoved(apartment.title);
         }
         // Force a small delay to ensure AsyncStorage is flushed
         await new Promise(resolve => setTimeout(resolve, 100));
-        console.log('✅ ExploreScreen - Favorite removal confirmed');
+        logger.log('✅ ExploreScreen - Favorite removal confirmed');
       } catch (error) {
-        console.error('❌ ExploreScreen - Error removing favorite:', error);
+        logger.error('❌ ExploreScreen - Error removing favorite:', error);
         // Revert UI state on error
         setApartmentList(prevList => prevList.map((apt) => {
           if (apt.id === id) {
@@ -551,34 +604,54 @@ export default function ExploreScreen() {
         }));
       }
     }
-  };
+  }, [user]);
 
-  const formatPrice = (price) => {
-    if (!price || price === 0) return '₦0';
-    
-    // Format price with m for millions and k for thousands
-    if (price >= 1000000) {
-      // Millions: divide by 1,000,000 and show with "m" (e.g., ₦5m)
-      const millions = price / 1000000;
-      // Show up to 1 decimal place if needed, otherwise whole number
-      const formatted = millions % 1 === 0 
-        ? millions.toFixed(0) 
-        : millions.toFixed(1);
-      return `₦${formatted}m`;
-    } else if (price >= 1000) {
-      // Thousands: divide by 1,000 and show with "k" (e.g., ₦50k)
-      const thousands = price / 1000;
-      // Show up to 1 decimal place if needed, otherwise whole number
-      const formatted = thousands % 1 === 0 
-        ? thousands.toFixed(0) 
-        : thousands.toFixed(1);
-      return `₦${formatted}k`;
-    } else {
-      // Less than 1000: show full number
-      return `₦${price.toLocaleString('en-US', { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
-      })}`;
+  // Helper to check if apartment matches search query
+  const filterApartment = (apt, query) => {
+    try {
+      // Search in title
+      const titleMatch = apt.title && apt.title.toLowerCase().includes(query);
+      
+      // Search in location
+      const locationMatch = apt.location && apt.location.toLowerCase().includes(query);
+      
+      // Search in number of beds
+      const bedsMatch = apt.beds && apt.beds.toString().includes(query);
+      
+      // Search in number of baths
+      const bathsMatch = apt.baths && apt.baths.toString().includes(query);
+      
+      // Search in price (convert to string and search)
+      const priceMatch = apt.price && apt.price.toString().includes(query);
+      
+      // Search in price formatted (e.g., "2.5M" for 2500000)
+      let formattedPriceMatch = false;
+      if (apt.price) {
+        try {
+          const formattedPrice = `₦${(apt.price / 1000000).toFixed(1)}m`;
+          formattedPriceMatch = formattedPrice.includes(query);
+        } catch (e) {
+          // Ignore formatting errors
+        }
+      }
+      
+      // Search for specific keywords (split query into words)
+      const keywords = query.split(' ').filter(k => k.length > 0);
+      let keywordMatch = false;
+      if (keywords.length > 0) {
+        keywordMatch = keywords.some(keyword => {
+          return (apt.title && apt.title.toLowerCase().includes(keyword)) ||
+                 (apt.location && apt.location.toLowerCase().includes(keyword)) ||
+                 (apt.beds && apt.beds.toString().includes(keyword)) ||
+                 (apt.baths && apt.baths.toString().includes(keyword));
+        });
+      }
+
+      return titleMatch || locationMatch || bedsMatch || bathsMatch || 
+             priceMatch || formattedPriceMatch || keywordMatch;
+    } catch (error) {
+      logger.error('Error filtering apartment:', error);
+      return false;
     }
   };
 
@@ -631,7 +704,7 @@ export default function ExploreScreen() {
               return true;
           }
         } catch (error) {
-          console.error('Error applying filter:', error);
+          logger.error('Error applying filter:', error);
           return true;
         }
       });
@@ -684,7 +757,7 @@ export default function ExploreScreen() {
           return titleMatch || locationMatch || bedsMatch || bathsMatch || 
                  priceMatch || formattedPriceMatch || keywordMatch;
         } catch (error) {
-          console.error('Error filtering apartment:', error);
+          logger.error('Error filtering apartment:', error);
           return false;
         }
       });
@@ -695,87 +768,17 @@ export default function ExploreScreen() {
 
   const filters = ['Entire place', '2 Bedroom', '3 Bedroom', '4 Bedroom', 'Pool', 'Pet-friendly', 'Top-rated'];
 
-  // Separate component for apartment card to use hooks properly
-  const ApartmentCard = ({ item, onPress, onToggleFavorite }) => {
-    const [imageError, setImageError] = useState(false);
-    const [imageLoading, setImageLoading] = useState(true);
-    
-    // Calculate card width dynamically for proper fit
-    // Formula: (screen width - left padding - right padding - gap between cards) / 2
-    // For iPhone 12 (390px): (390 - 16 - 16 - 12) / 2 = 173px per card
-    const cardWidth = (SCREEN_WIDTH - 44) / 2;
-    
-    // Default fallback image - only use if no valid uploaded image
-    const defaultImage = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800';
-    // Prioritize uploaded image - check if it's a valid non-empty string
-    const hasValidImage = item.image && typeof item.image === 'string' && item.image.trim() !== '';
-    const imageUri = hasValidImage && !imageError ? item.image : defaultImage;
-    
-    return (
-      <TouchableOpacity
-        style={[styles.card, { width: cardWidth }]}
-        onPress={() => onPress(item)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.imageContainer}>
-          {imageLoading && (
-            <View style={styles.imagePlaceholder}>
-              <ActivityIndicator size="small" color="#FFD700" />
-            </View>
-          )}
-          <Image 
-            source={{ uri: imageUri }} 
-            style={[styles.image, imageLoading && styles.imageHidden]}
-            onError={() => {
-              console.log('Image failed to load:', imageUri);
-              setImageError(true);
-              setImageLoading(false);
-            }}
-            onLoad={() => {
-              setImageLoading(false);
-            }}
-            defaultSource={{ uri: defaultImage }}
-          />
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => onToggleFavorite(item.id)}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name={item.isFavorite ? 'favorite' : 'favorite-border'} 
-              size={18} 
-              color={item.isFavorite ? '#FF0000' : '#FFFFFF'} 
-            />
-          </TouchableOpacity>
-        </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardInfo}>
-            <Text style={styles.title} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={styles.location}>{item.location}</Text>
-            <View style={styles.priceRatingRow}>
-              <Text style={styles.price}>{formatPrice(item.price)}/day</Text>
-              <View style={styles.ratingContainer}>
-                <MaterialIcons name="star" size={12} color="#FFD700" />
-                <Text style={styles.rating}>{item.rating || 4.9}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-    );
-  };
+  const handleCardPress = React.useCallback((apartment) => {
+    navigation.navigate('ApartmentDetails', { apartment });
+  }, [navigation]);
 
-  const renderApartmentCard = ({ item }) => (
+  const renderApartmentCard = React.useCallback(({ item }) => (
     <ApartmentCard 
       item={item}
-      onPress={(apartment) => navigation.navigate('ApartmentDetails', { apartment })}
+      onPress={handleCardPress}
       onToggleFavorite={toggleFavorite}
     />
-  );
+  ), [handleCardPress, toggleFavorite]);
 
   return (
     <View style={styles.container}>

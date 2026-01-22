@@ -27,8 +27,41 @@ export const handleTokenExpiration = async (errorMessage = 'Your authentication 
     const isWeb = typeof window !== 'undefined';
     
     if (isWeb) {
-      // On web, show a console warning (non-blocking)
-      console.warn('Token expired. You can continue using the app. Sign out and sign in again to refresh your token.');
+      // On web, show a visible alert using window.alert or create a modal
+      try {
+        // Try to use a more visible alert on web
+        const shouldSignOut = window.confirm(
+          'Your authentication token has expired.\n\n' +
+          'Some features may not work until you sign out and sign in again.\n\n' +
+          'Would you like to sign out now?'
+        );
+        
+        if (shouldSignOut) {
+          // User chose to sign out
+          try {
+            const { authService } = await import('../services/authService');
+            await authService.logout();
+            console.log('User chose to sign out after token expiration');
+            
+            // Clear user from AsyncStorage
+            const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+            await AsyncStorage.removeItem('user');
+            
+            // Reload app to reset state
+            window.location.reload();
+          } catch (error) {
+            console.error('Error signing out:', error);
+            // Force reload even on error
+            window.location.reload();
+          }
+        } else {
+          // User chose to continue - show a less intrusive message
+          console.warn('Token expired. You can continue using the app. Sign out and sign in again to refresh your token.');
+        }
+      } catch (webError) {
+        // Fallback to console warning if window.confirm fails
+        console.warn('Token expired. You can continue using the app. Sign out and sign in again to refresh your token.');
+      }
     } else {
       // On native, show a non-blocking alert that doesn't force logout
       try {

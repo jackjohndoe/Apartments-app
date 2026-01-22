@@ -14,6 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
+import { logger } from '../utils/logger';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -30,8 +31,6 @@ export default function ProfileScreen() {
         return;
       }
 
-      console.log('ProfileScreen - Loading profile data for:', user.email);
-
       // Use user-specific storage
       const { getUserProfile } = await import('../utils/userStorage');
       const loadedProfileData = await getUserProfile(user.email);
@@ -46,12 +45,6 @@ export default function ProfileScreen() {
           address: loadedProfileData.address || null,
         };
         
-        console.log('ProfileScreen - Loaded profile data from userStorage:', {
-          name: newProfileData.name,
-          hasPicture: !!newProfileData.profilePicture,
-          hasPhone: !!newProfileData.whatsappNumber,
-        });
-        
         // Update profile data (same simple flow as phone number)
         setProfileData(newProfileData);
       } else {
@@ -64,12 +57,9 @@ export default function ProfileScreen() {
           address: null,
         };
         setProfileData(fallbackData);
-        console.log('ProfileScreen - No saved profile, using auth data:', {
-          hasPicture: !!fallbackData.profilePicture
-        });
       }
     } catch (error) {
-      console.error('Error loading profile data:', error);
+      logger.error('Error loading profile data:', error);
       // On error, use user data from auth
       setProfileData({
         name: user?.name,
@@ -111,7 +101,7 @@ export default function ProfileScreen() {
       const totalListings = userListings.length + apiListings.length;
       setHasListings(totalListings > 0);
     } catch (error) {
-      console.error('Error checking user listings:', error);
+      logger.error('Error checking user listings:', error);
       setHasListings(false);
     }
   }, [user]);
@@ -137,15 +127,13 @@ export default function ProfileScreen() {
       // Sign out immediately on web
       (async () => {
         try {
-          console.log('🔄 Starting sign out process...');
           await signOut();
-          console.log('✅ Sign out completed - reloading page...');
           
           // Clear AsyncStorage explicitly before reload
           try {
             await AsyncStorage.removeItem('user');
           } catch (e) {
-            console.error('Error clearing storage:', e);
+            // Ignore storage errors
           }
           
           // Force reload after a brief delay to ensure state is cleared
@@ -153,7 +141,6 @@ export default function ProfileScreen() {
             window.location.reload();
           }, 100);
         } catch (error) {
-          console.error('❌ Error signing out:', error);
           // Force reload even on error
           window.location.reload();
         }
@@ -173,11 +160,8 @@ export default function ProfileScreen() {
             style: 'destructive',
             onPress: async () => {
               try {
-                console.log('🔄 Starting sign out process...');
                 await signOut();
-                console.log('✅ Sign out completed - navigation will be handled by App.js');
               } catch (error) {
-                console.error('❌ Error signing out:', error);
                 Alert.alert(
                   'Sign Out',
                   'There was an error signing out, but you have been logged out locally.',
@@ -191,6 +175,163 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user || !user.email) {
+      Alert.alert('Error', 'No user account found.');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone and will permanently delete:\n\n• Your profile information\n• Your listings\n• Your bookings\n• Your favorites\n• Your wallet balance\n\nThis action is irreversible.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Confirm deletion with a second prompt
+              Alert.alert(
+                'Final Confirmation',
+                'Type DELETE to confirm account deletion. This cannot be undone.',
+                [
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      try {
+                        const userEmail = user.email;
+                        
+                        // Delete all user data
+                        // 1. Delete user profile
+                        try {
+                          const { deleteUserProfile } = await import('../utils/userStorage');
+                          await deleteUserProfile(userEmail);
+                        } catch (e) {
+                          logger.error('Error deleting profile:', e);
+                        }
+
+                        // 2. Delete user listings
+                        try {
+                          const { getMyListings, deleteListing } = await import('../utils/listings');
+                          const listings = await getMyListings();
+                          for (const listing of listings) {
+                            try {
+                              await deleteListing(listing.id, userEmail);
+                            } catch (e) {
+                              logger.error('Error deleting listing:', e);
+                            }
+                          }
+                        } catch (e) {
+                          logger.error('Error deleting listings:', e);
+                        }
+
+                        // 3. Delete user bookings
+                        try {
+                          const { getBookings, deleteBooking } = await import('../utils/bookings');
+                          const bookings = await getBookings(userEmail);
+                          for (const booking of bookings) {
+                            try {
+                              await deleteBooking(userEmail, booking.id);
+                            } catch (e) {
+                              logger.error('Error deleting booking:', e);
+                            }
+                          }
+                        } catch (e) {
+                          logger.error('Error deleting bookings:', e);
+                        }
+
+                        // 4. Delete favorites
+                        try {
+                          const { hybridFavoriteService } = await import('../services/hybridService');
+                          // CRITICAL: Pass user email to ensure account-specific favorites
+                          const favorites = await hybridFavoriteService.getFavorites(userEmail);
+                          for (const favId of favorites) {
+                            try {
+                              await hybridFavoriteService.removeFavorite(favId, userEmail);
+                            } catch (e) {
+                              logger.error('Error deleting favorite:', e);
+                            }
+                          }
+                        } catch (e) {
+                          logger.error('Error deleting favorites:', e);
+                        }
+
+                        // 5. Delete wallet data
+                        try {
+                          const { getUserStorageKey } = await import('../utils/userStorage');
+                          const walletKey = getUserStorageKey('walletBalance', userEmail);
+                          const transactionsKey = getUserStorageKey('walletTransactions', userEmail);
+                          await AsyncStorage.removeItem(walletKey);
+                          await AsyncStorage.removeItem(transactionsKey);
+                        } catch (e) {
+                          logger.error('Error deleting wallet:', e);
+                        }
+
+                        // 6. Delete user from AsyncStorage
+                        await AsyncStorage.removeItem('user');
+
+                        // 7. Sign out
+                        await signOut();
+
+                        Alert.alert(
+                          'Account Deleted',
+                          'Your account has been successfully deleted.',
+                          [{ text: 'OK' }]
+                        );
+                      } catch (error) {
+                        logger.error('Error deleting account:', error);
+                        Alert.alert(
+                          'Error',
+                          'There was an error deleting your account. Please try again or contact support.',
+                          [{ text: 'OK' }]
+                        );
+                      }
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              logger.error('Error in delete account flow:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Show login prompt if user is not logged in
+  React.useEffect(() => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to access your profile.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Sign In', 
+            onPress: () => navigation.navigate('SignIn')
+          }
+        ]
+      );
+      // Navigate back to Explore
+      navigation.navigate('Explore');
+    }
+  }, [user, navigation]);
+
+  // Don't render if user is not logged in
+  if (!user) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -200,13 +341,9 @@ export default function ProfileScreen() {
             <Image 
               source={{ uri: profileData.profilePicture }} 
               style={styles.avatarImage}
-              onError={(error) => {
-                console.error('ProfileScreen - Error loading profile image:', error);
+              onError={() => {
                 // Clear invalid image URL
                 setProfileData(prev => ({ ...prev, profilePicture: null }));
-              }}
-              onLoad={() => {
-                console.log('ProfileScreen - Profile image loaded successfully');
               }}
             />
           ) : (
@@ -330,10 +467,26 @@ export default function ProfileScreen() {
             </View>
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('TermsAndConditions')}
+          >
+            <MaterialIcons name="gavel" size={24} color="#333" />
+            <View style={styles.menuContent}>
+              <Text style={styles.menuTitle}>Terms & Conditions</Text>
+              <Text style={styles.menuSubtitle}>Legal terms and user agreement</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutButtonText}>Sign Out</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+          <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -440,6 +593,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  deleteAccountButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F44336',
+    margin: 20,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  deleteAccountButtonText: {
+    color: '#F44336',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

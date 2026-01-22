@@ -130,6 +130,15 @@ export const authService = {
       // Save authenticated user to local storage
       await AsyncStorage.setItem('user', JSON.stringify(userToStore));
       
+      // Reset token refresh failure count after successful login
+      try {
+        const { resetRefreshFailureCount } = await import('../utils/tokenRefresh');
+        resetRefreshFailureCount();
+      } catch (importError) {
+        // Non-fatal - token refresh utility might not be available
+        console.warn('⚠️ Could not reset token refresh failure count (non-fatal):', importError.message);
+      }
+      
       // Store credentials securely for automatic re-authentication when tokens expire (403 errors)
       // This allows the app to automatically re-authenticate without requiring user to sign out/in
       try {

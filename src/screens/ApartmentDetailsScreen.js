@@ -20,12 +20,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import PlatformWebView from '../components/PlatformWebView';
 import { hybridFavoriteService } from '../services/hybridService';
+import { useAuth } from '../hooks/useAuth';
+import { logger } from '../utils/logger';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
+import { PlaceholderImage } from '../components/PlaceholderImage';
 
 const { width } = Dimensions.get('window');
 
 export default function ApartmentDetailsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
+  const { user } = useAuth();
   const { apartment } = route.params || {};
   const [isFavorite, setIsFavorite] = useState(apartment?.isFavorite || false);
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -52,17 +57,24 @@ export default function ApartmentDetailsScreen() {
     const loadFavoriteState = async () => {
       if (!apartment) return;
       try {
+        // CRITICAL: Pass user email to ensure account-specific favorites
+        const userEmail = user?.email?.toLowerCase()?.trim();
+        if (!userEmail || !userEmail.includes('@')) {
+          setIsFavorite(false);
+          return;
+        }
+        
         // Get user-specific favorites (persists across logout/login)
-        const favoriteIds = await hybridFavoriteService.getFavorites();
+        const favoriteIds = await hybridFavoriteService.getFavorites(userEmail);
         const isFav = favoriteIds.includes(apartment.id) || favoriteIds.includes(String(apartment.id));
         setIsFavorite(isFav);
       } catch (error) {
-        console.error('Error loading favorite state:', error);
+        logger.error('Error loading favorite state:', error);
         setIsFavorite(false);
       }
     };
     loadFavoriteState();
-  }, [apartment]);
+  }, [apartment, user]);
 
   // Load unavailable dates when apartment is loaded
   React.useEffect(() => {
@@ -77,7 +89,7 @@ export default function ApartmentDetailsScreen() {
         const unavailable = await getUnavailableDates(apartment.id, hostEmail);
         setUnavailableDates(unavailable);
       } catch (error) {
-        console.error('Error loading unavailable dates:', error);
+        logger.error('Error loading unavailable dates:', error);
         setUnavailableDates({});
       }
     };
@@ -93,7 +105,7 @@ export default function ApartmentDetailsScreen() {
     // Use createdBy as primary (most reliable), then hostEmail as fallback
     const hostEmailToLoad = apartment.createdBy || apartment.hostEmail || null;
     
-    console.log('ApartmentDetailsScreen - Loading host profile in real-time:', {
+    logger.log('ApartmentDetailsScreen - Loading host profile in real-time:', {
       hostEmail: hostEmailToLoad,
       hostName: apartment.hostName,
       hasHostProfilePicture: !!apartment.hostProfilePicture
@@ -124,16 +136,16 @@ export default function ApartmentDetailsScreen() {
             currentProfilePicture = apartment.hostProfilePicture || null;
           }
           
-          console.log('ApartmentDetailsScreen - Using latest host profile from userStorage:', {
+          logger.log('ApartmentDetailsScreen - Using latest host profile from userStorage:', {
             name: currentHostName,
             hasPicture: !!currentProfilePicture,
             pictureSource: hostProfile.hasOwnProperty('profilePicture') ? 'userStorage' : (apartment.hostProfilePicture ? 'listing' : 'none')
           });
         } else {
-          console.log('ApartmentDetailsScreen - No profile found in userStorage, using apartment data');
+          logger.log('ApartmentDetailsScreen - No profile found in userStorage, using apartment data');
         }
       } catch (error) {
-        console.error('Error loading host profile from userStorage:', error);
+        logger.error('Error loading host profile from userStorage:', error);
         // Keep fallback values
       }
     }
@@ -187,7 +199,7 @@ export default function ApartmentDetailsScreen() {
     
     // If we still have no images, use default
     if (images.length === 0) {
-      images = ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800'];
+      images = [getApartmentPlaceholder()];
     }
     
     return images;
@@ -302,7 +314,7 @@ export default function ApartmentDetailsScreen() {
       setDateConflictError(null);
       return false;
     } catch (error) {
-      console.error('Error checking date conflict:', error);
+      logger.error('Error checking date conflict:', error);
       return false;
     }
   };
@@ -400,13 +412,19 @@ export default function ApartmentDetailsScreen() {
 
     try {
       // Use hybrid service to save to user-specific favorites (persists across logout/login)
+      // CRITICAL: Pass user email to ensure account-specific favorites
+      const userEmail = user?.email?.toLowerCase()?.trim();
+      if (!userEmail || !userEmail.includes('@')) {
+        throw new Error('User must be logged in to update favorites');
+      }
+      
       if (newFavoriteState) {
-        await hybridFavoriteService.addFavorite(apartment.id);
+        await hybridFavoriteService.addFavorite(apartment.id, userEmail);
       } else {
-        await hybridFavoriteService.removeFavorite(apartment.id);
+        await hybridFavoriteService.removeFavorite(apartment.id, userEmail);
       }
     } catch (error) {
-      console.error('Error updating favorites:', error);
+      logger.error('Error updating favorites:', error);
       // Revert state on error
       setIsFavorite(!newFavoriteState);
     }
@@ -620,7 +638,7 @@ export default function ApartmentDetailsScreen() {
               window.ReactNativeWebView.postMessage('mapLoaded');
             }
           } catch (e) {
-            console.error('Map init error:', e);
+            logger.error('Map init error:', e);
             handleMapError(e);
           }
         }
@@ -686,7 +704,7 @@ export default function ApartmentDetailsScreen() {
         Linking.openURL(`https://www.google.com/maps/search/${location}`);
       }
     }).catch(err => {
-      console.error('Error opening maps:', err);
+      logger.error('Error opening maps:', err);
       // Fallback to browser
       Linking.openURL(`https://www.google.com/maps/search/${location}`);
     });
@@ -694,7 +712,7 @@ export default function ApartmentDetailsScreen() {
 
   // Handle map load events
   const handleMapLoad = () => {
-    console.log('Map loaded successfully');
+    logger.log('Map loaded successfully');
     if (mapTimeoutRef.current) {
       clearTimeout(mapTimeoutRef.current);
       mapTimeoutRef.current = null;
@@ -704,16 +722,16 @@ export default function ApartmentDetailsScreen() {
   };
 
   const handleMapError = (syntheticEvent) => {
-    console.error('Map error:', syntheticEvent);
+      logger.error('Map error:', syntheticEvent);
     if (mapTimeoutRef.current) {
       clearTimeout(mapTimeoutRef.current);
       mapTimeoutRef.current = null;
     }
     if (syntheticEvent?.nativeEvent) {
       const { nativeEvent } = syntheticEvent;
-      console.error('Map loading error:', nativeEvent);
+      logger.error('Map loading error:', nativeEvent);
     } else {
-      console.error('Map loading error (unknown)');
+      logger.error('Map loading error (unknown)');
     }
     setMapLoading(false);
     setMapError(true);
@@ -724,7 +742,7 @@ export default function ApartmentDetailsScreen() {
     if (apartment) {
       mapTimeoutRef.current = setTimeout(() => {
         if (mapLoading) {
-          console.warn('Map loading timeout - switching to fallback');
+          logger.warn('Map loading timeout - switching to fallback');
           setMapLoading(false);
           setMapError(true);
         }
@@ -769,13 +787,18 @@ export default function ApartmentDetailsScreen() {
                 setCurrentImageIndex(Math.min(Math.max(0, index), apartmentImages.length - 1));
               }
             }}
-            renderItem={({ item }) => (
-              <Image 
-                source={{ uri: item }} 
-                style={styles.image}
-                onError={() => console.log('Image failed to load')}
-              />
-            )}
+            renderItem={({ item }) => {
+              const shouldShowPlaceholder = !item || isPlaceholderImage(item);
+              return shouldShowPlaceholder ? (
+                <PlaceholderImage style={styles.image} iconSize={80} iconColor="#FFF" />
+              ) : (
+                <Image 
+                  source={{ uri: item }} 
+                  style={styles.image}
+                  onError={() => logger.log('Image failed to load')}
+                />
+              );
+            }}
           />
           <TouchableOpacity
             style={styles.backButton}
@@ -838,12 +861,12 @@ export default function ApartmentDetailsScreen() {
                   source={{ uri: hostProfilePicture }} 
                   style={styles.hostAvatarImage}
                   onError={(error) => {
-                    console.error('ApartmentDetailsScreen - Error loading host profile image:', error);
-                    console.log('Failed image URI:', hostProfilePicture);
+                    logger.error('ApartmentDetailsScreen - Error loading host profile image:', error);
+                    logger.log('Failed image URI:', hostProfilePicture);
                     setHostProfilePicture(null);
                   }}
                   onLoad={() => {
-                    console.log('ApartmentDetailsScreen - Host profile image loaded successfully:', hostProfilePicture);
+                    logger.log('ApartmentDetailsScreen - Host profile image loaded successfully:', hostProfilePicture);
                   }}
                 />
               ) : (
@@ -864,7 +887,7 @@ export default function ApartmentDetailsScreen() {
             </View>
             <View style={styles.hostRating}>
               <MaterialIcons name="star" size={16} color="#FFD700" />
-              <Text style={styles.hostRatingText}>{reviews.overall} ({reviews.count})</Text>
+              <Text style={styles.hostRatingText}>{reviews?.overall || 0} ({reviews?.count || 0})</Text>
             </View>
           </TouchableOpacity>
 
@@ -1126,11 +1149,11 @@ export default function ApartmentDetailsScreen() {
                     onHttpError={handleMapError}
                     onMessage={(event) => {
                       const message = event.nativeEvent.data;
-                      console.log('WebView message:', message);
+                      logger.log('WebView message:', message);
                       if (message === 'mapLoaded') {
                         handleMapLoad();
                       } else if (message.startsWith('mapError:')) {
-                        console.error('Map error from WebView:', message);
+                        logger.error('Map error from WebView:', message);
                         handleMapError();
                       }
                     }}
@@ -1182,18 +1205,18 @@ export default function ApartmentDetailsScreen() {
               <View>
                 <Text style={styles.reviewsTitle}>Reviews</Text>
                 <View style={styles.reviewsRating}>
-                  <Text style={styles.reviewsRatingNumber}>{reviews.overall}</Text>
+                  <Text style={styles.reviewsRatingNumber}>{reviews?.overall || 0}</Text>
                   <View style={styles.reviewsStars}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <MaterialIcons key={star} name="star" size={16} color="#FFD700" />
                     ))}
                   </View>
                 </View>
-                <Text style={styles.reviewsCount}>{reviews.count} reviews</Text>
+                <Text style={styles.reviewsCount}>{reviews?.count || 0} reviews</Text>
               </View>
             </View>
             <View style={styles.reviewsBreakdown}>
-              {reviews.breakdown.map((item, index) => (
+              {(reviews?.breakdown || []).map((item, index) => (
                 <View key={index} style={styles.reviewBarRow}>
                   <Text style={styles.reviewBarLabel}>{item.stars} stars</Text>
                   <View style={styles.reviewBarContainer}>

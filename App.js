@@ -17,6 +17,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import MainTabNavigator from './src/navigation/MainTabNavigator';
 import { initializeSync } from './src/services/listingSyncService';
+import { logger } from './src/utils/logger';
 
 const Stack = createStackNavigator();
 
@@ -31,12 +32,10 @@ function AppContent() {
 
   // Initialize listing sync service
   useEffect(() => {
-    console.log('🔄 Initializing listing sync service...');
     try {
       syncServiceRef.current = initializeSync();
-      console.log('✅ Listing sync service initialized');
     } catch (error) {
-      console.error('❌ Error initializing sync service:', error);
+      logger.error('Error initializing sync service:', error);
     }
 
     // Handle app state changes (foreground/background)
@@ -46,10 +45,9 @@ function AppContent() {
         nextAppState === 'active'
       ) {
         // App has come to the foreground - sync pending listings
-        console.log('🔄 App came to foreground, syncing pending listings...');
         if (syncServiceRef.current && syncServiceRef.current.sync) {
           syncServiceRef.current.sync().catch(error => {
-            console.error('Error syncing on foreground:', error);
+            logger.error('Error syncing on foreground:', error);
           });
         }
       }
@@ -76,8 +74,8 @@ function AppContent() {
       // Check if notification methods exist
       if (Notifications.addNotificationReceivedListener) {
         try {
-          notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-            console.log('Notification received:', notification);
+          notificationListener.current = Notifications.addNotificationReceivedListener(() => {
+            // Notification received - handled silently
           });
         } catch (e) {
           // Not available in Expo Go - continue silently
@@ -88,7 +86,6 @@ function AppContent() {
         try {
           responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
             try {
-              console.log('Notification response:', response);
               const data = response?.notification?.request?.content?.data;
               
               // Handle rating prompt notification
@@ -118,16 +115,16 @@ function AppContent() {
                           screen: 'Explore'
                         });
                       }
-                    }).catch(error => {
-                      console.error('Error loading listings for notification:', error);
+                    }).catch(() => {
+                      // Error loading listings - continue silently
                     });
-                  }).catch(error => {
-                    console.error('Error importing listings module:', error);
+                  }).catch(() => {
+                    // Error importing module - continue silently
                   });
                 }
               }
             } catch (error) {
-              console.error('Error handling notification response:', error);
+              logger.error('Error handling notification response:', error);
             }
           });
         } catch (e) {
@@ -166,18 +163,15 @@ function AppContent() {
         screenOptions={{
           headerShown: false,
         }}
-        initialRouteName="SignIn"
+        initialRouteName={user ? "Main" : "Guest"}
       >
-        {!user ? (
-          <>
-            <Stack.Screen name="SignIn" component={SignInScreen} />
-            <Stack.Screen name="SignUp" component={SignUpScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="Main" component={MainTabNavigator} />
-        )}
+        {/* Guest can browse apartments without login */}
+        <Stack.Screen name="Guest" component={MainTabNavigator} />
+        <Stack.Screen name="Main" component={MainTabNavigator} />
+        <Stack.Screen name="SignIn" component={SignInScreen} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

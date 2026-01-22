@@ -9,9 +9,12 @@ import {
   Dimensions,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { getApartmentPlaceholder, isPlaceholderImage } from '../utils/imagePlaceholder';
+import { PlaceholderImage } from '../components/PlaceholderImage';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getUserProfile } from '../utils/userStorage';
+import { logger } from '../utils/logger';
 
 const { width } = Dimensions.get('window');
 
@@ -92,7 +95,7 @@ export default function PaymentConfirmationScreen() {
             currentHostName = hostProfile.name;
           }
         } catch (error) {
-          console.log('Could not load host profile:', error);
+          logger.error('Could not load host profile:', error);
           // Use apartment hostName as fallback
         }
       }
@@ -141,10 +144,14 @@ export default function PaymentConfirmationScreen() {
             </Text>
             <Text style={styles.hostName}>Hosted by {hostName}</Text>
           </View>
-          <Image
-            source={{ uri: apartment?.image || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800' }}
-            style={styles.propertyImage}
-          />
+          {isPlaceholderImage(apartment?.image) || !apartment?.image ? (
+            <PlaceholderImage style={styles.propertyImage} iconSize={80} iconColor="#FFF" />
+          ) : (
+            <Image
+              source={{ uri: apartment.image }}
+              style={styles.propertyImage}
+            />
+          )}
         </View>
 
         {/* Your Trip Section */}

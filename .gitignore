@@ -39,6 +39,11 @@ AppData/Roaming/
 **/AppData/Local/**
 **/AppData/LocalLow/**
 **/AppData/Roaming/**
+**/AppData/Local/Google/**
+**/AppData/LocalLow/uTorrent.WebView2/**
+**/AppData/LocalLow/**/EBWebView/**
+**/Chrome/**
+**/uTorrent.WebView2/**
 
 # EAS temp directories
 .eas-temp-*/

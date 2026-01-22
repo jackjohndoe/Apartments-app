@@ -57,6 +57,19 @@ export const saveUserProfile = async (userEmail, profileData) => {
 };
 
 /**
+ * Delete user profile data
+ */
+export const deleteUserProfile = async (userEmail) => {
+  try {
+    const key = getUserStorageKey('userProfile', userEmail);
+    await AsyncStorage.removeItem(key);
+  } catch (error) {
+    console.error('Error deleting user profile:', error);
+    throw error;
+  }
+};
+
+/**
  * Get user listings
  */
 export const getUserListings = async (userEmail) => {

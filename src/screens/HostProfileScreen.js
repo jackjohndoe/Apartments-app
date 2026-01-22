@@ -124,13 +124,6 @@ export default function HostProfileScreen() {
         hostProfileData.email = hostEmail;
       }
       
-      console.log('HostProfileScreen - Final profile data:', {
-        name: hostProfileData.name,
-        email: hostProfileData.email,
-        hasPicture: !!hostProfileData.profilePicture,
-        pictureUri: hostProfileData.profilePicture ? (hostProfileData.profilePicture.length > 50 ? hostProfileData.profilePicture.substring(0, 50) + '...' : hostProfileData.profilePicture) : null
-      });
-      
       setHostProfile(hostProfileData);
     } catch (error) {
       console.error('Error loading host profile:', error);
@@ -193,34 +186,16 @@ export default function HostProfileScreen() {
       // Use createdBy as primary, then hostEmail as fallback
       const hostEmailToMatch = apartment.createdBy || apartment.hostEmail || null;
 
-      console.log('HostProfileScreen - Matching criteria:', {
-        hostEmailToMatch,
-        apartmentHostEmail: apartment.hostEmail,
-        apartmentCreatedBy: apartment.createdBy,
-        apartmentHostName: apartment.hostName,
-        totalListingsToSearch: combinedListings.length
-      });
-
       // Filter listings by createdBy (primary) or hostEmail (fallback)
       // This ensures we show all listings created by the same host
       // The hostEmailToMatch should match the profile we loaded above
       if (!hostEmailToMatch) {
-        console.warn('HostProfileScreen - No host email to match against, cannot filter listings');
         setHostListings([]);
         setListingsLoading(false);
         return;
       }
 
       const emailToMatch = String(hostEmailToMatch).toLowerCase().trim();
-      
-      console.log('HostProfileScreen - Starting filter with emailToMatch:', emailToMatch);
-      console.log('HostProfileScreen - Sample listing data (first 3):', combinedListings.slice(0, 3).map(l => ({
-        id: l.id,
-        title: l.title,
-        createdBy: l.createdBy,
-        hostEmail: l.hostEmail,
-        hostName: l.hostName
-      })));
       
       const filteredListings = combinedListings.filter(listing => {
         // Get listing creator and host info (normalize for comparison)
@@ -267,7 +242,7 @@ export default function HostProfileScreen() {
         title: listing.title || 'Apartment',
         location: listing.location || 'Nigeria',
         price: listing.price || 0,
-        image: listing.image || listing.images?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+        image: listing.image || listing.images?.[0] || getApartmentPlaceholder(),
         images: listing.images || (listing.image ? [listing.image] : []),
         bedrooms: listing.bedrooms || listing.beds || null,
         bathrooms: listing.bathrooms || listing.baths || null,
