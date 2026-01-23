@@ -20,19 +20,19 @@ export default function HelpSupportScreen() {
   const [message, setMessage] = useState('');
 
   const openEmail = () => {
-    const email = 'support@apartifyafrica.com';
+    const email = 'support@nigerianapartments.com';
     const subject = encodeURIComponent(subject || 'Support Request');
     const body = encodeURIComponent(message || '');
     const url = `mailto:${email}?subject=${subject}&body=${body}`;
     
     Linking.openURL(url).catch(err => {
-      Alert.alert('Error', 'Unable to open email client. Please email us at support@apartifyafrica.com');
+      Alert.alert('Error', 'Unable to open email client. Please email us at support@nigerianapartments.com');
     });
   };
 
   const openWebsite = () => {
-    Linking.openURL('https://apartifyafrica.com/support').catch(err => {
-      Alert.alert('Error', 'Unable to open website. Please visit apartifyafrica.com');
+    Linking.openURL('https://nigerianapartments.com/support').catch(err => {
+      Alert.alert('Error', 'Unable to open website. Please visit nigerianapartments.com');
     });
   };
   
@@ -128,7 +128,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Email Support</Text>
-              <Text style={styles.contactValue}>support@apartifyafrica.com</Text>
+              <Text style={styles.contactValue}>support@nigerianapartments.com</Text>
               <Text style={styles.contactHint}>Tap to send an email</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
@@ -160,7 +160,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Visit Our Website</Text>
-              <Text style={styles.contactValue}>apartifyafrica.com/support</Text>
+              <Text style={styles.contactValue}>nigerianapartments.com/support</Text>
               <Text style={styles.contactHint}>Tap to open in browser</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />

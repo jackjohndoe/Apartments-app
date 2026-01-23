@@ -456,7 +456,12 @@ export default function HostProfileScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Host Profile</Text>
-        <View style={styles.placeholder} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={showHostOptions}
+        >
+          <MaterialIcons name="more-vert" size={24} color="#000" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>

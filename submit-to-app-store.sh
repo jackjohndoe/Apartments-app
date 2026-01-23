@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# App Store Submission Script for Apartify Africa
+# App Store Submission Script for Nigerian Apartments
 # This script automates the build and submission process
 
 echo "=========================================="
-echo "  APARTIFY AFRICA - APP STORE SUBMISSION"
+echo "  NIGERIAN APARTMENTS - APP STORE SUBMISSION"
 echo "=========================================="
 echo ""
 

@@ -1,9 +1,9 @@
-# App Store Submission Script for Apartify Africa (PowerShell)
+# App Store Submission Script for Nigerian Apartments (PowerShell)
 # This script automates the build and submission process
 
 Write-Host ""
 Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  APARTIFY AFRICA - APP STORE SUBMISSION" -ForegroundColor Green
+Write-Host "  NIGERIAN APARTMENTS - APP STORE SUBMISSION" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 

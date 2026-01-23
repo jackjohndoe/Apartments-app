@@ -155,7 +155,7 @@ export const createVirtualAccount = async (email, amount, name, txRef) => {
                       data.data?.account_name || data.data?.accountName ||
                       data.virtual_account?.account_name || data.virtual_account?.accountName ||
                       data.virtualAccount?.account_name || data.virtualAccount?.accountName ||
-                      'Apartify Africa';
+                      'Nigerian Apartments';
     
     let bankName = data.bank_name || data.bankName ||
                    data.data?.bank_name || data.data?.bankName ||

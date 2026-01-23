@@ -185,6 +185,165 @@ const apartments = [
   },
 ];
 
+const formatPrice = (price) => {
+  if (!price || price === 0) return '₦0';
+  
+  // Format price with m for millions and k for thousands
+  if (price >= 1000000) {
+    // Millions: divide by 1,000,000 and show with "m" (e.g., ₦5m)
+    const millions = price / 1000000;
+    // Show up to 1 decimal place if needed, otherwise whole number
+    const formatted = millions % 1 === 0 
+      ? millions.toFixed(0) 
+      : millions.toFixed(1);
+    return `₦${formatted}m`;
+  } else if (price >= 1000) {
+    // Thousands: divide by 1,000 and show with "k" (e.g., ₦50k)
+    const thousands = price / 1000;
+    // Show up to 1 decimal place if needed, otherwise whole number
+    const formatted = thousands % 1 === 0 
+      ? thousands.toFixed(0) 
+      : thousands.toFixed(1);
+    return `₦${formatted}k`;
+  } else {
+    // Less than 1000: show full number
+    return `₦${price.toLocaleString('en-US', { 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    })}`;
+  }
+};
+
+// Separate component for apartment card to use hooks properly
+// Moved outside ExploreScreen to prevent re-renders and glitching
+const ApartmentCard = React.memo(({ item, onPress, onToggleFavorite, width }) => {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Use passed width or calculate default
+  const cardWidth = width || (SCREEN_WIDTH - 44) / 2;
+  
+  // Get all possible image URIs in priority order
+  const getAllImageUris = () => {
+    const uris = [];
+    
+    // First check main image field (from formatted listing)
+    if (item.image && typeof item.image === 'string' && item.image.trim() !== '' && !isPlaceholderImage(item.image)) {
+      uris.push(item.image);
+    }
+    
+    // Then check images array (for other users' listings or fallback)
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      item.images.forEach(img => {
+        if (img && typeof img === 'string' && img.trim() !== '' && !isPlaceholderImage(img) && !uris.includes(img)) {
+          uris.push(img);
+        }
+      });
+    }
+    
+    // Fallback to placeholder if no valid images
+    if (uris.length === 0) {
+      uris.push(getApartmentPlaceholder(400, 300));
+    }
+    
+    return uris;
+  };
+  
+  const allImageUris = getAllImageUris();
+  const imageUri = allImageUris[currentImageIndex] || getApartmentPlaceholder(400, 300);
+  const isPlaceholder = isPlaceholderImage(imageUri);
+  
+  return (
+    <TouchableOpacity
+      style={[styles.card, { width: cardWidth }]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.8}
+    >
+      <View style={styles.imageContainer}>
+        {imageLoading && !isPlaceholder && (
+          <View style={styles.imagePlaceholder}>
+            <ActivityIndicator size="small" color="#FFD700" />
+          </View>
+        )}
+        <Image 
+          key={`${item.id || item._id}-${currentImageIndex}`}
+          source={{ uri: imageUri }} 
+          style={[styles.image, imageLoading && !isPlaceholder && styles.imageHidden]}
+          resizeMode="cover"
+          onError={(error) => {
+            // Only log warning once per image to reduce noise
+            if (currentImageIndex === 0) {
+              // logger.warn('Image failed to load for listing:', item.id || item._id || 'unknown');
+            }
+            
+            // Try next image from the array if available
+            if (currentImageIndex < allImageUris.length - 1) {
+              setCurrentImageIndex(prev => prev + 1);
+              setImageError(false); // Reset error to try next image
+              setImageLoading(true); // Show loading indicator
+            } else {
+              setImageError(true);
+              setImageLoading(false);
+            }
+          }}
+          onLoad={() => {
+            setImageLoading(false);
+            setImageError(false);
+          }}
+          onLoadStart={() => {
+            setImageLoading(true);
+          }}
+        />
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => onToggleFavorite(item.id)}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons 
+            name={item.isFavorite ? 'favorite' : 'favorite-border'} 
+            size={18} 
+            color={item.isFavorite ? '#FF0000' : '#FFFFFF'} 
+          />
+        </TouchableOpacity>
+      </View>
+    <View style={styles.cardContent}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardInfo}>
+          <Text style={styles.title} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.location}>{item.location}</Text>
+          <View style={styles.priceRatingRow}>
+            <Text style={styles.price}>{formatPrice(item.price)}/day</Text>
+            <View style={styles.ratingContainer}>
+              <MaterialIcons name="star" size={12} color="#FFD700" />
+              <Text style={styles.rating}>{item.rating || 4.9}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to prevent unnecessary re-renders
+  // Return true if props are equal (do NOT re-render)
+  
+  // Check if critical item properties changed
+  const itemChanged = 
+    prevProps.item.id !== nextProps.item.id ||
+    prevProps.item.title !== nextProps.item.title ||
+    prevProps.item.price !== nextProps.item.price ||
+    prevProps.item.isFavorite !== nextProps.item.isFavorite ||
+    prevProps.item.image !== nextProps.item.image;
+    
+  // Check if dimensions changed
+  const widthChanged = prevProps.width !== nextProps.width;
+  
+  return !itemChanged && !widthChanged;
+});
+
 export default function ExploreScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -196,6 +355,7 @@ export default function ExploreScreen() {
   const [showWelcomeDeal, setShowWelcomeDeal] = useState(false);
   const [checkingWelcomeDeal, setCheckingWelcomeDeal] = useState(false);
   const [lastListingCount, setLastListingCount] = useState(0);
+  const [lastTopListingId, setLastTopListingId] = useState(null);
   const [isScreenFocused, setIsScreenFocused] = useState(true);
 
   useEffect(() => {
@@ -247,31 +407,35 @@ export default function ExploreScreen() {
         // This ensures listings uploaded on other devices appear immediately
         const { hybridApartmentService } = await import('../services/hybridService');
         
-        // Clear cache before fetching to ensure fresh data
-        try {
-          await AsyncStorage.removeItem('cached_api_apartments');
-        } catch (cacheError) {
-          // Ignore cache errors
-        }
-        
+        // UPDATED: Do NOT clear cache here. hybridService will handle fetching fresh data.
         // Fetch latest listings from API (bypass cache)
         const currentListings = await hybridApartmentService.getAllApartmentsForExplore(true);
         const currentCount = currentListings?.length || 0;
         
-        // If count increased, new listings were added - trigger full refresh
-        if (currentCount > lastListingCount && lastListingCount > 0) {
-          logger.log(`🔄 New listings detected! Count: ${lastListingCount} → ${currentCount}. Refreshing...`);
-          setLastListingCount(currentCount); // Update state first to prevent infinite loop
-          await loadApartments(true); // Force refresh to show new listings
-        } else if (lastListingCount === 0 && currentCount > 0) {
-          // First poll after initial load - update count and refresh
-          setLastListingCount(currentCount);
-          await loadApartments(true);
-        } else if (currentCount !== lastListingCount) {
-          // Count changed (could be increase or decrease) - refresh
+        // Get the ID of the newest listing (first one since they are sorted by date)
+        const topListingId = currentListings && currentListings.length > 0 
+          ? String(currentListings[0].id || currentListings[0]._id || '') 
+          : null;
+        
+        // Check if we need to update the UI
+        let shouldUpdate = false;
+        
+        if (currentCount !== lastListingCount) {
+          shouldUpdate = true;
           logger.log(`🔄 Listing count changed: ${lastListingCount} → ${currentCount}. Refreshing...`);
+        } else if (currentCount > 0 && topListingId !== lastTopListingId) {
+          // Even if count is same, check if the newest listing ID changed
+          // This handles cases where a listing was deleted and another added (count same, but content different)
+          // Or if a new listing was added and an old one removed
+          shouldUpdate = true;
+          logger.log(`🔄 Top listing changed: ${lastTopListingId} → ${topListingId}. Refreshing...`);
+        }
+        
+        if (shouldUpdate) {
           setLastListingCount(currentCount);
-          await loadApartments(true);
+          setLastTopListingId(topListingId);
+          // Only call loadApartments if something actually changed
+          await loadApartments(true); 
         }
       } catch (error) {
         logger.warn('⚠️ Real-time polling error (non-fatal):', error.message);
@@ -279,7 +443,7 @@ export default function ExploreScreen() {
     }, 5000); // Poll every 5 seconds for faster updates
 
     return () => clearInterval(pollInterval);
-  }, [isScreenFocused, lastListingCount]);
+  }, [isScreenFocused, lastListingCount, lastTopListingId]);
 
   // Check if user should see welcome deal modal
   // Shows for both new users (sign-up) and existing users (sign-in)
@@ -345,13 +509,15 @@ export default function ExploreScreen() {
     setShowWelcomeDeal(false);
   };
 
-  const loadApartments = async (forceRefresh = false) => {
+  const loadApartments = async (forceRefresh = false, isBackground = false) => {
     try {
-      if (!refreshing) {
+      if (!refreshing && !isBackground) {
         setLoading(true);
       }
       
       // Clear API cache if forcing refresh to ensure fresh data from backend
+      // UPDATED: Do NOT clear cache before fetching - this causes flickering
+      /*
       if (forceRefresh) {
         try {
           await AsyncStorage.removeItem('cached_api_apartments');
@@ -360,6 +526,7 @@ export default function ExploreScreen() {
           logger.warn('⚠️ Could not clear API cache:', cacheError.message);
         }
       }
+      */
       
       // Always get user listings directly first to ensure they're included
       const { getListings } = await import('../utils/listings');
@@ -630,12 +797,19 @@ export default function ExploreScreen() {
         setApartmentList(apartments);
       }
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
       setRefreshing(false);
       // Update last listing count for real-time polling
       const finalCount = apartmentList.length || apartments?.length || 0;
       if (finalCount > 0) {
         setLastListingCount(finalCount);
+        // Also update last top listing ID
+        const finalTopId = finalApartments && finalApartments.length > 0
+          ? String(finalApartments[0].id || finalApartments[0]._id || '')
+          : null;
+        setLastTopListingId(finalTopId);
       }
     }
   };
@@ -886,132 +1060,18 @@ export default function ExploreScreen() {
 
   const filters = ['Entire place', '2 Bedroom', '3 Bedroom', '4 Bedroom', 'Pool', 'Pet-friendly', 'Top-rated'];
 
-  // Separate component for apartment card to use hooks properly
-  const ApartmentCard = ({ item, onPress, onToggleFavorite }) => {
-    const [imageError, setImageError] = useState(false);
-    const [imageLoading, setImageLoading] = useState(true);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    
-    // Calculate card width dynamically for proper fit
-    // Formula: (screen width - left padding - right padding - gap between cards) / 2
-    // For iPhone 12 (390px): (390 - 16 - 16 - 12) / 2 = 173px per card
-    const cardWidth = (SCREEN_WIDTH - 44) / 2;
-    
-    // Get all possible image URIs in priority order
-    const getAllImageUris = () => {
-      const uris = [];
-      
-      // First check main image field (from formatted listing)
-      if (item.image && typeof item.image === 'string' && item.image.trim() !== '' && !isPlaceholderImage(item.image)) {
-        uris.push(item.image);
-      }
-      
-      // Then check images array (for other users' listings or fallback)
-      if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-        item.images.forEach(img => {
-          if (img && typeof img === 'string' && img.trim() !== '' && !isPlaceholderImage(img) && !uris.includes(img)) {
-            uris.push(img);
-          }
-        });
-      }
-      
-      // Fallback to placeholder if no valid images
-      if (uris.length === 0) {
-        uris.push(getApartmentPlaceholder(400, 300));
-      }
-      
-      return uris;
-    };
-    
-    const allImageUris = getAllImageUris();
-    const imageUri = allImageUris[currentImageIndex] || getApartmentPlaceholder(400, 300);
-    const isPlaceholder = isPlaceholderImage(imageUri);
-    
-    return (
-      <TouchableOpacity
-        style={[styles.card, { width: cardWidth }]}
-        onPress={() => onPress(item)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.imageContainer}>
-          {imageLoading && !isPlaceholder && (
-            <View style={styles.imagePlaceholder}>
-              <ActivityIndicator size="small" color="#FFD700" />
-            </View>
-          )}
-          <Image 
-            key={`${item.id || item._id}-${currentImageIndex}`}
-            source={{ uri: imageUri }} 
-            style={[styles.image, imageLoading && !isPlaceholder && styles.imageHidden]}
-            resizeMode="cover"
-            onError={(error) => {
-              logger.warn('Image failed to load for listing:', item.id || item._id || 'unknown', item.title || 'Untitled');
-              logger.warn('  Image URI:', imageUri.substring(0, 100));
-              logger.warn('  Error:', error.nativeEvent?.error || 'Unknown');
-              logger.warn('  Current image index:', currentImageIndex, 'of', allImageUris.length);
-              
-              // Try next image from the array if available
-              if (currentImageIndex < allImageUris.length - 1) {
-                const nextIndex = currentImageIndex + 1;
-                logger.log('  Trying next image from array (index', nextIndex, '):', allImageUris[nextIndex].substring(0, 100));
-                setCurrentImageIndex(nextIndex);
-                setImageError(false); // Reset error to try next image
-                setImageLoading(true); // Show loading indicator
-              } else {
-                // No more images to try - show placeholder
-                logger.warn('  No more images to try - showing placeholder');
-                setImageError(true);
-                setImageLoading(false);
-              }
-            }}
-            onLoad={() => {
-              setImageLoading(false);
-              setImageError(false);
-            }}
-            onLoadStart={() => {
-              setImageLoading(true);
-            }}
-          />
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={() => onToggleFavorite(item.id)}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name={item.isFavorite ? 'favorite' : 'favorite-border'} 
-              size={18} 
-              color={item.isFavorite ? '#FF0000' : '#FFFFFF'} 
-            />
-          </TouchableOpacity>
-        </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <View style={styles.cardInfo}>
-            <Text style={styles.title} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={styles.location}>{item.location}</Text>
-            <View style={styles.priceRatingRow}>
-              <Text style={styles.price}>{formatPrice(item.price)}/day</Text>
-              <View style={styles.ratingContainer}>
-                <MaterialIcons name="star" size={12} color="#FFD700" />
-                <Text style={styles.rating}>{item.rating || 4.9}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-    );
-  };
+  const handleApartmentPress = React.useCallback((item) => {
+    navigation.navigate('ApartmentDetails', { apartment: item });
+  }, [navigation]);
 
-  const renderApartmentCard = ({ item }) => (
+  const renderApartmentCard = React.useCallback(({ item }) => (
     <ApartmentCard 
-      item={item}
-      onPress={(apartment) => navigation.navigate('ApartmentDetails', { apartment })}
+      item={item} 
+      onPress={handleApartmentPress}
       onToggleFavorite={toggleFavorite}
+      width={(SCREEN_WIDTH - 44) / 2}
     />
-  );
+  ), [handleApartmentPress, toggleFavorite]);
 
   return (
     <View style={styles.container}>

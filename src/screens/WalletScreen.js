@@ -412,7 +412,7 @@ export default function WalletScreen() {
         // Handle both camelCase and snake_case formats
         const accountNumber = account.accountNumber || account.account_number;
         const bankName = account.bankName || account.bank_name || 'Virtual Bank';
-        const accountName = account.accountName || account.account_name || 'Apartify Africa';
+        const accountName = account.accountName || account.account_name || 'Nigerian Apartments';
         
         if (!accountNumber) {
           throw new Error('Failed to create virtual account. Account number not found in response.');
@@ -923,7 +923,7 @@ export default function WalletScreen() {
             
             const accountNumber = account.accountNumber || account.account_number;
             const bankName = account.bankName || account.bank_name || 'Virtual Bank';
-            const accountName = account.accountName || account.account_name || 'Apartify Africa';
+            const accountName = account.accountName || account.account_name || 'Nigerian Apartments';
             
             if (!accountNumber) {
               throw new Error('Failed to create virtual account. Account number not found in response.');

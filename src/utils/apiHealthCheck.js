@@ -29,7 +29,8 @@ export const checkApiHealth = async (forceRefresh = false) => {
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
     try {
-      const response = await fetch(`${baseUrl}/api/apartments?page=0&size=1`, {
+      // Use the dedicated health check endpoint
+      const response = await fetch(`${baseUrl}/api/health`, {
         method: 'GET',
         signal: controller.signal,
         headers: {
@@ -39,8 +40,8 @@ export const checkApiHealth = async (forceRefresh = false) => {
 
       clearTimeout(timeoutId);
 
-      // If we get any response (even 401/403), API is available
-      const isAvailable = response.status !== 0 && !response.status.toString().startsWith('5');
+      // If we get 200 OK, API is definitely available
+      const isAvailable = response.ok;
       
       const result = {
         available: isAvailable,

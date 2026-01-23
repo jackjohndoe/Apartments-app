@@ -13,6 +13,8 @@ public class ListingResponse {
     private final OffsetDateTime createdAt;
     private final Long hostId;
     private final String hostName;
+    private final String hostEmail;
+    private final String hostProfilePicture;
     private final Set<String> amenities;
     private final Set<String> policies;
     private final Double averageRating;
@@ -21,7 +23,7 @@ public class ListingResponse {
     private final boolean favorite;
 
     public ListingResponse(Long id, String title, String description, BigDecimal price, String location,
-                          OffsetDateTime createdAt, Long hostId, String hostName, Set<String> amenities,
+                          OffsetDateTime createdAt, Long hostId, String hostName, String hostEmail, String hostProfilePicture, Set<String> amenities,
                           Set<String> policies, Double averageRating, Integer reviewCount, Set<String> photos,
                           boolean favorite) {
         this.id = id;
@@ -32,6 +34,8 @@ public class ListingResponse {
         this.createdAt = createdAt;
         this.hostId = hostId;
         this.hostName = hostName;
+        this.hostEmail = hostEmail;
+        this.hostProfilePicture = hostProfilePicture;
         this.amenities = amenities;
         this.policies = policies;
         this.averageRating = averageRating;
@@ -49,6 +53,8 @@ public class ListingResponse {
     public OffsetDateTime createdAt() { return createdAt; }
     public Long hostId() { return hostId; }
     public String hostName() { return hostName; }
+    public String hostEmail() { return hostEmail; }
+    public String hostProfilePicture() { return hostProfilePicture; }
     public Set<String> amenities() { return amenities; }
     public Set<String> policies() { return policies; }
     public Double averageRating() { return averageRating; }
@@ -65,6 +71,8 @@ public class ListingResponse {
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public Long getHostId() { return hostId; }
     public String getHostName() { return hostName; }
+    public String getHostEmail() { return hostEmail; }
+    public String getHostProfilePicture() { return hostProfilePicture; }
     public Set<String> getAmenities() { return amenities; }
     public Set<String> getPolicies() { return policies; }
     public Double getAverageRating() { return averageRating; }
@@ -85,6 +93,8 @@ public class ListingResponse {
         private OffsetDateTime createdAt;
         private Long hostId;
         private String hostName;
+        private String hostEmail;
+        private String hostProfilePicture;
         private Set<String> amenities;
         private Set<String> policies;
         private Double averageRating;
@@ -132,6 +142,16 @@ public class ListingResponse {
             return this;
         }
 
+        public Builder hostEmail(String hostEmail) {
+            this.hostEmail = hostEmail;
+            return this;
+        }
+
+        public Builder hostProfilePicture(String hostProfilePicture) {
+            this.hostProfilePicture = hostProfilePicture;
+            return this;
+        }
+
         public Builder amenities(Set<String> amenities) {
             this.amenities = amenities;
             return this;
@@ -163,7 +183,7 @@ public class ListingResponse {
         }
 
         public ListingResponse build() {
-            return new ListingResponse(id, title, description, price, location, createdAt, hostId, hostName,
+            return new ListingResponse(id, title, description, price, location, createdAt, hostId, hostName, hostEmail, hostProfilePicture,
                     amenities, policies, averageRating, reviewCount, photos, favorite);
         }
     }

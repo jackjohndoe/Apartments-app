@@ -40,8 +40,8 @@ export default function TermsAndConditionsScreen() {
             Last Updated: {new Date().toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' })}
           </Text>
           <Text style={styles.sectionText}>
-            Welcome to Apartify Africa. These Terms and Conditions ("Terms") govern your use of 
-            our mobile application and services. By accessing or using Apartify Africa, you agree 
+            Welcome to Nigerian Apartments. These Terms and Conditions ("Terms") govern your use of 
+            our mobile application and services. By accessing or using Nigerian Apartments, you agree 
             to be bound by these Terms in accordance with the laws of the Federal Republic of Nigeria.
           </Text>
         </View>
@@ -51,12 +51,12 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.sectionTitle}>1. Definitions</Text>
           <Text style={styles.subsectionTitle}>1.1. Key Terms</Text>
           <Text style={styles.sectionText}>
-            • <Text style={styles.bold}>"Platform"</Text> refers to the Apartify Africa mobile application and website.{'\n'}
+            • <Text style={styles.bold}>"Platform"</Text> refers to the Nigerian Apartments mobile application and website.{'\n'}
             • <Text style={styles.bold}>"User"</Text> means any person who accesses or uses the Platform.{'\n'}
             • <Text style={styles.bold}>"Renter"</Text> means a User who books or intends to book an apartment.{'\n'}
             • <Text style={styles.bold}>"Host"</Text> or <Text style={styles.bold}>"Property Owner"</Text> means a User who lists apartments for rent.{'\n'}
             • <Text style={styles.bold}>"Booking"</Text> means a confirmed reservation of an apartment.{'\n'}
-            • <Text style={styles.bold}>"Service"</Text> means the apartment rental platform and related services provided by Apartify Africa.
+            • <Text style={styles.bold}>"Service"</Text> means the apartment rental platform and related services provided by Nigerian Apartments.
           </Text>
         </View>
 
@@ -69,7 +69,7 @@ export default function TermsAndConditionsScreen() {
             not agree to these Terms, you must not use the Platform.
           </Text>
           <Text style={styles.sectionText}>
-            These Terms constitute a legally binding agreement between you and Apartify Africa, 
+            These Terms constitute a legally binding agreement between you and Nigerian Apartments, 
             governed by Nigerian law, including but not limited to:
           </Text>
           <Text style={styles.sectionText}>
@@ -154,7 +154,7 @@ export default function TermsAndConditionsScreen() {
           </Text>
           <Text style={styles.subsectionTitle}>5.2. Listing Accuracy</Text>
           <Text style={styles.sectionText}>
-            Hosts are solely responsible for the accuracy of their listings. Apartify Africa 
+            Hosts are solely responsible for the accuracy of their listings. Nigerian Apartments 
             does not verify property information and is not liable for misrepresentations. 
             However, we reserve the right to remove or modify listings that violate our policies.
           </Text>
@@ -182,8 +182,8 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.sectionTitle}>6. Bookings and Payments</Text>
           <Text style={styles.subsectionTitle}>6.1. Booking Process</Text>
           <Text style={styles.sectionText}>
-            When you make a booking, you enter into a direct contract with the Host. Apartify 
-            Africa acts as an intermediary platform facilitating the transaction. The booking 
+            When you make a booking, you enter into a direct contract with the Host. Nigerian Apartments 
+            acts as an intermediary platform facilitating the transaction. The booking 
             is subject to:
           </Text>
           <Text style={styles.sectionText}>
@@ -210,7 +210,7 @@ export default function TermsAndConditionsScreen() {
           </Text>
           <Text style={styles.subsectionTitle}>6.3. Service Fees</Text>
           <Text style={styles.sectionText}>
-            Apartify Africa may charge service fees for facilitating bookings. These fees 
+            Nigerian Apartments may charge service fees for facilitating bookings. These fees 
             will be clearly disclosed before you complete a booking. Service fees are 
             non-refundable except as required by law or as stated in our cancellation policy.
           </Text>
@@ -260,7 +260,7 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.subsectionTitle}>8.1. Dispute Resolution Process</Text>
           <Text style={styles.sectionText}>
             In the event of a dispute between Users, we encourage direct communication and 
-            amicable resolution. Apartify Africa may, at its discretion, assist in resolving 
+            amicable resolution. Nigerian Apartments may, at its discretion, assist in resolving 
             disputes but is not obligated to do so.
           </Text>
           <Text style={styles.subsectionTitle}>8.2. Mediation</Text>
@@ -274,13 +274,13 @@ export default function TermsAndConditionsScreen() {
             These Terms are governed by the laws of the Federal Republic of Nigeria. Any 
             disputes arising from these Terms or your use of the Platform shall be subject 
             to the exclusive jurisdiction of the Nigerian courts, with preference given to 
-            courts in Lagos State where Apartify Africa operates.
+            courts in Lagos State where Nigerian Apartments operates.
           </Text>
           <Text style={styles.subsectionTitle}>8.4. Limitation of Liability</Text>
           <Text style={styles.sectionText}>
-            Apartify Africa acts as an intermediary platform and is not a party to the rental 
+            Nigerian Apartments acts as an intermediary platform and is not a party to the rental 
             agreement between Renters and Hosts. To the maximum extent permitted by Nigerian 
-            law, Apartify Africa:
+            law, Nigerian Apartments:
           </Text>
           <Text style={styles.sectionText}>
             • Is not liable for any disputes between Users{'\n'}
@@ -330,11 +330,11 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.sectionTitle}>10. Intellectual Property</Text>
           <Text style={styles.sectionText}>
             The Platform, including its design, features, content, and trademarks, is owned 
-            by Apartify Africa and protected by Nigerian intellectual property laws. You may 
+            by Nigerian Apartments and protected by Nigerian intellectual property laws. You may 
             not reproduce, distribute, or create derivative works without our written permission.
           </Text>
           <Text style={styles.sectionText}>
-            You retain ownership of content you post on the Platform but grant Apartify Africa 
+            You retain ownership of content you post on the Platform but grant Nigerian Apartments 
             a worldwide, non-exclusive, royalty-free license to use, display, and distribute 
             your content for the purpose of operating the Platform.
           </Text>
@@ -403,7 +403,7 @@ export default function TermsAndConditionsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>14. Force Majeure</Text>
           <Text style={styles.sectionText}>
-            Apartify Africa shall not be liable for any failure or delay in performance due 
+            Nigerian Apartments shall not be liable for any failure or delay in performance due 
             to circumstances beyond our reasonable control, including but not limited to natural 
             disasters, war, terrorism, pandemics, government actions, internet failures, or 
             other force majeure events as recognized under Nigerian law.
@@ -426,7 +426,7 @@ export default function TermsAndConditionsScreen() {
           <Text style={styles.sectionTitle}>16. Entire Agreement</Text>
           <Text style={styles.sectionText}>
             These Terms, together with our Privacy Policy, constitute the entire agreement 
-            between you and Apartify Africa regarding your use of the Platform and supersede 
+            between you and Nigerian Apartments regarding your use of the Platform and supersede 
             all prior agreements and understandings.
           </Text>
         </View>
@@ -438,9 +438,9 @@ export default function TermsAndConditionsScreen() {
             If you have any questions about these Terms, please contact us:
           </Text>
           <Text style={styles.sectionText}>
-            <Text style={styles.bold}>Email:</Text> support@apartifyafrica.site{'\n'}
+            <Text style={styles.bold}>Email:</Text> support@nigerianapartments.com{'\n'}
             <Text style={styles.bold}>Phone/WhatsApp:</Text> +234 703 658 8568{'\n'}
-            <Text style={styles.bold}>Website:</Text> apartifyafrica.site{'\n'}
+            <Text style={styles.bold}>Website:</Text> nigerianapartments.com{'\n'}
             <Text style={styles.bold}>Location:</Text> Lagos, Nigeria
           </Text>
         </View>
@@ -448,7 +448,7 @@ export default function TermsAndConditionsScreen() {
         {/* Acknowledgment */}
         <View style={styles.acknowledgmentSection}>
           <Text style={styles.acknowledgmentText}>
-            By using Apartify Africa, you acknowledge that you have read, understood, and 
+            By using Nigerian Apartments, you acknowledge that you have read, understood, and 
             agree to be bound by these Terms and Conditions, which are governed by the laws 
             of the Federal Republic of Nigeria.
           </Text>
@@ -457,7 +457,7 @@ export default function TermsAndConditionsScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © {new Date().getFullYear()} Apartify Africa. All rights reserved.
+            © {new Date().getFullYear()} Nigerian Apartments. All rights reserved.
           </Text>
         </View>
       </ScrollView>
@@ -560,6 +560,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-
-

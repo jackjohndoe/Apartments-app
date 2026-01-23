@@ -41,6 +41,15 @@ public class Listing {
     @JoinColumn(name = "host_id")
     private User host;
 
+    @Column(name = "host_name")
+    private String hostName;
+
+    @Column(name = "host_email")
+    private String hostEmail;
+
+    @Column(name = "host_profile_picture", length = 1000)
+    private String hostProfilePicture;
+
     private OffsetDateTime createdAt;
 
     @ElementCollection(targetClass = Amenity.class)

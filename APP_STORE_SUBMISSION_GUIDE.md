@@ -1,4 +1,4 @@
-# App Store Submission Guide - Apartify Africa
+# App Store Submission Guide - Nigerian Apartments
 
 Complete step-by-step guide to submit your app to the iOS App Store.
 
@@ -21,7 +21,7 @@ Complete step-by-step guide to submit your app to the iOS App Store.
    - Size: Exactly 1024x1024 pixels
    - Format: PNG
    - No transparency (solid background)
-   - Design: Should represent "Apartify Africa" with gold (#FFD700) theme
+   - Design: Should represent "Nigerian Apartments" with gold (#FFD700) theme
 
 **Note:** The icon is already referenced in `app.json`. Just place the file at `assets/icon.png`.
 

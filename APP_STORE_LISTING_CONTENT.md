@@ -1,4 +1,4 @@
-# App Store Listing Content - Apartify Africa
+# App Store Listing Content - Nigerian Apartments
 
 Ready-to-use content for your App Store listing. Copy and paste into App Store Connect.
 
@@ -11,9 +11,9 @@ Find Your Perfect Apartment
 ## App Description (4000 characters max)
 
 ```
-Apartify Africa - Your Gateway to Premium Apartment Rentals in Nigeria
+Nigerian Apartments - Your Gateway to Premium Apartment Rentals in Nigeria
 
-Discover and book the perfect apartment for your stay in Nigeria. Apartify Africa connects travelers and locals with verified, high-quality apartment listings across major Nigerian cities.
+Discover and book the perfect apartment for your stay in Nigeria. Nigerian Apartments connects travelers and locals with verified, high-quality apartment listings across major Nigerian cities.
 
 KEY FEATURES:
 🏠 Extensive Listings - Browse hundreds of verified apartments in Lagos, Abuja, Port Harcourt, and more
@@ -31,7 +31,7 @@ PERFECT FOR:
 • Locals looking for short-term rentals
 • Property owners wanting to list their spaces
 
-WHY CHOOSE APARTIFY AFRICA:
+WHY CHOOSE NIGERIAN APARTMENTS:
 ✓ Verified listings with real photos
 ✓ Secure payment processing
 ✓ 24/7 customer support
@@ -39,7 +39,7 @@ WHY CHOOSE APARTIFY AFRICA:
 ✓ Competitive pricing
 ✓ Trusted by thousands of users
 
-Download Apartify Africa today and experience the best in Nigerian apartment rentals!
+Download Nigerian Apartments today and experience the best in Nigerian apartment rentals!
 ```
 
 ## Keywords (100 characters max)
@@ -57,7 +57,7 @@ New users get special deals! Book your perfect apartment today with secure payme
 ## What's New in This Version (v1.0.0)
 
 ```
-Welcome to Apartify Africa!
+Welcome to Nigerian Apartments!
 
 🎉 Initial Release Features:
 • Browse and search apartments across Nigeria
@@ -74,18 +74,18 @@ Start exploring amazing apartments today!
 ## Support URL
 
 ```
-mailto:support@apartifyafrica.com
+mailto:support@nigerianapartments.com
 ```
 
 Or your support page URL:
 ```
-https://apartifyafrica.com/support
+https://nigerianapartments.com/support
 ```
 
 ## Marketing URL (optional)
 
 ```
-https://apartifyafrica.com
+https://nigerianapartments.com
 ```
 
 ## App Review Information
@@ -97,7 +97,7 @@ https://apartifyafrica.com
 - **Email:** [Your Email]
 
 ### Demo Account (if app requires login)
-- **Username:** `demo@apartifyafrica.com`
+- **Username:** `demo@nigerianapartments.com`
 - **Password:** `Demo123!`
 
 ### Notes for Reviewers

@@ -48,4 +48,13 @@ public class ListingRequest {
 
     @Schema(description = "Array of image URLs (alternative field name)", example = "[\"https://example.com/image1.jpg\", \"https://example.com/image2.jpg\"]")
     private List<String> imageUrls;
+
+    @Schema(description = "Name of the host (optional override)", example = "John Doe")
+    private String hostName;
+
+    @Schema(description = "Email of the host (optional override)", example = "john@example.com")
+    private String hostEmail;
+
+    @Schema(description = "Profile picture URL of the host (optional override)", example = "https://example.com/profile.jpg")
+    private String hostProfilePicture;
 }

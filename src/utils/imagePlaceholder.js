@@ -54,7 +54,7 @@ export const getBackgroundPlaceholder = (width = 800, height = 600) => {
   // Light gold background (#FFF9E6) with gray text
   const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
     <rect width="100%" height="100%" fill="#FFF9E6"/>
-    <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="24" fill="#666666" text-anchor="middle" dominant-baseline="middle">Apartify Africa</text>
+    <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="24" fill="#666666" text-anchor="middle" dominant-baseline="middle">Nigerian Apartments</text>
   </svg>`;
   // Convert to base64
   const base64 = btoa(unescape(encodeURIComponent(svg)));

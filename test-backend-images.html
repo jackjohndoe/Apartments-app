@@ -1,19 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Backend Image Storage Test</title>
+    <title>Backend Image Storage Validator</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
-            margin: 50px auto;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
         }
-        .test-section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .step {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            display: block;
         }
         button {
             background: #007bff;
@@ -22,235 +34,260 @@
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
-            margin: 5px;
+            font-size: 14px;
+            transition: background 0.2s;
         }
         button:hover {
             background: #0056b3;
         }
-        .result {
-            margin-top: 10px;
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        input {
+            width: 100%;
             padding: 10px;
-            border-radius: 5px;
+            margin: 5px 0 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid transparent;
+            font-size: 14px;
+            white-space: pre-wrap;
         }
         .success {
-            background: #d4edda;
-            color: #155724;
+            background: #e8f5e9;
+            border-left-color: #28a745;
+            color: #1b5e20;
         }
         .error {
-            background: #f8d7da;
-            color: #721c24;
+            background: #ffebee;
+            border-left-color: #dc3545;
+            color: #b71c1c;
         }
         .info {
-            background: #d1ecf1;
-            color: #0c5460;
+            background: #e3f2fd;
+            border-left-color: #17a2b8;
+            color: #0d47a1;
         }
-        pre {
-            background: #f5f5f5;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
+        .guide-box {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Backend Image Storage Test</h1>
-    <p>Use this page to test if the backend is storing images correctly.</p>
+    <h1>🚀 Backend Storage Validator</h1>
     
-    <div class="test-section">
-        <h2>1. Check All Listings</h2>
-        <p>This will fetch all listings and check if they have images in the `photos` array.</p>
-        <button onclick="checkAllListings()">Check All Listings</button>
-        <div id="listings-result"></div>
+    <div class="guide-box">
+        <h3>⚠️ Before You Start:</h3>
+        <p>Ensure you have configured the <strong>Volume</strong> in Railway:</p>
+        <ol>
+            <li>Go to <a href="https://railway.app" target="_blank">Railway Dashboard</a></li>
+            <li>Click your <code>booking-backend</code> service</li>
+            <li>Go to <strong>Volumes</strong> tab -> New Volume -> Mount Path: <code>/app/uploads</code></li>
+            <li>Go to <strong>Variables</strong> tab -> Add <code>STORAGE_BASE_PATH</code> = <code>/app/uploads</code></li>
+        </ol>
     </div>
-    
-    <div class="test-section">
-        <h2>2. Test Create Listing with Image</h2>
-        <p><strong>Note:</strong> You need to be logged in. Open browser console and get your auth token first.</p>
-        <input type="text" id="authToken" placeholder="Bearer Token (from browser console)" style="width: 100%; padding: 5px; margin: 5px 0;">
-        <button onclick="testCreateListing()">Test Create Listing</button>
+
+    <div class="card">
+        <span class="step">STEP 1: LOGIN</span>
+        <p>Enter your app credentials to get an access token.</p>
+        <input type="email" id="email" placeholder="Email (e.g. user@example.com)">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="login()">Login & Get Token</button>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="card">
+        <span class="step">STEP 2: CREATE TEST LISTING</span>
+        <p>This will create a new listing with a small test image to verify persistence.</p>
+        <input type="text" id="authToken" placeholder="Auth Token (will be auto-filled)" readonly>
+        <button onclick="createTestListing()" id="createBtn" disabled>Create Listing & Verify Image</button>
         <div id="create-result"></div>
     </div>
     
-    <div class="test-section">
-        <h2>3. Check Specific Listing</h2>
-        <input type="number" id="listingId" placeholder="Listing ID" style="width: 100px; padding: 5px;">
-        <button onclick="checkListing()">Check Listing</button>
-        <div id="listing-result"></div>
+    <div class="card">
+        <span class="step">DEBUG: CHECK ALL LISTINGS</span>
+        <p>See how many listings currently have valid images.</p>
+        <button onclick="checkAllListings()">Check All Listings</button>
+        <div id="listings-result"></div>
     </div>
 
     <script>
         const API_BASE = 'https://booking-backend-staging.up.railway.app';
         
-        async function checkAllListings() {
-            const resultDiv = document.getElementById('listings-result');
-            resultDiv.innerHTML = '<p>Loading...</p>';
+        // 1x1 Red Pixel Base64
+        const TEST_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('login-result');
             
-            try {
-                const response = await fetch(`${API_BASE}/api/apartments?all=true&size=100`);
-                const data = await response.json();
-                
-                const listings = data.content || data || [];
-                let withImages = 0;
-                let withoutImages = 0;
-                const missingDetails = [];
-                
-                listings.forEach(listing => {
-                    const hasPhotos = listing.photos && Array.isArray(listing.photos) && listing.photos.length > 0;
-                    if (hasPhotos) {
-                        withImages++;
-                    } else {
-                        withoutImages++;
-                        missingDetails.push({
-                            id: listing.id,
-                            title: listing.title,
-                            photos: listing.photos
-                        });
-                    }
-                });
-                
-                let html = `<div class="result ${withImages === listings.length ? 'success' : 'error'}">`;
-                html += `<h3>Results:</h3>`;
-                html += `<p><strong>Total Listings:</strong> ${listings.length}</p>`;
-                html += `<p><strong>With Images:</strong> ${withImages}</p>`;
-                html += `<p><strong>Without Images:</strong> ${withoutImages}</p>`;
-                
-                if (withoutImages > 0) {
-                    html += `<h4>Listings Without Images:</h4>`;
-                    html += `<pre>${JSON.stringify(missingDetails, null, 2)}</pre>`;
-                    html += `<p class="error"><strong>⚠️ Backend may not be storing images!</strong></p>`;
-                    html += `<p>Possible causes:</p>`;
-                    html += `<ul>`;
-                    html += `<li>Backend deployment not complete</li>`;
-                    html += `<li>Backend code not updated</li>`;
-                    html += `<li>Runtime error in image processing</li>`;
-                    html += `<li>These listings were created before the fix</li>`;
-                    html += `</ul>`;
-                } else if (listings.length === 0) {
-                    html += `<p class="info">No listings found. Create a test listing to verify image storage.</p>`;
-                } else {
-                    html += `<p class="success"><strong>✅ All listings have images!</strong></p>`;
-                }
-                
-                html += `</div>`;
-                resultDiv.innerHTML = html;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="result error"><p>Error: ${error.message}</p></div>`;
-            }
-        }
-        
-        async function testCreateListing() {
-            const token = document.getElementById('authToken').value;
-            const resultDiv = document.getElementById('create-result');
-            
-            if (!token) {
-                resultDiv.innerHTML = '<div class="result error"><p>Please enter your auth token. Get it from browser console: localStorage.getItem("token")</p></div>';
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="result error">Please enter email and password</div>';
                 return;
             }
             
-            resultDiv.innerHTML = '<p>Creating test listing...</p>';
-            
-            // Create a small test image (1x1 red pixel in base64)
-            const testImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+            resultDiv.innerHTML = '<div class="result info">Logging in...</div>';
             
             try {
-                const response = await fetch(`${API_BASE}/api/apartments`, {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && (data.token || data.accessToken)) {
+                    const token = data.token || data.accessToken;
+                    document.getElementById('authToken').value = token;
+                    document.getElementById('createBtn').disabled = false;
+                    resultDiv.innerHTML = `<div class="result success">✅ Login Successful! Token retrieved.</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">❌ Login Failed: ${data.message || 'Unknown error'}</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="result error">❌ Network Error: ${err.message}</div>`;
+            }
+        }
+
+        async function createTestListing() {
+            const token = document.getElementById('authToken').value;
+            const resultDiv = document.getElementById('create-result');
+            
+            resultDiv.innerHTML = '<div class="result info">Creating listing...</div>';
+            
+            try {
+                // 1. Create Listing
+                const createRes = await fetch(`${API_BASE}/api/listings`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        title: 'Test Listing - Image Storage',
-                        description: 'This is a test listing to verify image storage',
-                        price: 100,
-                        location: 'Test Location',
-                        images: [testImage],
-                        photos: [testImage]
+                        title: 'TEST_PERSISTENCE_' + Date.now(),
+                        description: 'Testing image persistence',
+                        price: 15000,
+                        location: 'Lagos Test Lab',
+                        bedrooms: 1,
+                        bathrooms: 1,
+                        images: [TEST_IMAGE],
+                        photos: [TEST_IMAGE]
                     })
                 });
                 
-                const data = await response.json();
+                const data = await createRes.json();
                 
-                if (response.ok) {
-                    const hasPhotos = data.photos && Array.isArray(data.photos) && data.photos.length > 0;
+                if (!createRes.ok) {
+                    throw new Error(data.message || 'Failed to create listing');
+                }
+                
+                const listingId = data.id || data._id;
+                let log = `✅ Listing Created (ID: ${listingId})\n`;
+                
+                // 2. Verify Response immediately
+                const hasPhotos = data.photos && data.photos.length > 0;
+                if (hasPhotos) {
+                    log += `✅ Server returned photos array: ${data.photos.length} image(s)\n`;
+                    log += `🔗 Image URL: ${data.photos[0]}\n`;
                     
-                    let html = `<div class="result ${hasPhotos ? 'success' : 'error'}">`;
-                    html += `<h3>Test Result:</h3>`;
-                    html += `<p><strong>Listing ID:</strong> ${data.id}</p>`;
-                    html += `<p><strong>Title:</strong> ${data.title}</p>`;
-                    html += `<p><strong>Photos Array:</strong> ${JSON.stringify(data.photos)}</p>`;
-                    html += `<p><strong>Has Photos:</strong> ${hasPhotos}</p>`;
-                    
-                    if (hasPhotos) {
-                        html += `<p class="success"><strong>✅ SUCCESS: Backend stored images!</strong></p>`;
-                        html += `<p>The backend is working correctly. Images are being stored.</p>`;
-                    } else {
-                        html += `<p class="error"><strong>❌ FAILED: Backend did not store images!</strong></p>`;
-                        html += `<p>Possible issues:</p>`;
-                        html += `<ul>`;
-                        html += `<li>Backend deployment not complete</li>`;
-                        html += `<li>Backend code not updated</li>`;
-                        html += `<li>Runtime error in image processing</li>`;
-                        html += `<li>Check Railway logs for errors</li>`;
-                        html += `</ul>`;
+                    // 3. Verify Image Accessibility
+                    log += `🔍 Verifying image accessibility...\n`;
+                    let imageUrl = data.photos[0];
+                    if (!imageUrl.startsWith('http')) {
+                        // Handle relative paths
+                        if (imageUrl.startsWith('/')) {
+                            imageUrl = API_BASE + imageUrl;
+                        } else {
+                            imageUrl = `${API_BASE}/api/files/${imageUrl}`;
+                        }
                     }
                     
-                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-                    html += `</div>`;
-                    resultDiv.innerHTML = html;
+                    try {
+                        const imgRes = await fetch(imageUrl);
+                        if (imgRes.ok) {
+                            log += `✅ SUCCESS: Image is accessible (HTTP 200)\n`;
+                            log += `🎉 PERSISTENT STORAGE IS WORKING!`;
+                            resultDiv.innerHTML = `<div class="result success">${log}</div>`;
+                        } else {
+                            log += `❌ FAILURE: Image URL returned ${imgRes.status}\n`;
+                            log += `⚠️ The database has the record, but the file is missing on disk.`;
+                            resultDiv.innerHTML = `<div class="result error">${log}</div>`;
+                        }
+                    } catch (e) {
+                        log += `❌ FAILURE: Could not reach image URL: ${e.message}`;
+                        resultDiv.innerHTML = `<div class="result error">${log}</div>`;
+                    }
+                    
                 } else {
-                    resultDiv.innerHTML = `<div class="result error"><p>Error: ${data.message || 'Failed to create listing'}</p><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                    log += `❌ FAILURE: Server returned empty photos array.\n`;
+                    resultDiv.innerHTML = `<div class="result error">${log}</div>`;
                 }
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="result error"><p>Error: ${error.message}</p></div>`;
+                
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${err.message}</div>`;
             }
         }
-        
-        async function checkListing() {
-            const listingId = document.getElementById('listingId').value;
-            const resultDiv = document.getElementById('listing-result');
-            
-            if (!listingId) {
-                resultDiv.innerHTML = '<div class="result error"><p>Please enter a listing ID</p></div>';
-                return;
-            }
-            
-            resultDiv.innerHTML = '<p>Loading...</p>';
+
+        async function checkAllListings() {
+            const token = document.getElementById('authToken').value;
+            const resultDiv = document.getElementById('listings-result');
+            resultDiv.innerHTML = '<div class="result info">Fetching listings...</div>';
             
             try {
-                const response = await fetch(`${API_BASE}/api/apartments/${listingId}`);
-                const data = await response.json();
-                
-                const hasPhotos = data.photos && Array.isArray(data.photos) && data.photos.length > 0;
-                
-                let html = `<div class="result ${hasPhotos ? 'success' : 'error'}">`;
-                html += `<h3>Listing Details:</h3>`;
-                html += `<p><strong>ID:</strong> ${data.id}</p>`;
-                html += `<p><strong>Title:</strong> ${data.title}</p>`;
-                html += `<p><strong>Photos Array Length:</strong> ${data.photos ? data.photos.length : 0}</p>`;
-                html += `<p><strong>Has Photos:</strong> ${hasPhotos}</p>`;
-                
-                if (hasPhotos) {
-                    html += `<p class="success"><strong>✅ This listing has images!</strong></p>`;
-                } else {
-                    html += `<p class="error"><strong>❌ This listing has no images</strong></p>`;
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
                 }
                 
-                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
-                html += `</div>`;
-                resultDiv.innerHTML = html;
-            } catch (error) {
-                resultDiv.innerHTML = `<div class="result error"><p>Error: ${error.message}</p></div>`;
+                const response = await fetch(`${API_BASE}/api/listings?all=true&size=100`, {
+                    headers: headers
+                });
+                const data = await response.json();
+                
+                let listings = [];
+                if (Array.isArray(data)) {
+                    listings = data;
+                } else if (data.content && Array.isArray(data.content)) {
+                    listings = data.content;
+                } else if (data.data && Array.isArray(data.data)) {
+                    listings = data.data;
+                } else {
+                    console.log('Unexpected response:', data);
+                    // DEBUG: Show the raw response to the user
+                    const debugHtml = `<pre style="background:#eee;padding:10px;overflow:auto;max-height:200px;">${JSON.stringify(data, null, 2)}</pre>`;
+                    throw new Error(`API returned unexpected format. Response:<br>${debugHtml}`);
+                }
+                
+                const withImages = listings.filter(l => l.photos && l.photos.length > 0).length;
+                const total = listings.length;
+                
+                let html = `📊 Total Listings: ${total}\n`;
+                html += `✅ With Images: ${withImages}\n`;
+                html += `❌ Without Images: ${total - withImages}\n\n`;
+                
+                if (total - withImages > 0) {
+                    html += `⚠️ Note: Old listings created before the fix will NOT have images. This is expected. Only new listings will work.`;
+                }
+                
+                const className = withImages > 0 ? 'success' : 'info';
+                resultDiv.innerHTML = `<div class="result ${className}">${html}</div>`;
+            } catch (err) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error: ${err.message}</div>`;
             }
         }
-        
-        // Auto-check on load
-        window.onload = function() {
-            checkAllListings();
-        };
     </script>
 </body>
 </html>
-
-
-

@@ -45,7 +45,7 @@ export default function AboutScreen() {
           <View style={styles.logoContainer}>
             <MaterialIcons name="home" size={64} color="#FFD700" />
           </View>
-          <Text style={styles.appName}>Apartify Africa</Text>
+          <Text style={styles.appName}>Nigerian Apartments</Text>
           <Text style={styles.appVersion}>Version 1.0.0</Text>
           <Text style={styles.appTagline}>
             Your trusted platform for finding and renting apartments
@@ -56,7 +56,7 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About This App</Text>
           <Text style={styles.sectionText}>
-            Welcome to Apartify Africa! We provide a seamless platform for 
+            Welcome to Nigerian Apartments! We provide a seamless platform for 
             finding, booking, and managing apartment rentals. Whether you're looking for 
             a temporary stay or a long-term rental, we've got you covered.
           </Text>
@@ -223,12 +223,12 @@ export default function AboutScreen() {
           
           <TouchableOpacity 
             style={styles.contactItem}
-            onPress={() => openLink('mailto:support@apartifyafrica.site')}
+            onPress={() => openLink('mailto:support@nigerianapartments.com')}
           >
             <MaterialIcons name="email" size={24} color="#FFD700" />
             <View style={styles.contactContent}>
               <Text style={styles.contactLabel}>Email</Text>
-              <Text style={styles.contactValue}>support@apartifyafrica.site</Text>
+              <Text style={styles.contactValue}>support@nigerianapartments.com</Text>
             </View>
           </TouchableOpacity>
 
@@ -276,7 +276,7 @@ export default function AboutScreen() {
         {/* Copyright */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2024 Apartify Africa. All rights reserved.
+            © 2024 Nigerian Apartments. All rights reserved.
           </Text>
           <View style={styles.footerRow}>
             <Text style={styles.footerText}>Made with </Text>
@@ -378,6 +378,20 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 12,
     marginBottom: 8,
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF9C4', // Light yellow background
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  linkButtonText: {
+    color: '#FBC02D', // Darker yellow/gold
+    fontWeight: '600',
+    marginRight: 8,
   },
   guideItem: {
     flexDirection: 'row',

@@ -160,7 +160,7 @@ export default function TransferPaymentScreen() {
         const normalizedAccount = {
           accountNumber: accountDetails?.accountNumber || accountDetails?.account_number,
           bankName: accountDetails?.bankName || accountDetails?.bank_name || 'Virtual Bank',
-          accountName: accountDetails?.accountName || accountDetails?.account_name || 'Apartify Africa',
+          accountName: accountDetails?.accountName || accountDetails?.account_name || 'Nigerian Apartments',
           txRef: accountDetails?.txRef || accountDetails?.tx_ref || generatedTxRef
         };
         
@@ -404,7 +404,7 @@ export default function TransferPaymentScreen() {
 
               <View style={styles.accountDetail}>
                 <Text style={styles.detailLabel}>Account Name</Text>
-                <Text style={styles.detailValue}>{virtualAccount.accountName || 'Apartify Africa'}</Text>
+                <Text style={styles.detailValue}>{virtualAccount.accountName || 'Nigerian Apartments'}</Text>
               </View>
 
               <View style={styles.accountDetail}>

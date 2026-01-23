@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Apartify Africa",
+    "name": "Nigerian Apartments",
     "slug": "nigerian-apartments-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,16 +17,18 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nigerianapartments.app",
       "buildNumber": "1",
-      "displayName": "Apartify Africa",
+      "displayName": "Nigerian Apartments",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "The app accesses your photos to let you set your profile picture.",
         "NSCameraUsageDescription": "The app accesses your camera to let you take a profile picture.",
+        "NSLocationWhenInUseUsageDescription": "The app uses your location to show apartments near you.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPrivacyPolicyURL": "https://apartifyafrica.com/privacy"
+        "NSPrivacyPolicyURL": "https://nigerianapartments.com/privacy"
       }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFD700"
       },
       "package": "com.nigerianapartments.app"

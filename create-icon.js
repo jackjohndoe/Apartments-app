@@ -11,12 +11,12 @@ try {
   ctx.fillStyle = '#FFD700';
   ctx.fillRect(0, 0, 1024, 1024);
   
-  // Add text "AA" for Apartify Africa
+  // Add text "NA" for Nigerian Apartments
   ctx.fillStyle = '#000000';
   ctx.font = 'bold 200px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('AA', 512, 512);
+  ctx.fillText('NA', 512, 512);
   
   // Save as PNG
   const buffer = canvas.toBuffer('image/png');

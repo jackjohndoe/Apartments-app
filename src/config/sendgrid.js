@@ -29,7 +29,7 @@ export const SENDGRID_CONFIG = {
   //
   // IMPORTANT: SendGrid will reject emails if the FROM_EMAIL is not verified!
   FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || 'NigerianApartments@ledgeroofing.com', // Verified sender email
-  FROM_NAME: process.env.SENDGRID_FROM_NAME || 'Apartify Africa',
+  FROM_NAME: process.env.SENDGRID_FROM_NAME || 'Nigerian Apartments',
 };
 
 // Check if SendGrid is configured

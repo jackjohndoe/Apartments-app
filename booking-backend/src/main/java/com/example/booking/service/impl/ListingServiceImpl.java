@@ -70,6 +70,9 @@ public class ListingServiceImpl implements ListingService {
                 .amenities(convertAmenities(request.getAmenities()))
                 .policies(convertPolicies(request.getPolicies()))
                 .host(host)
+                .hostName(request.getHostName() != null ? request.getHostName() : (host != null ? host.getName() : null))
+                .hostEmail(request.getHostEmail() != null ? request.getHostEmail() : (host != null ? host.getEmail() : null))
+                .hostProfilePicture(request.getHostProfilePicture() != null ? request.getHostProfilePicture() : (host != null ? host.getAvatarUrl() : null))
                 .build();
 
         Listing saved = listingRepository.save(listing);
@@ -263,6 +266,8 @@ public class ListingServiceImpl implements ListingService {
                 .createdAt(listing.getCreatedAt())
                 .hostId(listing.getHost() != null ? listing.getHost().getId() : null)
                 .hostName(listing.getHost() != null ? listing.getHost().getName() : null)
+                .hostEmail(listing.getHost() != null ? listing.getHost().getEmail() : null)
+                .hostProfilePicture(listing.getHost() != null ? listing.getHost().getAvatarUrl() : null)
                 .amenities(toStringSet(listing.getAmenities()))
                 .policies(toStringSet(listing.getPolicies()))
                 .averageRating(listing.getAverageRating())

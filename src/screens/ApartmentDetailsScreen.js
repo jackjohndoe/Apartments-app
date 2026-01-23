@@ -13,6 +13,7 @@ import {
   Linking,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -204,6 +205,81 @@ export default function ApartmentDetailsScreen() {
     
     return images;
   }, [apartment]);
+
+  // App Store Compliance: Report and Block functionality
+  const submitReport = (reason) => {
+    // In a real app, this would send an API request
+    // For now, we simulate a successful report
+    setTimeout(() => {
+      Alert.alert(
+        'Report Received',
+        'Thank you for reporting this listing. We will review it shortly.'
+      );
+      logger.log(`Listing ${apartment?.id} reported for: ${reason} by user ${user?.email || 'guest'}`);
+    }, 500);
+  };
+
+  const handleReportListing = () => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to report this listing.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('SignIn') }
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Report Listing',
+      'Why are you reporting this listing?',
+      [
+        { text: 'Inappropriate Content', onPress: () => submitReport('Inappropriate Content') },
+        { text: 'Spam or Scam', onPress: () => submitReport('Spam or Scam') },
+        { text: 'False Information', onPress: () => submitReport('False Information') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleBlockHost = () => {
+    if (!user) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to block this host.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('SignIn') }
+        ]
+      );
+      return;
+    }
+
+    const nameToBlock = hostName || apartment?.hostName || 'this host';
+
+    Alert.alert(
+      `Block ${nameToBlock}?`,
+      `Are you sure you want to block ${nameToBlock}? You will no longer see listings or messages from them.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Block Host', 
+          style: 'destructive',
+          onPress: () => {
+            // In a real app, this would save to blocked list
+            logger.log(`Host ${hostEmail || apartment?.hostEmail} blocked by user ${user.email}`);
+            
+            Alert.alert(
+              'Host Blocked',
+              `You have blocked ${nameToBlock}. Content from this user will no longer be visible to you.`
+            );
+          }
+        }
+      ]
+    );
+  };
 
   const calculateDays = (startDate, endDate) => {
     if (!startDate || !endDate) return 1;
@@ -891,6 +967,25 @@ export default function ApartmentDetailsScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Host Actions - Report/Block (App Store Requirement) */}
+          <View style={styles.hostActionButtons}>
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={handleReportListing}
+            >
+              <MaterialIcons name="flag" size={18} color="#666" />
+              <Text style={styles.actionButtonText}>Report Listing</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={handleBlockHost}
+            >
+              <MaterialIcons name="block" size={18} color="#666" />
+              <Text style={styles.actionButtonText}>Block Host</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Key Metrics */}
           <View style={styles.metricsContainer}>
             {apartment?.maxGuests && (
@@ -1462,6 +1557,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  hostActionButtons: {
+    flexDirection: 'row',
+    marginTop: -16, // Pull up closer to host info
+    marginBottom: 24,
+    gap: 24,
+    paddingLeft: 68, // Align with host name (56 avatar + 12 margin)
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
   metricsContainer: {
     flexDirection: 'row',

@@ -763,6 +763,9 @@ export const hybridApartmentService = {
       if (apiHealth.available) {
         try {
           // Clear cache if forcing refresh to ensure fresh data from all devices
+          // UPDATED: Do NOT clear cache before fetching - this causes flickering if fetch fails
+          // Instead, we'll overwrite the cache after a successful fetch
+          /* 
           if (forceRefresh) {
             try {
               await AsyncStorage.removeItem('cached_api_apartments');
@@ -771,6 +774,7 @@ export const hybridApartmentService = {
               logger.warn('⚠️ Could not clear cache:', cacheError.message);
             }
           }
+          */
           
           // CRITICAL: Fetch ALL listings from ALL users - no user filtering
           // Pass empty filters object to ensure no user-specific filtering
