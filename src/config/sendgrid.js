@@ -5,7 +5,7 @@
 export const SENDGRID_CONFIG = {
   // Your SendGrid API Key
   // Can be set via SENDGRID_API_KEY environment variable or hardcoded here
-  API_KEY: process.env.SENDGRID_API_KEY || 'YOUR_SENDGRID_API_KEY_HERE',
+  API_KEY: process.env.SENDGRID_API_KEY || '',
   
   // SendGrid API endpoint (REST API - recommended for React Native/Expo)
   API_URL: 'https://api.sendgrid.com/v3/mail/send',

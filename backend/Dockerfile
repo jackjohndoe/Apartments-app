@@ -22,5 +22,3 @@ ENV NODE_ENV=production
 # Start the application
 CMD ["node", "server.js"]
 
-
-

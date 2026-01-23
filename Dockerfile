@@ -1,37 +1,26 @@
-# Dockerfile for Spring Boot backend
-# This file is located in the root for Google Cloud Build compatibility
-# It builds the application from the booking-backend directory
+# Use Node.js LTS version
+FROM node:18-alpine
 
-# Multi-stage build for Spring Boot application
-FROM maven:3.9-eclipse-temurin-21 AS build
+# Set working directory
 WORKDIR /app
 
-# Copy pom.xml and source code from booking-backend directory
-COPY booking-backend/pom.xml ./pom.xml
-COPY booking-backend/src ./src
+# Copy package files
+COPY package*.json ./
 
-# Build the application (Maven will download dependencies automatically)
-RUN mvn clean package -DskipTests
+# Install dependencies
+RUN npm ci --only=production
 
-# Runtime stage
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
+# Copy application code
+COPY . .
 
-# Copy the built JAR
-COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.jar
-
-# Create uploads directory for persistent storage
-RUN mkdir -p /app/uploads
-
-# Define volume for persistent storage
-VOLUME /app/uploads
-
-# Expose port
+# Expose port (default for Node.js apps, adjust if needed)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+# Set environment to production
+ENV NODE_ENV=production
 
-# Run the application
-CMD ["java", "-jar", "booking-0.0.1-SNAPSHOT.jar", "--spring.profiles.active=staging"]
+# Start the application
+# Adjust the start command based on your backend entry point
+# Common options: "node server.js", "node index.js", "npm start"
+CMD ["node", "server.js"]
+
