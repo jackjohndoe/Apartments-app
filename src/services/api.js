@@ -148,13 +148,25 @@ const apiRequest = async (endpoint, options = {}, retryCount = 0) => {
         config.headers['Expires'] = '0';
       }
       
+      // Setup timeout controller
+      // Use custom timeout from options if provided, otherwise fallback to config or default 30s
+      const timeoutDuration = options.timeout || API_CONFIG.TIMEOUT || 30000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      
+      if (options.timeout) {
+        logger.log(`⏱️ Using custom timeout: ${options.timeout}ms for ${endpoint}`);
+      }
+      
       // Ensure method is included in fetch config
       const fetchConfig = {
         ...config,
         method: method, // Explicitly set method for fetch
+        signal: controller.signal,
       };
       
       const response = await fetch(`${BASE_URL}${endpoint}`, fetchConfig);
+      clearTimeout(timeoutId);
     
     // Log response details for payment endpoints (in dev mode)
     if (isPaymentEndpoint && __DEV__) {

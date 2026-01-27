@@ -388,7 +388,7 @@ export const apartmentService = {
         logger.error('  Check for circular references or non-serializable data');
       }
       
-      const response = await api.post(API_ENDPOINTS.APARTMENTS.CREATE, backendRequest);
+      const response = await api.post(API_ENDPOINTS.APARTMENTS.CREATE, backendRequest, { timeout: 120000 });
       // If response is null (403, 401, etc.), return null for hybrid service to handle
       if (response === null || response === undefined) {
         logger.error('❌ API returned null/undefined - request may have failed');
@@ -548,7 +548,7 @@ export const apartmentService = {
         photosCount: backendRequest.photos?.length || 0,
       });
       
-      const response = await api.put(API_ENDPOINTS.APARTMENTS.UPDATE(id), backendRequest);
+      const response = await api.put(API_ENDPOINTS.APARTMENTS.UPDATE(id), backendRequest, { timeout: 120000 });
       // If response is null (403, 401, etc.), return null for hybrid service to handle
       if (response === null || response === undefined) {
         return null;

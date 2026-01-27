@@ -41,10 +41,11 @@ export const createVirtualAccount = async (email, amount, name, txRef) => {
           continue;
         }
       } catch (apiError) {
-        // Check if it's a retryable error (network error, 500, etc.)
+        // Check if it's a retryable error (network error, timeout, etc.)
+        // Note: We explicitly do NOT retry 500 errors as they indicate server-side issues
+        // that are unlikely to be resolved by immediate retries
         const isRetryable = apiError.isNetworkError || 
                           apiError.status === 0 || 
-                          apiError.status === 500 ||
                           (apiError.message && (
                             apiError.message.includes('network') ||
                             apiError.message.includes('timeout') ||

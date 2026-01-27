@@ -2,26 +2,26 @@
 
 ## Method 1: Submit Latest Build (Recommended)
 
-Submit the most recent iOS build:
+Submit the most recent iOS build (Build 31):
 
 ```bash
 eas submit --platform ios --latest
 ```
 
 This will:
-- Find the latest iOS production build (build 1.0.0 (22))
+- Find the latest iOS production build (build 1.0.0 (31))
 - Prompt for Apple ID credentials
 - Upload and submit to App Store Connect
 
 ## Method 2: Submit Specific Build by ID
 
-Submit build 1.0.0 (22) specifically:
+Submit build 1.0.0 (31) specifically:
 
 ```bash
-eas submit --platform ios --id ruifvsm1ns
+eas submit --platform ios --id 3d21da01-56d7-403f-a5c0-b820b606ee4c
 ```
 
-Build ID: `ruifvsm1ns` (from build 1.0.0 (22))
+Build ID: `3d21da01-56d7-403f-a5c0-b820b606ee4c` (from build 1.0.0 (31))
 
 ## Method 3: Submit with Profile
 
@@ -87,8 +87,8 @@ eas submit --platform ios --latest --groups "Internal Testing"
 
 ## Current Build Details
 
-- **Build Number**: 1.0.0 (22)
-- **Build ID**: ruifvsm1ns
+- **Build Number**: 1.0.0 (31)
+- **Build ID**: 3d21da01-56d7-403f-a5c0-b820b606ee4c
 - **Status**: Finished ✅
 - **Platform**: iOS
 - **Profile**: production

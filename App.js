@@ -21,6 +21,31 @@ import { logger } from './src/utils/logger';
 
 const Stack = createStackNavigator();
 
+import * as Linking from 'expo-linking';
+
+const prefix = Linking.createURL('/');
+
+const linking = {
+  prefixes: [prefix, 'nigerianapartments://', 'https://nigerianapartments.com'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Explore: 'explore',
+          Favorites: 'favorites',
+          Bookings: 'bookings',
+          Profile: 'profile',
+        },
+      },
+      SignIn: 'signin',
+      SignUp: 'signup',
+      ForgotPassword: 'forgot-password',
+      ResetPassword: 'reset-password',
+      Guest: 'guest',
+    },
+  },
+};
+
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -158,7 +183,7 @@ function AppContent() {
   }
   
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking} fallback={<ActivityIndicator color="#FFD700" />}>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

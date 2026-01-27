@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
         [
           {
             text: 'OK',
-            onPress: () => navigation.goBack(),
+            onPress: () => navigation.navigate('SignIn'),
           },
         ]
       );
@@ -149,7 +149,7 @@ export default function ForgotPasswordScreen() {
 
           <TouchableOpacity
             style={styles.backToSignIn}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('SignIn')}
           >
             <Text style={styles.backToSignInText}>
               Remember your password? <Text style={styles.backToSignInLink}>Sign In</Text>
