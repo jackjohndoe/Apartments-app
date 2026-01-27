@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nigerian Apartments",
     "slug": "nigerian-apartments-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nigerianapartments.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "displayName": "Nigerian Apartments",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "The app accesses your photos to let you set your profile picture.",
