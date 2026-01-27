@@ -17,7 +17,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +39,16 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final CacheManager cacheManager;
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
+    }
 
     @Override
     @Transactional
@@ -59,7 +73,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         // Generate secure token
         String rawToken = TokenGenerator.generateToken();
-        String hashedToken = passwordEncoder.encode(rawToken);
+        // Use fast SHA-256 hashing for token lookup instead of slow BCrypt
+        String hashedToken = hashToken(rawToken);
 
         // Create token entity
         PasswordResetToken token = PasswordResetToken.builder()
@@ -92,17 +107,12 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             return false;
         }
 
-        // Hash the incoming token to compare with stored hashed tokens
-        // We need to check all tokens since we can't directly compare
-        List<PasswordResetToken> tokens = tokenRepository.findAll();
-
-        for (PasswordResetToken storedToken : tokens) {
-            if (passwordEncoder.matches(token, storedToken.getToken())) {
-                return storedToken.isValid();
-            }
-        }
-
-        return false;
+        // Hash the incoming token to look up in DB
+        String hashedToken = hashToken(token);
+        
+        return tokenRepository.findByToken(hashedToken)
+                .map(PasswordResetToken::isValid)
+                .orElse(false);
     }
 
     @Override
@@ -112,16 +122,11 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             throw new BadRequestException("Reset token is required");
         }
 
-        // Find the token by comparing hashed values
-        PasswordResetToken resetToken = null;
-        List<PasswordResetToken> tokens = tokenRepository.findAll();
-
-        for (PasswordResetToken storedToken : tokens) {
-            if (passwordEncoder.matches(token, storedToken.getToken())) {
-                resetToken = storedToken;
-                break;
-            }
-        }
+        // Hash the incoming token to look up in DB
+        String hashedToken = hashToken(token);
+        
+        PasswordResetToken resetToken = tokenRepository.findByToken(hashedToken)
+                .orElse(null);
 
         if (resetToken == null) {
             throw new BadRequestException("Invalid or expired reset token");

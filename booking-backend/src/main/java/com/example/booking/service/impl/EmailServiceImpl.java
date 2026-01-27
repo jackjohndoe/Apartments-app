@@ -73,6 +73,9 @@ public class EmailServiceImpl implements EmailService {
 
             // Create deep link with token
             String resetLink = resetPasswordUrl + "?token=" + resetToken;
+            
+            // Log the reset link for development/testing purposes
+            log.info("🔐 PASSWORD RESET LINK: {}", resetLink);
 
             // HTML email template
             String htmlContent = buildPasswordResetEmailHtml(resetLink);

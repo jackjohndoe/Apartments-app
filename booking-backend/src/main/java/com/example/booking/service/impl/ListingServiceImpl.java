@@ -70,9 +70,9 @@ public class ListingServiceImpl implements ListingService {
                 .amenities(convertAmenities(request.getAmenities()))
                 .policies(convertPolicies(request.getPolicies()))
                 .host(host)
-                .hostName(request.getHostName() != null ? request.getHostName() : (host != null ? host.getName() : null))
-                .hostEmail(request.getHostEmail() != null ? request.getHostEmail() : (host != null ? host.getEmail() : null))
-                .hostProfilePicture(request.getHostProfilePicture() != null ? request.getHostProfilePicture() : (host != null ? host.getAvatarUrl() : null))
+                .hostName(host != null ? host.getName() : request.getHostName())
+                .hostEmail(host != null ? host.getEmail() : request.getHostEmail())
+                .hostProfilePicture(host != null ? host.getAvatarUrl() : request.getHostProfilePicture())
                 .build();
 
         Listing saved = listingRepository.save(listing);
