@@ -71,6 +71,9 @@ export default function WalletScreen() {
   
   // Track last comprehensive sync time
   const lastComprehensiveSyncRef = useRef(0);
+  
+  // Cache for pre-generated virtual accounts to speed up UX
+  const preGeneratedAccounts = useRef({});
 
   // Check if user is logged in
   React.useEffect(() => {
@@ -355,6 +358,44 @@ export default function WalletScreen() {
     }
   }, [showFundModal]);
 
+  // Pre-generate virtual account when amount is entered (Debounced)
+  useEffect(() => {
+    if (!showFundModal || !fundAmount || !user || !user.email) return;
+    
+    const amount = parseFloat(fundAmount);
+    // Don't pre-generate for invalid amounts or if already exists
+    if (isNaN(amount) || amount <= 100 || preGeneratedAccounts.current[amount]) return;
+
+    const timer = setTimeout(async () => {
+        // Re-check existence inside timeout
+        if (preGeneratedAccounts.current[amount]) return;
+        
+        try {
+            logger.log(`🔄 Pre-generating virtual account for amount: ${amount}`);
+            const userName = user?.name || 'Guest';
+            const txRef = `wallet_topup_${user.email}_${Date.now()}`;
+            
+            const account = await createVirtualAccount(user.email, amount, userName, txRef);
+            
+            // Validate account creation
+            if (account && (account.accountNumber || account.account_number)) {
+                // Store in cache
+                preGeneratedAccounts.current[amount] = { 
+                    account, 
+                    txRef,
+                    timestamp: Date.now() 
+                };
+                logger.log(`✅ Pre-generated virtual account for ${amount} cached`);
+            }
+        } catch (e) {
+            // Silent failure for pre-generation
+            logger.warn('⚠️ Pre-generation failed (silent):', e.message);
+        }
+    }, 1000); // 1 second debounce
+    
+    return () => clearTimeout(timer);
+  }, [fundAmount, showFundModal, user]);
+
   // Create virtual account immediately when bank_transfer is selected
   useEffect(() => {
     const createAccountImmediately = async () => {
@@ -385,6 +426,31 @@ export default function WalletScreen() {
       const FLUTTERWAVE_MAX_AMOUNT = 500000;
       if (amount > FLUTTERWAVE_MAX_AMOUNT) {
         setVirtualAccountError(`Amount exceeds ₦${FLUTTERWAVE_MAX_AMOUNT.toLocaleString()} limit. Please use card payment.`);
+        return;
+      }
+
+      // Check cache first
+      if (preGeneratedAccounts.current[amount]) {
+        logger.log(`✅ Using pre-generated virtual account for ${amount}`);
+        const cached = preGeneratedAccounts.current[amount];
+        const account = cached.account;
+        
+        // Handle both camelCase and snake_case formats
+        const accountNumber = account.accountNumber || account.account_number;
+        const bankName = account.bankName || account.bank_name || 'Virtual Bank';
+        const accountName = account.accountName || account.account_name || 'Nigerian Apartments';
+        
+        const accountDetails = {
+          account_number: accountNumber,
+          bank: bankName,
+          account_name: accountName,
+          amount: amount,
+        };
+        
+        setBankAccountDetails(accountDetails);
+        setPaymentReference(cached.txRef);
+        setPaymentStatus('pending');
+        // setShowAccountDetails(true); // Don't show modal, show inline
         return;
       }
 
@@ -423,6 +489,7 @@ export default function WalletScreen() {
           account_number: accountNumber,
           bank: bankName,
           account_name: accountName,
+          amount: amount, // Store amount to persist it even if fundAmount state is cleared
         };
         
         setBankAccountDetails(accountDetails);
@@ -431,8 +498,15 @@ export default function WalletScreen() {
         
         logger.log('✅ Virtual account created immediately:', accountDetails);
         
-        // Automatically show account details modal when account is created
-        setShowAccountDetails(true);
+        // Cache this new account too
+        preGeneratedAccounts.current[amount] = { 
+            account, 
+            txRef,
+            timestamp: Date.now() 
+        };
+        
+        // Don't show account details modal automatically anymore - details are shown inline
+        // setShowAccountDetails(true);
       } catch (error) {
         logger.error('❌ Error creating virtual account immediately:', error);
         setVirtualAccountError(error.message || 'Failed to create virtual account. Please try again.');
@@ -875,9 +949,9 @@ export default function WalletScreen() {
           setShowFundModal(false);
           
           // Show account details modal immediately
-          setShowAccountDetails(true);
+          // setShowAccountDetails(true); // Removed as we show details inline
           
-          logger.log('✅ Showing account details modal with pre-created account');
+          logger.log('✅ Account details handled inline');
         } else if (creatingVirtualAccount) {
           // Account is being created, wait a bit and try again
           logger.log('⏳ Virtual account is being created, please wait...');
@@ -2135,9 +2209,66 @@ export default function WalletScreen() {
                 </View>
               )}
               {paymentMethod === 'bank_transfer' && bankAccountDetails && (
-                <View style={styles.accountReadyContainer}>
-                  <MaterialIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.accountReadyText}>Virtual account ready</Text>
+                <View>
+                    <View style={styles.accountDetailsCard}>
+                      <Text style={styles.accountDetailsTitle}>Your Virtual Account Details</Text>
+                      <Text style={styles.accountDetailsSubtitle}>
+                        Transfer exactly ₦{bankAccountDetails.amount ? bankAccountDetails.amount.toLocaleString() : (fundAmount ? parseFloat(fundAmount).toLocaleString() : '0')} to this account
+                      </Text>
+                      
+                      {/* Account Number - Most Important - Display Prominently */}
+                      <View style={styles.accountDetailRow}>
+                        <Text style={styles.accountDetailLabel}>Account Number:</Text>
+                        <Text style={[styles.accountDetailValue, styles.accountNumberHighlight]} selectable>
+                          {bankAccountDetails.account_number}
+                        </Text>
+                      </View>
+                      <View style={styles.accountDetailRow}>
+                        <Text style={styles.accountDetailLabel}>Bank:</Text>
+                        <Text style={styles.accountDetailValue}>
+                          {bankAccountDetails.bank}
+                        </Text>
+                      </View>
+                      <View style={styles.accountDetailRow}>
+                        <Text style={styles.accountDetailLabel}>Account Name:</Text>
+                        <Text style={styles.accountDetailValue}>
+                          {bankAccountDetails.account_name}
+                        </Text>
+                      </View>
+                      <View style={styles.accountDetailRow}>
+                        <Text style={styles.accountDetailLabel}>Amount:</Text>
+                        <Text style={[styles.accountDetailValue, styles.amountValue]}>
+                          {formatPrice(bankAccountDetails.amount || parseFloat(fundAmount))}
+                        </Text>
+                      </View>
+                    </View>
+    
+                  {paymentReference && (
+                    <View style={styles.referenceCard}>
+                      <Text style={styles.referenceLabel}>Payment Reference:</Text>
+                      <Text style={styles.referenceValue} selectable>
+                        {paymentReference}
+                      </Text>
+                    </View>
+                  )}
+    
+                  <Text style={styles.modalHint}>
+                    Please transfer the exact amount to the account above. Your payment will be verified automatically.
+                  </Text>
+    
+                  {verifyingPayment && (
+                    <View style={styles.verifyingContainer}>
+                      <ActivityIndicator size="small" color="#FFD700" />
+                      <Text style={styles.verifyingText}>Verifying payment...</Text>
+                    </View>
+                  )}
+    
+                  {paymentStatus === 'success' && (
+                    <View style={styles.successContainer}>
+                      <MaterialIcons name="check-circle" size={24} color="#4CAF50" />
+                      <Text style={styles.successText}>Payment verified!</Text>
+                    </View>
+                  )}
                 </View>
               )}
               <TouchableOpacity
@@ -2149,7 +2280,7 @@ export default function WalletScreen() {
                 disabled={loading || creatingVirtualAccount || !paymentMethod || (paymentMethod === 'bank_transfer' && !bankAccountDetails && !virtualAccountError)}
               >
                 <Text style={styles.modalButtonText}>
-                  {loading ? 'Processing...' : creatingVirtualAccount ? 'Creating Account...' : 'Continue to Payment'}
+                  {loading ? 'Processing...' : creatingVirtualAccount ? 'Creating Account...' : (paymentMethod === 'bank_transfer' && bankAccountDetails) ? 'I have sent the money' : 'Continue to Payment'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -2257,7 +2388,7 @@ export default function WalletScreen() {
                 <View style={styles.accountDetailsCard}>
                   <Text style={styles.accountDetailsTitle}>Your Virtual Account Details</Text>
                   <Text style={styles.accountDetailsSubtitle}>
-                    Transfer exactly ₦{fundAmount ? parseFloat(fundAmount).toLocaleString() : '0'} to this account
+                    Transfer exactly ₦{bankAccountDetails.amount ? bankAccountDetails.amount.toLocaleString() : (fundAmount ? parseFloat(fundAmount).toLocaleString() : '0')} to this account
                   </Text>
                   
                   {/* Account Number - Most Important - Display Prominently */}
@@ -2282,7 +2413,7 @@ export default function WalletScreen() {
                   <View style={styles.accountDetailRow}>
                     <Text style={styles.accountDetailLabel}>Amount:</Text>
                     <Text style={[styles.accountDetailValue, styles.amountValue]}>
-                      {formatPrice(parseFloat(fundAmount))}
+                      {formatPrice(bankAccountDetails.amount || parseFloat(fundAmount))}
                     </Text>
                   </View>
                 </View>

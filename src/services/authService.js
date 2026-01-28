@@ -4,6 +4,71 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../config/api';
 
 export const authService = {
+  // Apple Sign In
+  loginWithApple: async (appleCredential) => {
+    try {
+      const { user: appleUserId, email, fullName } = appleCredential;
+      
+      // 1. Determine Email and Name
+      let userEmail = email;
+      let userName = fullName?.givenName ? `${fullName.givenName} ${fullName.familyName || ''}`.trim() : null;
+      
+      // Try to retrieve stored data if missing
+      if (!userEmail) {
+        userEmail = await AsyncStorage.getItem(`apple_email_${appleUserId}`);
+      } else {
+        await AsyncStorage.setItem(`apple_email_${appleUserId}`, userEmail);
+      }
+      
+      if (!userName) {
+        userName = await AsyncStorage.getItem(`apple_name_${appleUserId}`);
+      } else if (userName) {
+        await AsyncStorage.setItem(`apple_name_${appleUserId}`, userName);
+      }
+      
+      if (!userEmail) {
+         // If we still don't have email, we can't login to backend
+         throw new Error('APPLE_EMAIL_MISSING');
+      }
+
+      // 2. Derive Password for Backend Compatibility
+      // Since backend requires password, we generate a consistent one based on Apple User ID
+      const derivedPassword = `Apple_Login_${appleUserId}`; 
+
+      // 3. Try Login first
+      try {
+        const loginResponse = await authService.login(userEmail, derivedPassword);
+        return { ...loginResponse, isNewUser: false };
+      } catch (loginError) {
+        // If login failed, it might be a new user. Try to register.
+        // We only try to register if the error suggests invalid credentials or user not found
+        
+        try {
+           const registerData = {
+             email: userEmail,
+             password: derivedPassword,
+             name: userName || 'Apple User',
+             role: 'User',
+             provider: 'apple',
+             appleUserId: appleUserId
+           };
+           const registerResponse = await authService.register(registerData);
+           return { ...registerResponse, isNewUser: true };
+        } catch (registerError) {
+           // If register failed because "already exists", and login failed...
+           // It means the email is taken by an account with a different password
+           const errorMsg = registerError.message || registerError.toString();
+           if (errorMsg.toLowerCase().includes('exist') || errorMsg.toLowerCase().includes('duplicate')) {
+             throw new Error('Account already exists with this email. Please sign in with your email and password.');
+           }
+           throw registerError;
+        }
+      }
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Login - Requires backend connection
   login: async (email, password) => {
     try {

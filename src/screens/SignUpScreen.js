@@ -403,18 +403,21 @@ export default function SignUpScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      await signIn({
-        id: credential.user,
-        name: credential.fullName?.givenName || 'Apple User',
-        email: credential.email || '',
-        provider: 'apple',
-      });
+      
+      // Use authService to handle backend login/registration
+      const response = await authService.loginWithApple(credential);
+      
+      // Sign in locally with the response from backend
+      await signIn(response.user || response, response.isNewUser);
+      
       navigation.replace('Main');
     } catch (error) {
       if (error.code === 'ERR_CANCELED') {
         // User canceled, do nothing
+      } else if (error.message === 'APPLE_EMAIL_MISSING') {
+         Alert.alert('Email Required', 'We could not retrieve your email from Apple. Please share your email when prompted by Apple, or sign up with email and password.');
       } else {
-        Alert.alert('Error', 'Apple sign up failed. Please try again.');
+        Alert.alert('Error', error.message || 'Apple sign up failed. Please try again.');
       }
     }
   };

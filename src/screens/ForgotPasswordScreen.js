@@ -55,8 +55,12 @@ export default function ForgotPasswordScreen() {
       setSuccess(true);
       Alert.alert(
         'Email Sent',
-        'If an account with that email exists, a password reset link has been sent. Please check your email and follow the instructions.',
+        'If an account with that email exists, a password reset link or code has been sent. Please check your email.',
         [
+          {
+            text: 'Enter Code',
+            onPress: () => navigation.navigate('ResetPassword'),
+          },
           {
             text: 'OK',
             onPress: () => navigation.navigate('SignIn'),
@@ -92,7 +96,7 @@ export default function ForgotPasswordScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>Forgot Password?</Text>
           <Text style={styles.subtitle}>
-            Enter your email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link or code to reset your password.
           </Text>
 
           <View style={styles.inputContainer}>

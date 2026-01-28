@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nigerianapartments.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "displayName": "Nigerian Apartments",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "The app accesses your photos to let you set your profile picture.",

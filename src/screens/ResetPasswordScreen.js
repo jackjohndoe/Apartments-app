@@ -38,9 +38,10 @@ export default function ResetPasswordScreen() {
       setToken(routeToken);
       validateToken(routeToken);
     } else {
+      // Enable manual entry mode if no token provided via link
       setValidating(false);
       setTokenValid(false);
-      setErrorMessage('No reset token provided. Please use the link from your email.');
+      // Don't show error immediately, allow user to enter code
     }
   }, [route.params]);
 
@@ -52,17 +53,23 @@ export default function ResetPasswordScreen() {
     }
 
     setValidating(true);
+    setErrorMessage(''); // Clear previous errors
+    
     try {
       const response = await authService.validateResetToken(tokenValue);
       if (response?.success || response?.data?.success) {
         setTokenValid(true);
+        // If we are validating a manually entered token, ensure it's set in state
+        if (tokenValue !== token) {
+          setToken(tokenValue);
+        }
       } else {
         setTokenValid(false);
-        setErrorMessage('This reset link is invalid or has expired. Please request a new one.');
+        setErrorMessage('This reset code is invalid or has expired. Please try again.');
       }
     } catch (error) {
       setTokenValid(false);
-      const errorMsg = error?.message || error?.data?.message || 'Invalid or expired reset token.';
+      const errorMsg = error?.message || error?.data?.message || 'Invalid or expired reset code.';
       setErrorMessage(errorMsg);
     } finally {
       setValidating(false);
@@ -86,6 +93,14 @@ export default function ResetPasswordScreen() {
       return 'Password must contain at least one special character (@$!%*?&)';
     }
     return null;
+  };
+
+  const handleManualVerify = () => {
+    if (!token || !token.trim()) {
+      setErrorMessage('Please enter the reset code');
+      return;
+    }
+    validateToken(token.trim());
   };
 
   const handleResetPassword = async () => {
@@ -154,7 +169,7 @@ export default function ResetPasswordScreen() {
     return (
       <View style={styles.container}>
         <StatusBar style="dark" />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -163,25 +178,49 @@ export default function ResetPasswordScreen() {
           </TouchableOpacity>
 
           <View style={styles.content}>
-            <MaterialIcons name="error-outline" size={64} color="#FF0000" style={styles.errorIcon} />
-            <Text style={styles.title}>Invalid Reset Link</Text>
+            <Text style={styles.title}>Enter Reset Code</Text>
             <Text style={styles.subtitle}>
-              {errorMessage || 'This reset link is invalid or has expired. Please request a new password reset.'}
+              Please enter the code or token from the password reset email you received.
             </Text>
+
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <MaterialIcons name="error-outline" size={16} color="#FF0000" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="vpn-key" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Reset Code / Token"
+                placeholderTextColor="#999"
+                value={token}
+                onChangeText={setToken}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
 
             <TouchableOpacity
               style={styles.submitButton}
-              onPress={() => navigation.navigate('ForgotPassword')}
+              onPress={handleManualVerify}
+              disabled={validating}
             >
-              <Text style={styles.submitButtonText}>Request New Reset Link</Text>
+              {validating ? (
+                <ActivityIndicator color="#333" />
+              ) : (
+                <Text style={styles.submitButtonText}>Verify Code</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.backToSignIn}
-              onPress={() => navigation.replace('SignIn')}
+              onPress={() => navigation.navigate('ForgotPassword')}
             >
               <Text style={styles.backToSignInText}>
-                Back to <Text style={styles.backToSignInLink}>Sign In</Text>
+                Didn't receive a code? <Text style={styles.backToSignInLink}>Resend</Text>
               </Text>
             </TouchableOpacity>
           </View>

@@ -197,10 +197,17 @@ export default function UploadListingScreen() {
       if (isEdit && listing) {
         // Save directly to API - makes listing available to all users immediately
         savedListing = await hybridApartmentService.updateApartment(listing.id, listingData);
+        
+        const isOffline = savedListing?._offline;
+        const successTitle = isOffline ? 'Updated Locally' : 'Success';
+        const successMessage = isOffline 
+          ? 'Listing updated locally. Changes will be synced when online.'
+          : 'Listing updated successfully!';
+
         if (Platform.OS === 'web') {
-          window.alert('Success\n\nListing updated successfully!');
+          window.alert(`${successTitle}\n\n${successMessage}`);
         } else {
-          Alert.alert('Success', 'Listing updated successfully!');
+          Alert.alert(successTitle, successMessage);
         }
       } else {
         // Save directly to API - makes listing available to all users immediately
@@ -211,8 +218,9 @@ export default function UploadListingScreen() {
         // Check if images were stored by backend
         const imagesStored = savedListing?._meta?.imagesStored;
         const backendIssue = savedListing?._meta?.backendIssue;
+        const isOffline = savedListing?._offline;
         
-        if (backendIssue) {
+        if (backendIssue && !isOffline) {
           // Backend didn't store images - show warning
           const warningMessage = 'Listing created successfully, but images were not stored by the backend.\n\n' +
             'Other users may not see images for this listing. This is a backend configuration issue.\n\n' +
@@ -223,11 +231,16 @@ export default function UploadListingScreen() {
             Alert.alert('Warning', warningMessage);
           }
         } else {
-          // Success - images were stored
+          // Success
+          const successTitle = isOffline ? 'Saved Locally' : 'Success';
+          const successMessage = isOffline 
+            ? 'Listing saved locally. It will be visible to you immediately and synced when online.'
+            : 'Listing created successfully and is now available to all users!';
+
           if (Platform.OS === 'web') {
-            window.alert('Success\n\nListing created successfully and is now available to all users!');
+            window.alert(`${successTitle}\n\n${successMessage}`);
           } else {
-            Alert.alert('Success', 'Listing created successfully and is now available to all users!');
+            Alert.alert(successTitle, successMessage);
           }
         }
       }
@@ -274,7 +287,22 @@ export default function UploadListingScreen() {
       navigation.goBack();
     } catch (error) {
       logger.error('Error saving listing:', error);
-      const errorMessage = error.message || 'Failed to save listing to API. Please check your internet connection and try again.';
+      
+      // Improved error message handling
+      let errorMessage = error.message;
+      
+      // If error message is empty or generic, try to be more specific
+      if (!errorMessage) {
+        errorMessage = 'An unexpected error occurred while saving.';
+      } else if (errorMessage === 'Network Error' || errorMessage.includes('network') || errorMessage.includes('connection')) {
+        errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+      }
+      
+      // Fallback if it's the old default message (shouldn't happen with new logic)
+      if (errorMessage === 'Failed to save listing to API. Please check your internet connection and try again.') {
+        errorMessage = 'Unable to save listing. Please check your connection.';
+      }
+
       if (Platform.OS === 'web') {
         window.alert(`Error\n\n${errorMessage}`);
       } else {

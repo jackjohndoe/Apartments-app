@@ -1262,13 +1262,42 @@ export const hybridApartmentService = {
   createApartment: async (apartmentData) => {
     // Save directly to API - makes listing available to all users immediately
     // Also save locally as fallback so it appears immediately on home screen
-    const apiResult = await apartmentService.createApartment(apartmentData);
+    let apiResult = null;
+    let isOffline = false;
     
-    if (apiResult === null || apiResult === undefined) {
-      throw new Error('Failed to save listing to API. Please check your internet connection and try again.');
+    try {
+      apiResult = await apartmentService.createApartment(apartmentData);
+    } catch (error) {
+      logger.error('Error creating apartment in API:', error);
+      // Fallback to local storage
+      apiResult = null;
     }
     
-    logger.log('✅ Listing saved to API - available to all users:', apiResult.id || apiResult._id);
+    if (apiResult === null || apiResult === undefined) {
+      logger.warn('⚠️ API creation failed or returned null - falling back to local storage');
+      isOffline = true;
+      
+      // Create a local-only result object
+      // Generate a unique ID for local storage
+      const localId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      apiResult = {
+        ...apartmentData,
+        id: localId,
+        _id: localId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _offline: true, // Mark as offline/local-only
+      };
+      
+      // We don't throw error anymore, we proceed to save locally
+      // throw new Error('Failed to save listing to API. Please check your internet connection and try again.');
+    }
+    
+    if (!isOffline) {
+      logger.log('✅ Listing saved to API - available to all users:', apiResult.id || apiResult._id);
+    } else {
+      logger.log('⚠️ Listing saved LOCALLY only - will sync when online:', apiResult.id);
+    }
     
     // CRITICAL: Verify if backend stored images by checking API response
     const apiHasImages = (apiResult.image || 
@@ -1403,15 +1432,44 @@ export const hybridApartmentService = {
   },
 
   updateApartment: async (id, apartmentData) => {
-    // Update directly to API - makes listing available to all iPhone users immediately
-    // No fallback to local storage - API is required for cross-device visibility
-    const apiResult = await apartmentService.updateApartment(id, apartmentData);
+    // Check if it's a local-only listing
+    const idStr = String(id);
+    const isLocalId = idStr.startsWith('local_') || idStr.startsWith('listing_');
     
-    if (apiResult === null || apiResult === undefined) {
-      throw new Error('Failed to update listing to API. Please check your internet connection and try again.');
+    let apiResult = null;
+    let updateError = null;
+    
+    // If it's NOT a local ID, try to update in API first
+    if (!isLocalId) {
+      try {
+        // Update directly to API - makes listing available to all users immediately
+        apiResult = await apartmentService.updateApartment(id, apartmentData);
+        logger.log('✅ Listing updated to API - available to all users:', apiResult.id || id);
+      } catch (error) {
+        logger.error('Error updating apartment in API:', error);
+        updateError = error;
+        // Fallback to local storage update below
+      }
     }
     
-    logger.log('✅ Listing updated to API - available to all iPhone users:', apiResult.id || id);
+    // If API update failed or it's a local ID, update locally
+    if (apiResult === null || isLocalId) {
+      if (!isLocalId) {
+        logger.warn('⚠️ API update failed - updating local copy only');
+      } else {
+        logger.log('ℹ️ Updating local-only listing');
+      }
+      
+      // Create a result object merging the original ID with new data
+      apiResult = {
+        ...apartmentData,
+        id: id,
+        _id: id,
+        updatedAt: new Date().toISOString(),
+        // Keep _offline flag if it exists or if we failed to update API
+        _offline: isLocalId || true, 
+      };
+    }
     
     // Clear API cache so updated listing appears immediately
     try {
@@ -1419,6 +1477,27 @@ export const hybridApartmentService = {
       logger.log('✅ Cleared API cache - updated listing will appear immediately');
     } catch (cacheError) {
       console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
+    }
+    
+    // Also update in local storage explicitly
+    try {
+      const { updateListing } = await import('../utils/listings');
+      // Get current user email for local storage
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const userEmail = user.email;
+        if (userEmail) {
+          await updateListing(id, apiResult, userEmail);
+          logger.log('✅ Listing updated in local storage');
+        }
+      }
+    } catch (localError) {
+      logger.warn('⚠️ Could not update local storage:', localError.message);
+      // If we failed both API and local, then we should probably throw
+      if (apiResult === null && !isLocalId) {
+        throw new Error('Failed to update listing. Please check your connection.');
+      }
     }
     
     return apiResult;
@@ -1684,7 +1763,7 @@ export const hybridWalletService = {
       // Call API with Flutterwave reference - wallet will be updated via webhook
       const result = await walletService.fundWallet(integerAmount, method, paymentReference || null);
       if (result === null || result === undefined) {
-        throw new Error('API returned null - wallet funding failed');
+        throw new Error('Payment service unavailable. Please try again later.');
       }
       
       const balance = result.balance || result.amount || 0;
@@ -1692,6 +1771,10 @@ export const hybridWalletService = {
       return { balance: balance, amount: balance };
     } catch (error) {
       console.error(`❌ Error funding wallet for ${userEmail}:`, error);
+      // Ensure error message is user-friendly
+      if (error.message && (error.message.includes('Network') || error.message.includes('network') || error.message.includes('connection'))) {
+        throw new Error('Network connection failed. Please check your internet connection.');
+      }
       throw error;
     }
   },
