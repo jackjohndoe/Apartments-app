@@ -602,6 +602,57 @@ Thank you for your booking!
 };
 
 /**
+ * Send password reset email
+ * @param {string} email - Recipient email
+ * @param {string} resetCode - Reset code/token
+ */
+export const sendPasswordResetEmail = async (email, resetCode) => {
+  if (!email || !resetCode) {
+    console.warn('Cannot send reset email: Missing email or code');
+    return false;
+  }
+
+  const subject = 'Password Reset Code';
+  const textContent = `Your password reset code is: ${resetCode}`;
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #FFC107; color: #333; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+          .code { font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333; background: #fff; padding: 10px; border: 1px dashed #ccc; display: inline-block; margin: 10px 0; }
+          .footer { text-align: center; padding: 20px; color: #777; font-size: 0.9em; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Password Reset</h1>
+          </div>
+          <div class="content">
+            <p>You requested a password reset. Use the code below to reset your password:</p>
+            <div style="text-align: center;">
+              <div class="code">${resetCode}</div>
+            </div>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>Nigerian Apartments</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  console.log('📧 Attempting to send password reset email via SendGrid...');
+  return await sendEmailViaSendGrid(email, subject, htmlContent, textContent);
+};
+
+/**
  * Send booking notification email to host
  * @param {string} hostEmail - Host's email address
  * @param {object} bookingData - Booking information

@@ -20,6 +20,7 @@ export default function ResetPasswordScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const [token, setToken] = useState('');
+  const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,7 +101,7 @@ export default function ResetPasswordScreen() {
       setErrorMessage('Please enter the reset code');
       return;
     }
-    validateToken(token.trim());
+    validateToken(token.trim(), email);
   };
 
   const handleResetPassword = async () => {
@@ -131,7 +132,7 @@ export default function ResetPasswordScreen() {
 
     setLoading(true);
     try {
-      await authService.resetPassword(token, newPassword);
+      await authService.resetPassword(token, newPassword, email);
       Alert.alert(
         'Success',
         'Your password has been reset successfully. Please sign in with your new password.',

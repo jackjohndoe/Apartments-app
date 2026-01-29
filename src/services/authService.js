@@ -476,6 +476,22 @@ export const authService = {
         email: normalizedEmail,
       });
 
+      // Attempt to send email from client side if backend returns the reset code/token
+      // This is a fallback for when the backend email service is not configured or failing
+      // Client-side fallback disabled to avoid double-sends (backend handles email now)
+      /*
+      const resetToken = response?.resetToken || response?.token || response?.code || 
+                        response?.data?.resetToken || response?.data?.token || response?.data?.code;
+
+      if (resetToken) {
+        console.log('ℹ️ Backend returned reset token, sending email from client...');
+        // We don't await this to avoid delaying the UI response
+        // sendPasswordResetEmail(normalizedEmail, resetToken).catch(err => 
+        //   console.error('Failed to send fallback email:', err)
+        // );
+      }
+      */
+
       return response;
     } catch (error) {
       throw error;
@@ -483,14 +499,19 @@ export const authService = {
   },
 
   // Validate reset token
-  validateResetToken: async (token) => {
+  validateResetToken: async (token, email = null) => {
     try {
       if (!token || !token.trim()) {
         throw new Error('Reset token is required');
       }
 
+      const params = { token };
+      if (email) {
+        params.email = email.trim().toLowerCase();
+      }
+
       const response = await api.get(API_ENDPOINTS.AUTH.VALIDATE_RESET_TOKEN, {
-        params: { token },
+        params,
       });
 
       return response;
@@ -500,7 +521,7 @@ export const authService = {
   },
 
   // Reset password
-  resetPassword: async (token, newPassword) => {
+  resetPassword: async (token, newPassword, email = null) => {
     try {
       if (!token || !token.trim()) {
         throw new Error('Reset token is required');
@@ -510,10 +531,16 @@ export const authService = {
         throw new Error('Password must be at least 8 characters long');
       }
 
-      const response = await api.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      const payload = {
         token: token.trim(),
         newPassword,
-      });
+      };
+
+      if (email) {
+        payload.email = email.trim().toLowerCase();
+      }
+
+      const response = await api.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, payload);
 
       return response;
     } catch (error) {
