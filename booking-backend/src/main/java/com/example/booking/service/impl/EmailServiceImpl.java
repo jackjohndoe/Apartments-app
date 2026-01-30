@@ -1,51 +1,59 @@
 package com.example.booking.service.impl;
 
 import com.example.booking.service.EmailService;
-import com.sendgrid.Method;
-import com.sendgrid.Request;
-import com.sendgrid.Response;
-import com.sendgrid.SendGrid;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
 
-    private final String sendGridApiKey;
+    private final String postmarkApiToken;
     private final String fromEmail;
     private final String fromName;
     private final String resetPasswordUrl;
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
 
     public EmailServiceImpl(
-            @Value("${sendgrid.api-key:}") String apiKey,
-            @Value("${sendgrid.from-email:noreply@bookingapp.com}") String fromEmail,
-            @Value("${sendgrid.from-name:Booking App}") String fromName,
-            @Value("${app.reset-password.url:myapp://reset-password}") String resetPasswordUrl) {
+            @Value("${postmark.api-token:}") String apiToken,
+            @Value("${postmark.from-email:nigerianapartments@apartifyafrica.site}") String fromEmail,
+            @Value("${postmark.from-name:Nigerian Apartments}") String fromName,
+            @Value("${app.reset-password.url:nigerianapartments://reset-password}") String resetPasswordUrl,
+            ObjectMapper objectMapper) {
         
-        this.sendGridApiKey = apiKey;
+        this.postmarkApiToken = apiToken;
         this.fromEmail = fromEmail;
         this.fromName = fromName;
         this.resetPasswordUrl = resetPasswordUrl;
+        this.objectMapper = objectMapper;
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
 
-        if (this.sendGridApiKey == null || this.sendGridApiKey.trim().isEmpty()) {
-            log.warn("⚠️ SendGrid API key is not configured. Email sending will fail.");
+        if (this.postmarkApiToken == null || this.postmarkApiToken.trim().isEmpty()) {
+            log.warn("⚠️ Postmark API token is not configured. Email sending will fail.");
         } else {
-            log.info("✅ EmailServiceImpl initialized with SendGrid - From: {} <{}>", this.fromName, this.fromEmail);
+            log.info("✅ EmailServiceImpl initialized with Postmark - From: {} <{}>", this.fromName, this.fromEmail);
         }
     }
 
     @Override
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         try {
-            if (sendGridApiKey == null || sendGridApiKey.trim().isEmpty()) {
-                throw new IllegalStateException("SendGrid API key is not configured");
+            if (postmarkApiToken == null || postmarkApiToken.trim().isEmpty()) {
+                throw new IllegalStateException("Postmark API token is not configured");
             }
 
             // Create deep link with token
@@ -54,33 +62,39 @@ public class EmailServiceImpl implements EmailService {
 
             String htmlContent = buildPasswordResetEmailHtml(resetLink);
             
-            Email from = new Email(fromEmail, fromName);
-            String subject = "Reset Your Password";
-            Email to = new Email(toEmail);
-            Content content = new Content("text/html", htmlContent);
+            // Build JSON payload
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("From", String.format("%s <%s>", fromName, fromEmail));
+            payload.put("To", toEmail);
+            payload.put("Subject", "Reset Your Password");
+            payload.put("HtmlBody", htmlContent);
+            payload.put("MessageStream", "outbound");
+
+            String jsonBody = objectMapper.writeValueAsString(payload);
             
-            Mail mail = new Mail(from, subject, to, content);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.postmarkapp.com/email"))
+                    .header("Content-Type", "application/json")
+                    .header("X-Postmark-Server-Token", postmarkApiToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
             
-            SendGrid sg = new SendGrid(sendGridApiKey);
-            Request request = new Request();
+            log.info("📧 Sending password reset email via Postmark to: {}", toEmail);
             
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             
-            log.info("📧 Sending password reset email via SendGrid to: {}", toEmail);
-            
-            Response response = sg.api(request);
-            
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                log.info("✅ Password reset email sent successfully via SendGrid. Status: {}", response.getStatusCode());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("✅ Password reset email sent successfully via Postmark. Status: {}", response.statusCode());
             } else {
-                log.error("❌ Failed to send email via SendGrid. Status: {}, Body: {}", response.getStatusCode(), response.getBody());
-                throw new RuntimeException("SendGrid API error: " + response.getStatusCode() + " - " + response.getBody());
+                log.error("❌ Failed to send email via Postmark. Status: {}, Body: {}", response.statusCode(), response.body());
+                throw new RuntimeException("Postmark API error: " + response.statusCode() + " - " + response.body());
             }
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             log.error("❌ Error sending password reset email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException("Failed to send password reset email", e);
         }
     }
