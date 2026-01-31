@@ -10,10 +10,12 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../hooks/useAuth';
 import { addListing, updateListing } from '../utils/listings';
@@ -337,47 +339,58 @@ export default function UploadListingScreen() {
     input.multiple = true;
     input.style.display = 'none';
     
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const files = Array.from(e.target.files || []);
       if (files.length === 0) return;
       
-      // Convert files to data URLs
-      const newImageUris = [];
-      let processedCount = 0;
+      setProcessingImages(true);
       
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const dataUrl = event.target?.result;
-          if (dataUrl) {
-            newImageUris.push(dataUrl);
-            processedCount++;
-            
-            // When all files are processed, update state
-            if (processedCount === files.length) {
-              setSelectedImages(prev => {
-                const existingUris = new Set(prev);
-                const uniqueNewUris = newImageUris.filter(uri => !existingUris.has(uri));
-                return [...prev, ...uniqueNewUris];
-              });
-              
-              Alert.alert('Success', `${files.length} image(s) added successfully!`);
-            }
-          }
-        };
-        reader.onerror = () => {
-          processedCount++;
-          if (processedCount === files.length && newImageUris.length > 0) {
-            setSelectedImages(prev => {
-              const existingUris = new Set(prev);
-              const uniqueNewUris = newImageUris.filter(uri => !existingUris.has(uri));
-              return [...prev, ...uniqueNewUris];
+      try {
+        const processedImages = [];
+        
+        for (const file of files) {
+          try {
+            // Read file to data URL
+            const dataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (event) => resolve(event.target?.result);
+              reader.onerror = (error) => reject(error);
+              reader.readAsDataURL(file);
             });
-            Alert.alert('Success', `${newImageUris.length} image(s) added successfully!`);
+            
+            if (dataUrl) {
+              // Compress image
+              const manipResult = await manipulateAsync(
+                dataUrl,
+                [{ resize: { width: 1080 } }],
+                { compress: 0.7, format: SaveFormat.JPEG, base64: true }
+              );
+              
+              if (manipResult.base64) {
+                processedImages.push(`data:image/jpeg;base64,${manipResult.base64}`);
+              }
+            }
+          } catch (err) {
+            logger.error('Error processing web image:', err);
           }
-        };
-        reader.readAsDataURL(file);
-      });
+        }
+        
+        if (processedImages.length > 0) {
+          setSelectedImages(prev => {
+            const existingUris = new Set(prev);
+            const uniqueNewUris = processedImages.filter(uri => !existingUris.has(uri));
+            return [...prev, ...uniqueNewUris];
+          });
+          Alert.alert('Success', `${processedImages.length} image(s) added successfully!`);
+        } else {
+          Alert.alert('Error', 'Failed to process selected images.');
+        }
+      } catch (error) {
+        logger.error('Error in web image selection:', error);
+        Alert.alert('Error', 'An error occurred while processing images.');
+      } finally {
+        setProcessingImages(false);
+      }
     };
     
     // Trigger file selection
@@ -493,7 +506,7 @@ export default function UploadListingScreen() {
           allowsEditing: true,
           aspect: [4, 3],
           quality: 0.8,
-          base64: true,
+          base64: false,
         });
       } else {
         // For photo library, allow multiple selection
@@ -503,18 +516,38 @@ export default function UploadListingScreen() {
           allowsMultipleSelection: true,
           quality: 0.8,
           selectionLimit: 0, // 0 = unlimited selection
-          base64: true,
+          base64: false,
         });
       }
 
       // Check if user selected images (not canceled)
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const newImageUris = result.assets.map(asset => {
-          if (asset.base64 && typeof asset.base64 === 'string' && asset.base64.trim() !== '') {
-            return `data:image/jpeg;base64,${asset.base64}`;
+        setProcessingImages(true);
+        // Process images with compression
+        const processedImages = [];
+        
+        // Show loading indicator or toast could be good here, but for now we just process
+        for (const asset of result.assets) {
+          try {
+            // Resize to max 1080 width (maintains aspect ratio) and compress to 0.7 quality
+            // This drastically reduces file size while maintaining good mobile quality
+            const manipResult = await manipulateAsync(
+              asset.uri,
+              [{ resize: { width: 1080 } }],
+              { compress: 0.7, format: SaveFormat.JPEG, base64: true }
+            );
+            
+            if (manipResult.base64) {
+              processedImages.push(`data:image/jpeg;base64,${manipResult.base64}`);
+            }
+          } catch (manipError) {
+            logger.error('Error compressing image:', manipError);
+            // If compression fails, try to use original if base64 available (it's not enabled above)
+            // or just skip. We'll log it.
           }
-          return asset.uri;
-        });
+        }
+
+        const newImageUris = processedImages;
         
         // Add new images to existing ones (avoid duplicates)
         setSelectedImages(prev => {
@@ -523,12 +556,17 @@ export default function UploadListingScreen() {
           return [...prev, ...uniqueNewUris];
         });
         
-        const addedCount = result.assets.length;
+        setProcessingImages(false);
+        
+        const addedCount = newImageUris.length;
         if (addedCount > 0) {
           Alert.alert('Success', `${addedCount} image(s) added successfully!`);
+        } else if (result.assets.length > 0) {
+          Alert.alert('Error', 'Failed to process selected images. Please try again.');
         }
       }
     } catch (error) {
+      setProcessingImages(false);
       logger.error('Error picking image:', error);
       Alert.alert('Error', `Failed to select image: ${error.message}. Please try again.`);
     }
@@ -756,17 +794,24 @@ export default function UploadListingScreen() {
 
           {/* Add Image Buttons */}
           <View style={styles.addImageButtonsContainer}>
-            <TouchableOpacity
-              style={styles.addImageButton}
-              onPress={handleSelectImage}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="add-photo-alternate" size={24} color="#FFD700" />
-              <Text style={styles.addImageButtonText}>
-                {selectedImages.length === 0 ? 'Add Images' : 'Add More Images'}
-              </Text>
-            </TouchableOpacity>
-            {selectedImages.length > 0 && (
+            {processingImages ? (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="small" color="#FFD700" />
+                <Text style={styles.processingText}>Processing images...</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addImageButton}
+                onPress={handleSelectImage}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="add-photo-alternate" size={24} color="#FFD700" />
+                <Text style={styles.addImageButtonText}>
+                  {selectedImages.length === 0 ? 'Add Images' : 'Add More Images'}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {selectedImages.length > 0 && !processingImages && (
               <TouchableOpacity
                 style={styles.cameraButton}
                 onPress={handleTakePhoto}
@@ -1136,5 +1181,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     flex: 1,
+  },
+  processingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    gap: 12,
+  },
+  processingText: {
+    fontSize: 16,
+    color: '#666',
   },
 });

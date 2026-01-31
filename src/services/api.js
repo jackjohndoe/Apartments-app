@@ -29,7 +29,7 @@ const getAuthToken = async (skipRefresh = false) => {
       }
       return token;
     } else {
-      logger.warn('No user data found in AsyncStorage - user may not be logged in');
+      logger.log('ℹ️ No user data found in AsyncStorage - continuing as guest/unauthenticated');
     }
     return null;
   } catch (error) {

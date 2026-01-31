@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nigerian Apartments",
     "slug": "nigerian-apartments-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -31,7 +31,8 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFD700"
       },
-      "package": "com.nigerianapartments.app"
+      "package": "com.nigerianapartments.app",
+      "versionCode": 4
     },
     "web": {
       "bundler": "metro"
