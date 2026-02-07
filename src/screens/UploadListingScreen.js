@@ -15,7 +15,6 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../hooks/useAuth';
 import { addListing, updateListing } from '../utils/listings';
@@ -360,15 +359,8 @@ export default function UploadListingScreen() {
             
             if (dataUrl) {
               // Compress image
-              const manipResult = await manipulateAsync(
-                dataUrl,
-                [{ resize: { width: 1080 } }],
-                { compress: 0.7, format: SaveFormat.JPEG, base64: true }
-              );
-              
-              if (manipResult.base64) {
-                processedImages.push(`data:image/jpeg;base64,${manipResult.base64}`);
-              }
+              // Removed compression to fix crash
+              processedImages.push(dataUrl);
             }
           } catch (err) {
             logger.error('Error processing web image:', err);
@@ -506,7 +498,7 @@ export default function UploadListingScreen() {
           allowsEditing: true,
           aspect: [4, 3],
           quality: 0.8,
-          base64: false,
+          base64: true,
         });
       } else {
         // For photo library, allow multiple selection
@@ -516,34 +508,18 @@ export default function UploadListingScreen() {
           allowsMultipleSelection: true,
           quality: 0.8,
           selectionLimit: 0, // 0 = unlimited selection
-          base64: false,
+          base64: true,
         });
       }
 
       // Check if user selected images (not canceled)
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setProcessingImages(true);
-        // Process images with compression
         const processedImages = [];
         
-        // Show loading indicator or toast could be good here, but for now we just process
         for (const asset of result.assets) {
-          try {
-            // Resize to max 1080 width (maintains aspect ratio) and compress to 0.7 quality
-            // This drastically reduces file size while maintaining good mobile quality
-            const manipResult = await manipulateAsync(
-              asset.uri,
-              [{ resize: { width: 1080 } }],
-              { compress: 0.7, format: SaveFormat.JPEG, base64: true }
-            );
-            
-            if (manipResult.base64) {
-              processedImages.push(`data:image/jpeg;base64,${manipResult.base64}`);
-            }
-          } catch (manipError) {
-            logger.error('Error compressing image:', manipError);
-            // If compression fails, try to use original if base64 available (it's not enabled above)
-            // or just skip. We'll log it.
+          if (asset.base64) {
+            processedImages.push(`data:image/jpeg;base64,${asset.base64}`);
           }
         }
 
