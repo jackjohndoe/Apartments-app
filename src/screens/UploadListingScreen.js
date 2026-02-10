@@ -24,18 +24,8 @@ import { getUserProfile } from '../utils/userStorage';
 import { logger } from '../utils/logger';
 import { getApartmentPlaceholder } from '../utils/imagePlaceholder';
 
-// Helper to get ImagePicker - uses require with error handling
-const getImagePicker = () => {
-  // On web, expo-image-picker doesn't work, return null to use file input
-  if (Platform.OS === 'web') {
-    return null;
-  }
-  try {
-    return require('expo-image-picker');
-  } catch (error) {
-    return null;
-  }
-};
+// Import ImagePicker - use require for better Metro compatibility
+const ImagePicker = require('expo-image-picker');
 
 export default function UploadListingScreen() {
   const navigation = useNavigation();
@@ -99,6 +89,23 @@ export default function UploadListingScreen() {
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    // Request media library permission on mount to initialize native module
+    const requestPermissions = async () => {
+      if (Platform.OS !== 'web') {
+        try {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            logger.log('Media library permission not granted');
+          }
+        } catch (error) {
+          logger.error('Error initializing ImagePicker:', error);
+        }
+      }
+    };
+    requestPermissions();
+  }, []);
 
   useEffect(() => {
     if (isEdit && listing) {
@@ -399,7 +406,7 @@ export default function UploadListingScreen() {
         return;
       }
 
-      const ImagePicker = getImagePicker();
+      const ImagePicker = require('expo-image-picker');
       
       if (!ImagePicker) {
         // In production builds, image picker should be available
@@ -484,7 +491,7 @@ export default function UploadListingScreen() {
 
   const pickImage = async (source) => {
     try {
-      const ImagePicker = getImagePicker();
+      const ImagePicker = require('expo-image-picker');
       
       if (!ImagePicker) {
         return;
