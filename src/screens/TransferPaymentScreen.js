@@ -82,7 +82,6 @@ export default function TransferPaymentScreen() {
 
       // Check if user has authentication token
       try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         const userData = await AsyncStorage.getItem('user');
         if (!userData) {
           console.warn('User not authenticated - cannot create virtual account');

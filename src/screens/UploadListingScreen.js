@@ -406,8 +406,6 @@ export default function UploadListingScreen() {
         return;
       }
 
-      const ImagePicker = require('expo-image-picker');
-      
       if (!ImagePicker) {
         // In production builds, image picker should be available
         // If not available, show user-friendly error without development-specific messages
@@ -491,8 +489,6 @@ export default function UploadListingScreen() {
 
   const pickImage = async (source) => {
     try {
-      const ImagePicker = require('expo-image-picker');
-      
       if (!ImagePicker) {
         return;
       }
