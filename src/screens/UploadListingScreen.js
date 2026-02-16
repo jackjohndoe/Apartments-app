@@ -57,6 +57,7 @@ export default function UploadListingScreen() {
     balcony: false,
   });
   const [loading, setLoading] = useState(false);
+  const [processingImages, setProcessingImages] = useState(false);
   const [profileData, setProfileData] = useState(null);
 
   // Load profile data for host information (use current user's profile)
