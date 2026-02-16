@@ -25,7 +25,12 @@ import { logger } from '../utils/logger';
 import { getApartmentPlaceholder } from '../utils/imagePlaceholder';
 
 // Import ImagePicker - use require for better Metro compatibility
-const ImagePicker = require('expo-image-picker');
+let ImagePicker;
+try {
+  ImagePicker = require('expo-image-picker');
+} catch (e) {
+  logger.warn('expo-image-picker not found', e);
+}
 
 export default function UploadListingScreen() {
   const navigation = useNavigation();
@@ -93,7 +98,7 @@ export default function UploadListingScreen() {
   useEffect(() => {
     // Request media library permission on mount to initialize native module
     const requestPermissions = async () => {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== 'web' && ImagePicker) {
         try {
           const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
@@ -462,8 +467,6 @@ export default function UploadListingScreen() {
         return;
       }
 
-      const ImagePicker = getImagePicker();
-      
       if (!ImagePicker) {
         Alert.alert('Image Picker Not Available', 'Camera requires a development build.');
         return;
