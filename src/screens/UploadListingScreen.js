@@ -503,7 +503,7 @@ export default function UploadListingScreen() {
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: true,
           aspect: [4, 3],
-          quality: 0.8,
+          quality: 0.5,
           base64: true,
         });
       } else {
@@ -512,8 +512,8 @@ export default function UploadListingScreen() {
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           allowsEditing: false,
           allowsMultipleSelection: true,
-          quality: 0.8,
-          selectionLimit: 0, // 0 = unlimited selection
+          quality: 0.5,
+          selectionLimit: 5, // Limit to 5 images to prevent memory issues
           base64: true,
         });
       }
@@ -561,6 +561,14 @@ export default function UploadListingScreen() {
     >
       <StatusBar style="dark" />
       
+      {/* Loading Overlay */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#FFD700" />
+          <Text style={styles.loadingText}>Saving your listing...</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -1178,5 +1186,18 @@ const styles = StyleSheet.create({
   processingText: {
     fontSize: 16,
     color: '#666',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
   },
 });
