@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Apartify Africa",
-    "slug": "ApartifyAfrica",
-    "version": "1.0.0",
+    "name": "Nigerian Apartments",
+    "slug": "nigerian-apartments-app",
+    "version": "1.0.6",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
@@ -15,15 +15,15 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "site.apartifyafrica.app",
-      "buildNumber": "1",
-      "displayName": "Apartify Africa",
+      "bundleIdentifier": "com.nigerianapartments.app",
+      "buildNumber": "9",
+      "displayName": "Nigerian Apartments",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "The app accesses your photos to let you set your profile picture.",
         "NSCameraUsageDescription": "The app accesses your camera to let you take a profile picture.",
         "NSLocationWhenInUseUsageDescription": "The app uses your location to show apartments near you.",
         "ITSAppUsesNonExemptEncryption": false,
-        "NSPrivacyPolicyURL": "https://apartifyafrica.site/privacy"
+        "NSPrivacyPolicyURL": "https://nigerianapartments.com/privacy"
       }
     },
     "android": {
@@ -31,12 +31,13 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFD700"
       },
-      "package": "site.apartifyafrica.app"
+      "package": "com.nigerianapartments.app",
+      "versionCode": 9
     },
     "web": {
       "bundler": "metro"
     },
-    "scheme": "apartifyafrica",
+    "scheme": "nigerianapartments",
     "plugins": [
       "expo-dev-client",
       "expo-web-browser",
