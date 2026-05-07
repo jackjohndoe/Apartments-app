@@ -429,7 +429,6 @@ export const apartmentService = {
   // Update apartment listing
   updateApartment: async (id, apartmentData) => {
     try {
-<<<<<<< HEAD
       // CRITICAL: Include images in update request (same as create)
       const backendRequest = {
         title: apartmentData.title || apartmentData.name || 'Untitled Listing',
@@ -484,9 +483,6 @@ export const apartmentService = {
       if (response === null || response === undefined) {
         return null;
       }
-=======
-      const response = await api.put(API_ENDPOINTS.APARTMENTS.UPDATE(id), apartmentData);
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
       return response.data || response;
     } catch (error) {
       throw error;

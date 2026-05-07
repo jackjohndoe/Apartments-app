@@ -20,32 +20,19 @@ export default function HelpSupportScreen() {
   const [message, setMessage] = useState('');
 
   const openEmail = () => {
-<<<<<<< HEAD
     const email = 'support@nigerianapartments.com';
-=======
-    const email = 'support@apartifyafrica.site';
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
-    const subject = encodeURIComponent(subject || 'Support Request');
+    const subjectText = encodeURIComponent(subject || 'Support Request');
     const body = encodeURIComponent(message || '');
-    const url = `mailto:${email}?subject=${subject}&body=${body}`;
+    const url = `mailto:${email}?subject=${subjectText}&body=${body}`;
     
     Linking.openURL(url).catch(err => {
-<<<<<<< HEAD
       Alert.alert('Error', 'Unable to open email client. Please email us at support@nigerianapartments.com');
-=======
-      Alert.alert('Error', 'Unable to open email client. Please email us at support@apartifyafrica.site');
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
     });
   };
 
   const openWebsite = () => {
-<<<<<<< HEAD
     Linking.openURL('https://nigerianapartments.com/support').catch(err => {
       Alert.alert('Error', 'Unable to open website. Please visit nigerianapartments.com');
-=======
-    Linking.openURL('https://apartifyafrica.site/support').catch(err => {
-      Alert.alert('Error', 'Unable to open website. Please visit apartifyafrica.site');
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
     });
   };
   
@@ -141,11 +128,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Email Support</Text>
-<<<<<<< HEAD
               <Text style={styles.contactValue}>support@nigerianapartments.com</Text>
-=======
-              <Text style={styles.contactValue}>support@apartifyafrica.site</Text>
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
               <Text style={styles.contactHint}>Tap to send an email</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />
@@ -177,11 +160,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactLabel}>Visit Our Website</Text>
-<<<<<<< HEAD
               <Text style={styles.contactValue}>nigerianapartments.com/support</Text>
-=======
-              <Text style={styles.contactValue}>apartifyafrica.site/support</Text>
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
               <Text style={styles.contactHint}>Tap to open in browser</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#999" />

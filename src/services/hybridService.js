@@ -664,20 +664,6 @@ export const hybridApartmentService = {
       // Only try API if health check indicates it's available
       if (apiHealth.available) {
         try {
-          // Clear cache if forcing refresh to ensure fresh data from all devices
-          // UPDATED: Do NOT clear cache before fetching - this causes flickering if fetch fails
-          // Instead, we'll overwrite the cache after a successful fetch
-          /* 
-          if (forceRefresh) {
-            try {
-              await AsyncStorage.removeItem('cached_api_apartments');
-              logger.log('🔄 Cleared API cache - fetching fresh listings from all devices');
-            } catch (cacheError) {
-              logger.warn('⚠️ Could not clear cache:', cacheError.message);
-            }
-          }
-          */
-          
           // CRITICAL: Fetch ALL listings from ALL users - no user filtering
           // Pass empty filters object to ensure no user-specific filtering
           const apartments = await apartmentService.getApartments({});
@@ -770,37 +756,7 @@ export const hybridApartmentService = {
         }
       }
       
-      // Log raw API response structure for first listing to understand image fields
-      if (apiApartments && apiApartments.length > 0) {
-        const firstListing = apiApartments[0];
-        logger.log('🔍 Raw API listing structure (first listing):', {
-          id: firstListing.id || firstListing._id,
-          title: firstListing.title,
-          allKeys: Object.keys(firstListing),
-          imageFields: {
-            hasImage: !!firstListing.image,
-            hasImages: !!(firstListing.images && Array.isArray(firstListing.images)),
-            hasPhoto: !!firstListing.photo,
-            hasPhotos: !!(firstListing.photos && Array.isArray(firstListing.photos)),
-            hasImageUrl: !!firstListing.imageUrl,
-            hasImageUrls: !!(firstListing.imageUrls && Array.isArray(firstListing.imageUrls)),
-            photosLength: firstListing.photos?.length || 0,
-            imagesLength: firstListing.images?.length || 0,
-          },
-          // Log actual values of image-related fields (first 100 chars)
-          imageValue: firstListing.image ? String(firstListing.image).substring(0, 100) : null,
-          photosSample: firstListing.photos && Array.isArray(firstListing.photos) && firstListing.photos.length > 0
-            ? firstListing.photos.slice(0, 2).map(p => {
-                if (typeof p === 'string') return p.substring(0, 100);
-                if (typeof p === 'object' && p !== null) return { keys: Object.keys(p), sample: JSON.stringify(p).substring(0, 200) };
-                return String(p).substring(0, 100);
-              })
-            : null,
-        });
-      }
-      
       // Create a map of RAW local listings by ID for image enhancement (before formatting)
-      // This allows us to check original image data before formatting might set placeholders
       const rawLocalListingsMap = new Map();
       localOnlyListings.forEach(listing => {
         const listingId = String(listing.id || listing._id || '');
@@ -808,200 +764,68 @@ export const hybridApartmentService = {
           rawLocalListingsMap.set(listingId, listing);
         }
       });
-      logger.log('🔄 Created raw local listings map with', rawLocalListingsMap.size, 'entries for image enhancement');
       
-      // Format local-only listings (needed for merging later)
+      // Format local-only listings
       const formattedLocalListings = localOnlyListings && localOnlyListings.length > 0
         ? formatListingsForExplore(localOnlyListings)
         : [];
-      logger.log('🔄 getAllApartmentsForExplore - Formatted local listings:', formattedLocalListings.length);
       
-      // Also create a map of formatted local listings for quick lookup
-      const formattedLocalListingsMap = new Map();
-      formattedLocalListings.forEach(listing => {
-        const listingId = String(listing.id || listing._id || '');
-        if (listingId && listingId !== 'undefined' && listingId !== 'null' && listingId !== '') {
-          formattedLocalListingsMap.set(listingId, listing);
-        }
-      });
-      
-      // Format API apartments (these are from ALL devices - cross-platform)
-      // CRITICAL: Enhance API listings with images from local listings if they're missing images
+      // Enhance API listings with images from local listings if they're missing images
       let formattedApiApartments = apiApartments && apiApartments.length > 0
         ? formatListingsForExplore(apiApartments)
         : [];
       
-      // Enhance API listings with images from local listings if they're missing images
-      let enhancedCount = 0;
       formattedApiApartments = formattedApiApartments.map(apiListing => {
         const apiId = String(apiListing.id || apiListing._id || '');
         const apiHasImage = apiListing.image && apiListing.image !== DEFAULT_PLACEHOLDER;
         
-        // If API listing is missing images, try to get them from local listing
-        if (!apiHasImage) {
-          logger.log('🔍 API listing missing image, checking local storage for ID:', apiId, apiListing.title || 'Untitled');
-          logger.log('  Local listings map has', rawLocalListingsMap.size, 'entries');
-          if (rawLocalListingsMap.size > 0) {
-            const mapKeys = Array.from(rawLocalListingsMap.keys());
-            logger.log('  Local listing IDs in map:', mapKeys.slice(0, 5));
-          }
-          logger.log('  Checking if ID exists in map:', rawLocalListingsMap.has(apiId));
-          if (!rawLocalListingsMap.has(apiId)) {
-            // Try to find by different ID formats
-            const allMapKeys = Array.from(rawLocalListingsMap.keys());
-            const matchingKey = allMapKeys.find(key => {
-              return String(key) === String(apiId) || 
-                     String(key) === String(apiListing._id) ||
-                     String(apiId) === String(key);
-            });
-            if (matchingKey) {
-              logger.log('  Found matching ID with different format:', matchingKey, 'vs', apiId);
-            } else {
-              logger.warn('  No matching local listing found for ID:', apiId);
-              // Fallback: try fuzzy title match to pick local images when IDs differ
-              const byTitle = findLocalListingByTitle(rawLocalListingsMap, apiListing);
-              if (byTitle) {
-                logger.log('  ✅ Found local listing by title match:', byTitle.title || 'Untitled', 'for API ID:', apiId);
-              }
-            }
-          }
-        }
-        
-        // Try to find local listing by ID (with fallback for different formats)
         let rawLocalListing = null;
         if (rawLocalListingsMap.has(apiId)) {
           rawLocalListing = rawLocalListingsMap.get(apiId);
         } else {
-          // Try alternative ID formats
-          const apiIdNum = parseInt(apiId);
-          const apiIdStr = String(apiId);
-          const allMapKeys = Array.from(rawLocalListingsMap.keys());
-          const matchingKey = allMapKeys.find(key => {
-            const keyStr = String(key);
-            const keyNum = parseInt(key);
-            return keyStr === apiIdStr || 
-                   keyStr === String(apiListing._id) ||
-                   (isNaN(apiIdNum) === false && keyNum === apiIdNum) ||
-                   key === apiId ||
-                   key === apiListing._id;
-          });
-          if (matchingKey) {
-            rawLocalListing = rawLocalListingsMap.get(matchingKey);
-            logger.log('  ✅ Found local listing with alternative ID format:', matchingKey, 'for API ID:', apiId);
-          }
-          
           // Fallback: try to find local listing by title if still not found
-          if (!rawLocalListing) {
-            const byTitle = findLocalListingByTitle(rawLocalListingsMap, apiListing);
-            if (byTitle) {
-              rawLocalListing = byTitle;
-              logger.log('  ✅ Using local listing found by title to enhance images for API ID:', apiId);
-            }
-          }
+          const byTitle = findLocalListingByTitle(rawLocalListingsMap, apiListing);
+          if (byTitle) rawLocalListing = byTitle;
         }
         
         if (!apiHasImage && rawLocalListing) {
-          logger.log('  ✅ Found local listing, checking for images...');
-          
-          // Extract images from raw local listing (check all possible fields)
           let localImage = null;
           let localImages = [];
           
-          // Check main image field
           if (isValidImageUri(rawLocalListing.image)) {
             localImage = resolveImageUri(rawLocalListing.image);
             localImages.push(localImage);
-            logger.log('  ✅ Found image in rawLocalListing.image');
-          } else {
-            logger.log('  ⚠️ rawLocalListing.image is not valid:', rawLocalListing.image ? rawLocalListing.image.substring(0, 50) : 'null/undefined');
           }
           
-          // Check images array
           if (rawLocalListing.images && Array.isArray(rawLocalListing.images) && rawLocalListing.images.length > 0) {
-            logger.log('  Found images array with', rawLocalListing.images.length, 'items');
             const validImages = rawLocalListing.images.filter(img => isValidImageUri(img)).map(resolveImageUri);
             if (validImages.length > 0) {
               if (!localImage) localImage = validImages[0];
               localImages.push(...validImages);
-              logger.log('  ✅ Found', validImages.length, 'valid image(s) in images array');
-            } else {
-              logger.warn('  ⚠️ images array exists but no valid images found');
-            }
-          } else {
-            logger.log('  ⚠️ No images array or empty:', rawLocalListing.images ? 'exists but empty' : 'does not exist');
-          }
-          
-          // Check photos array
-          if (rawLocalListing.photos && Array.isArray(rawLocalListing.photos) && rawLocalListing.photos.length > 0) {
-            const extractedImages = extractImagesFromPhotosArray(rawLocalListing.photos).map(resolveImageUri);
-            if (extractedImages.length > 0) {
-              if (!localImage) localImage = extractedImages[0];
-              localImages.push(...extractedImages);
             }
           }
           
-          // Check other image fields
-          if (!localImage) {
-            if (isValidImageUri(rawLocalListing.photo)) {
-              localImage = resolveImageUri(rawLocalListing.photo);
-              localImages.push(localImage);
-            } else if (isValidImageUri(rawLocalListing.imageUrl)) {
-              localImage = resolveImageUri(rawLocalListing.imageUrl);
-              localImages.push(localImage);
-            } else if (rawLocalListing.imageUrls && Array.isArray(rawLocalListing.imageUrls) && rawLocalListing.imageUrls.length > 0) {
-              const validImages = rawLocalListing.imageUrls.filter(img => isValidImageUri(img)).map(resolveImageUri);
-              if (validImages.length > 0) {
-                localImage = validImages[0];
-                localImages.push(...validImages);
-              }
-            }
-          }
-          
-          // If we found images in local listing, use them
           if (localImage) {
-            // Remove duplicates from images array
             const uniqueImages = [...new Set(localImages)];
-            enhancedCount++;
-            logger.log('✅ Enhanced API listing with image from local:', apiId, apiListing.title || 'Untitled', 'Image:', localImage.substring(0, 50));
-            logger.log('  Found', uniqueImages.length, 'image(s) in local listing');
-            // Use local listing's image and images array
             return {
               ...apiListing,
               image: localImage,
               images: uniqueImages,
             };
-          } else {
-            logger.warn('⚠️ Local listing found but no valid images:', apiId, rawLocalListing.title || 'Untitled');
-            // Log what fields the local listing has
-            logger.warn('  Local listing keys:', Object.keys(rawLocalListing));
-            logger.warn('  Local listing image fields:', {
-              hasImage: !!rawLocalListing.image,
-              hasImages: !!(rawLocalListing.images && Array.isArray(rawLocalListing.images)),
-              hasPhotos: !!(rawLocalListing.photos && Array.isArray(rawLocalListing.photos)),
-              imagesLength: rawLocalListing.images?.length || 0,
-              photosLength: rawLocalListing.photos?.length || 0,
-            });
           }
         }
         
         return apiListing;
       });
       
-      if (enhancedCount > 0) {
-        logger.log('✅ Enhanced', enhancedCount, 'API listing(s) with images from local storage');
-      }
-      
-      // Get default apartments (these are the hardcoded ones in ExploreScreen)
-      // ALWAYS include these as base listings for new users
+      // Get default apartments
       const defaultApartments = getDefaultApartments();
       
       // Combine all: API apartments first (cross-platform), then local-only listings, then defaults
-      // Deduplication: prefer API version if both exist
-      // CRITICAL: Normalize all IDs to strings for consistent comparison
       const allIds = new Set();
       const combined = [];
       
-      // PRIORITY 1: Add API apartments first (these are from ALL devices - cross-platform)
+      // PRIORITY 1: Add API apartments first
       formattedApiApartments.forEach(apt => {
         const id = String(apt.id || apt._id || '');
         if (!allIds.has(id)) {
@@ -1011,7 +835,6 @@ export const hybridApartmentService = {
       });
       
       // PRIORITY 2: Add local-only listings (pending sync)
-      // Only if not already added from API
       formattedLocalListings.forEach(apt => {
         const id = String(apt.id || apt._id || '');
         if (!allIds.has(id)) {
@@ -1020,8 +843,7 @@ export const hybridApartmentService = {
         }
       });
       
-      // PRIORITY 3: Add default apartments (if requested/needed)
-      // Note: We're filtering defaults to avoid duplicates if they somehow got into API/local
+      // PRIORITY 3: Add default apartments
       defaultApartments.forEach(apt => {
         const id = String(apt.id || apt._id || '');
         if (!allIds.has(id)) {
@@ -1030,7 +852,6 @@ export const hybridApartmentService = {
         }
       });
       
-      logger.log('✅ Final combined listings:', combined.length);
       return combined;
     } catch (error) {
       logger.error('Error in getAllApartmentsForExplore:', error);
@@ -1048,7 +869,7 @@ export const hybridApartmentService = {
       } catch (fallbackError) {
         logger.error('Error in fallback:', fallbackError);
       }
-<<<<<<< HEAD
+      return [];
     }
   },
 
@@ -1099,9 +920,6 @@ export const hybridApartmentService = {
         updatedAt: new Date().toISOString(),
         _offline: true, // Mark as offline/local-only
       };
-      
-      // We don't throw error anymore, we proceed to save locally
-      // throw new Error('Failed to save listing to API. Please check your internet connection and try again.');
     }
     
     if (!isOffline) {
@@ -1117,195 +935,101 @@ export const hybridApartmentService = {
     const weHaveImages = (apartmentData.image || 
                          (apartmentData.images && Array.isArray(apartmentData.images) && apartmentData.images.length > 0));
     
-    logger.log('🔍 Image storage verification:', {
-      weSentImages: weHaveImages,
-      apiReturnedImages: apiHasImages,
-      sentImageCount: apartmentData.images?.length || (apartmentData.image ? 1 : 0),
-      apiImageCount: apiResult.images?.length || apiResult.photos?.length || (apiResult.image ? 1 : 0),
-    });
-    
     if (!apiHasImages && weHaveImages) {
       logger.error('❌ CRITICAL: Backend did not store images!');
-      logger.error('  We sent images but API response has no images');
-      logger.error('  This means other users will NOT see images for this listing');
-      logger.error('  BACKEND ISSUE: The API endpoint is not accepting/storing image fields');
-      logger.error('  SOLUTION REQUIRED: Backend needs to be configured to accept image fields in the request');
       logger.warn('⚠️ Attempting to update listing with images...');
       try {
         const updatedResult = await apartmentService.updateApartment(apiResult.id || apiResult._id, apartmentData);
         if (updatedResult) {
-          // Check if update worked
           const updateHasImages = (updatedResult.image || 
                                   (updatedResult.images && Array.isArray(updatedResult.images) && updatedResult.images.length > 0) ||
                                   (updatedResult.photos && Array.isArray(updatedResult.photos) && updatedResult.photos.length > 0));
           if (updateHasImages) {
             logger.log('✅ Update successful - images now stored in API');
             Object.assign(apiResult, updatedResult);
-          } else {
-            logger.error('❌ Update failed - backend still not storing images');
-            logger.error('  BACKEND CONFIGURATION REQUIRED:');
-            logger.error('    1. Backend DTO must accept image fields (image, images, photos, imageUrl, imageUrls)');
-            logger.error('    2. Backend must persist these fields to the database');
-            logger.error('    3. Backend must return these fields in API responses');
-            logger.error('  Current workaround: Images are stored locally, visible only to the current user');
           }
-        } else {
-          logger.error('❌ Update request returned null - backend may have rejected the update');
         }
       } catch (updateError) {
         logger.error('❌ Failed to update listing with images:', updateError);
-        logger.error('  Error details:', updateError.message || updateError);
       }
-    } else if (apiHasImages && weHaveImages) {
-      logger.log('✅ Backend successfully stored images - other users will see them');
     }
     
     // CRITICAL: Also save to local storage so it appears immediately on ExploreScreen
-    // This ensures the listing shows up right away even if API cache hasn't refreshed
     try {
       const { addListing } = await import('../utils/listings');
-      // Get current user email for local storage
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
         const user = JSON.parse(userData);
         const userEmail = user.email;
         if (userEmail) {
-          // Save to local storage with API result data (includes API-generated ID)
-          // CRITICAL: Normalize ID to ensure consistent comparison
           const apiListingId = apiResult.id || apiResult._id || apartmentData.id;
           const listingToSave = {
             ...apartmentData,
-            id: String(apiListingId), // Normalize to string for consistent comparison
+            id: String(apiListingId),
             _id: String(apiResult._id || apiResult.id || apartmentData._id || apiListingId),
             createdAt: apiResult.createdAt || new Date().toISOString(),
           };
-          logger.log('💾 Saving listing to local storage:', {
-            id: listingToSave.id,
-            title: listingToSave.title || 'Untitled',
-            userEmail: userEmail,
-            hasImage: !!listingToSave.image,
-            imagesCount: listingToSave.images?.length || 0,
-          });
           await addListing(listingToSave, userEmail);
-          logger.log('✅ Listing also saved to local storage - will appear immediately on ExploreScreen');
-          
-          // Verify it was saved by reading it back
-          try {
-            const { getListings } = await import('../utils/listings');
-            const savedListings = await getListings();
-            const savedListing = savedListings.find(l => String(l.id || l._id || '') === String(apiListingId));
-            if (savedListing) {
-              logger.log('✅ Verified listing in local storage:', savedListing.id, savedListing.title || 'Untitled');
-            } else {
-              logger.warn('⚠️ Listing not found in local storage after save - may need refresh');
-            }
-          } catch (verifyError) {
-            logger.warn('⚠️ Could not verify listing save:', verifyError.message);
-          }
         }
       }
     } catch (localError) {
       logger.warn('⚠️ Could not save to local storage (non-fatal):', localError.message);
-      // Non-fatal - API save succeeded, listing will appear when API cache refreshes
     }
     
-    // Clear API cache so new listing appears immediately at top of ExploreScreen
+    // Clear API cache so new listing appears immediately
     try {
       await AsyncStorage.removeItem('cached_api_apartments');
-      logger.log('✅ Cleared API cache - new listing will appear at top of ExploreScreen immediately');
     } catch (cacheError) {
       logger.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
     }
     
-    // Ensure the listing has a createdAt timestamp for proper sorting (newest first)
     if (apiResult && !apiResult.createdAt) {
       apiResult.createdAt = new Date().toISOString();
-    }
-    
-    // Add metadata about image storage status (for UI warnings)
-    // Check final status after all update attempts
-    const finalApiHasImages = (apiResult.image || 
-                               (apiResult.images && Array.isArray(apiResult.images) && apiResult.images.length > 0) ||
-                               (apiResult.photos && Array.isArray(apiResult.photos) && apiResult.photos.length > 0));
-    const finalWeHaveImages = (apartmentData.image || 
-                               (apartmentData.images && Array.isArray(apartmentData.images) && apartmentData.images.length > 0));
-    
-    // Add metadata property (won't interfere with existing code)
-    if (apiResult) {
-      apiResult._meta = {
-        imagesStored: finalApiHasImages,
-        imagesSent: finalWeHaveImages,
-        backendIssue: finalWeHaveImages && !finalApiHasImages,
-      };
     }
     
     return apiResult;
   },
 
   updateApartment: async (id, apartmentData) => {
-    // Check if it's a local-only listing
     const idStr = String(id);
     const isLocalId = idStr.startsWith('local_') || idStr.startsWith('listing_');
     
     let apiResult = null;
-    let updateError = null;
     
-    // If it's NOT a local ID, try to update in API first
     if (!isLocalId) {
       try {
-        // Update directly to API - makes listing available to all users immediately
         apiResult = await apartmentService.updateApartment(id, apartmentData);
-        logger.log('✅ Listing updated to API - available to all users:', apiResult.id || id);
       } catch (error) {
         logger.error('Error updating apartment in API:', error);
-        updateError = error;
-        // Fallback to local storage update below
       }
     }
     
-    // If API update failed or it's a local ID, update locally
     if (apiResult === null || isLocalId) {
-      if (!isLocalId) {
-        logger.warn('⚠️ API update failed - updating local copy only');
-      } else {
-        logger.log('ℹ️ Updating local-only listing');
-      }
-      
-      // Create a result object merging the original ID with new data
       apiResult = {
         ...apartmentData,
         id: id,
         _id: id,
         updatedAt: new Date().toISOString(),
-        // Keep _offline flag if it exists or if we failed to update API
         _offline: isLocalId || true, 
       };
     }
     
-    // Clear API cache so updated listing appears immediately
     try {
       await AsyncStorage.removeItem('cached_api_apartments');
-      logger.log('✅ Cleared API cache - updated listing will appear immediately');
-    } catch (cacheError) {
-      console.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
-    }
+    } catch (cacheError) {}
     
-    // Also update in local storage explicitly
     try {
       const { updateListing } = await import('../utils/listings');
-      // Get current user email for local storage
       const userData = await AsyncStorage.getItem('user');
       if (userData) {
         const user = JSON.parse(userData);
         const userEmail = user.email;
         if (userEmail) {
           await updateListing(id, apiResult, userEmail);
-          logger.log('✅ Listing updated in local storage');
         }
       }
     } catch (localError) {
       logger.warn('⚠️ Could not update local storage:', localError.message);
-      // If we failed both API and local, then we should probably throw
       if (apiResult === null && !isLocalId) {
         throw new Error('Failed to update listing. Please check your connection.');
       }
@@ -1317,13 +1041,11 @@ export const hybridApartmentService = {
   getMyApartments: async () => {
     try {
       const result = await apartmentService.getMyApartments();
-      // If API returns null, use fallback
       if (result === null || result === undefined) {
         throw new Error('API returned null');
       }
       return Array.isArray(result) ? result : (result.data || []);
     } catch (error) {
-      // Silent fallback - get current user's listings from global storage
       const { getMyListings } = await import('../utils/listings');
       return await getMyListings();
     }
@@ -1331,82 +1053,44 @@ export const hybridApartmentService = {
 
   deleteApartment: async (listingId) => {
     try {
-      // Get current user email for local deletion
-      const getCurrentUserEmail = async () => {
-        try {
-          const userData = await AsyncStorage.getItem('user');
-          if (userData) {
-            const user = JSON.parse(userData);
-            return user.email || null;
-          }
-        } catch (error) {
-          logger.error('Error getting current user email:', error);
-        }
-        return null;
-      };
+      const userData = await AsyncStorage.getItem('user');
+      const userEmail = userData ? JSON.parse(userData).email : null;
       
-      const userEmail = await getCurrentUserEmail();
-      
-      // Check if listing is in sync queue (local-only listing)
       const pendingSync = await getPendingSyncListings();
       const isPendingSync = pendingSync.some(p => p.localId === listingId);
       
-      // If it's a pending sync listing, remove from queue first
       if (isPendingSync) {
         try {
           await removeFromSyncQueue(listingId);
-          logger.log('✅ Removed listing from sync queue:', listingId);
-        } catch (queueError) {
-          logger.warn('Could not remove from sync queue:', queueError);
-        }
+        } catch (queueError) {}
       }
       
-      // Try to delete from API
-      // Check if this listing exists in API by checking if ID is numeric or if it's in cached API listings
-      // Local listings have IDs like "listing_1234567890_abc123"
       const listingIdStr = String(listingId);
       const isLocalId = listingIdStr.startsWith('listing_');
       const isNumericId = !isNaN(Number(listingId)) && Number(listingId) > 0;
       
-      // Try API delete if it's a numeric ID (likely from API) or if it's not a local ID
       if (isNumericId || (!isLocalId && listingIdStr.length < 50)) {
         try {
-          // Convert to number if it's numeric (API expects numeric ID)
           const apiId = isNumericId ? Number(listingId) : listingId;
           await apartmentService.deleteApartment(apiId);
-          logger.log('✅ Deleted listing from API:', apiId);
         } catch (apiError) {
-          // Check if it's a 404 (listing doesn't exist in API) or other error
-          if (apiError.response?.status === 404) {
-            logger.log('ℹ️ Listing not found in API (may be local-only), continuing with local deletion');
-          } else {
+          if (apiError.response?.status !== 404) {
             logger.warn('⚠️ API delete failed:', apiError.message);
-            // Continue with local deletion - don't fail completely
           }
         }
-      } else {
-        logger.log('ℹ️ Listing appears to be local-only (ID format:', listingIdStr.substring(0, 20) + '...), skipping API delete');
       }
       
-      // Always delete from local storage
       try {
         await deleteListing(listingId, userEmail);
-        logger.log('✅ Deleted listing from local storage:', listingId);
       } catch (localError) {
-        // If local deletion fails and it's not an API listing, throw error
         if (!isNumericId && (isLocalId || listingIdStr.length >= 50)) {
           throw localError;
         }
-        logger.warn('⚠️ Local deletion failed, but API deletion may have succeeded:', localError);
       }
       
-      // Clear API cache so deleted listing disappears from ExploreScreen immediately
       try {
         await AsyncStorage.removeItem('cached_api_apartments');
-        logger.log('✅ Cleared API cache - deleted listing will disappear from ExploreScreen');
-      } catch (cacheError) {
-        logger.warn('⚠️ Could not clear API cache (non-fatal):', cacheError.message);
-      }
+      } catch (cacheError) {}
       
       return { success: true };
     } catch (error) {
@@ -1415,14 +1099,10 @@ export const hybridApartmentService = {
     }
   },
 
-  // Diagnostic function to check if backend is storing images
-  // Call this from console: hybridApartmentService.diagnoseImageStorage()
   diagnoseImageStorage: async () => {
     try {
-      logger.log('🔍 DIAGNOSTIC: Checking backend image storage via hybrid service...');
       return await apartmentService.diagnoseImageStorage();
     } catch (error) {
-      logger.error('❌ DIAGNOSTIC ERROR in hybrid service:', error);
       return {
         success: false,
         error: error.message || 'Unknown error',
@@ -1437,15 +1117,12 @@ export const hybridBookingService = {
   createBooking: async (userEmail, bookingData) => {
     try {
       const result = await bookingService.createBooking(bookingData);
-      // If API returns null, use local storage
       if (result === null || result === undefined) {
         throw new Error('API returned null');
       }
-      // Also save locally for offline access
       await addBooking(userEmail, bookingData);
       return result;
     } catch (error) {
-      // Silent fallback - FRONTEND PRESERVED
       return await addBooking(userEmail, bookingData);
     }
   },
@@ -1453,105 +1130,55 @@ export const hybridBookingService = {
   getBookings: async (userEmail) => {
     try {
       const result = await bookingService.getMyBookings();
-      // If API returns null, use fallback
       if (result === null || result === undefined) {
         throw new Error('API returned null');
       }
       return Array.isArray(result) ? result : (result.data || []);
     } catch (error) {
-      // Silent fallback - FRONTEND PRESERVED
       return await getBookings(userEmail);
     }
   },
 };
 
-// Hybrid Wallet Service - API Only (Flutterwave Integration)
+// Hybrid Wallet Service
 export const hybridWalletService = {
   getBalance: async (userEmail) => {
     try {
-      if (!userEmail) {
-        console.warn('getBalance: No user email provided');
-        return 0;
-      }
-      
+      if (!userEmail) return 0;
       const normalizedEmail = userEmail.toLowerCase().trim();
-      
-      // Try API balance first
       let apiBalance = 0;
       try {
         const result = await walletService.getBalance();
         if (result !== null && result !== undefined) {
-          // Handle different response formats
-          let balance = null;
-          
-          if (typeof result === 'number') {
-            balance = result;
-          } else if (result && typeof result === 'object') {
-            balance = result.balance !== undefined ? result.balance : 
-                      result.amount !== undefined ? result.amount : 
-                      result.value !== undefined ? result.value : null;
-            
-            if (balance !== null && typeof balance === 'object') {
-              balance = balance.value !== undefined ? balance.value : 
-                       balance.amount !== undefined ? balance.amount : 
-                       balance.balance !== undefined ? balance.balance : null;
-            }
-          } else if (typeof result === 'string') {
-            balance = parseFloat(result);
-          }
-          
-          if (balance !== null && balance !== undefined) {
+          let balance = (typeof result === 'number') ? result : 
+                        (result && typeof result === 'object') ? (result.balance ?? result.amount ?? result.value ?? null) : null;
+          if (balance !== null) {
             const parsed = parseFloat(balance);
-            if (!isNaN(parsed) && parsed >= 0) {
-              apiBalance = Math.floor(parsed);
-            }
+            if (!isNaN(parsed) && parsed >= 0) apiBalance = Math.floor(parsed);
           }
         }
-      } catch (apiError) {
-        console.warn('⚠️ Error fetching API balance (non-fatal):', apiError.message);
-      }
+      } catch (apiError) {}
       
-      // If API balance is 0 or null, try calculating from transactions
-      // But prefer API balance if it's non-zero (even if transactions aren't returned)
-      if (apiBalance === 0 || apiBalance === null) {
+      if (apiBalance === 0) {
         try {
           const { getTransactions } = await import('../utils/wallet');
           const { calculateBalanceFromTransactions } = await import('../services/transactionSyncService');
           const transactions = await getTransactions(normalizedEmail);
           const calculatedBalance = calculateBalanceFromTransactions(transactions);
-          
-          if (calculatedBalance > 0) {
-            console.log(`✅ Calculated balance from transactions: ₦${calculatedBalance.toLocaleString()} (API returned 0)`);
-            return calculatedBalance;
-          }
-        } catch (calcError) {
-          console.warn('⚠️ Error calculating balance from transactions:', calcError.message);
-        }
-      } else {
-        // API balance is non-zero - use it even if we don't have transactions
-        // This handles cases where transactions exist but aren't being returned
-        console.log(`✅ Using API balance: ₦${apiBalance.toLocaleString()} (transactions may not be returned yet)`);
+          if (calculatedBalance > 0) return calculatedBalance;
+        } catch (calcError) {}
       }
       
-      // Fallback to local balance if API balance is still 0
       if (apiBalance === 0) {
         try {
           const { getWalletBalance } = await import('../utils/wallet');
           const localBalance = await getWalletBalance(normalizedEmail);
-          if (localBalance > 0) {
-            console.log(`✅ Using local balance: ₦${localBalance.toLocaleString()} (API returned 0)`);
-            return localBalance;
-          }
-        } catch (localError) {
-          console.warn('⚠️ Error fetching local balance:', localError.message);
-        }
+          if (localBalance > 0) return localBalance;
+        } catch (localError) {}
       }
       
-      console.log(`✅ Wallet balance: ₦${apiBalance.toLocaleString()} for ${userEmail}`);
       return apiBalance;
     } catch (error) {
-      console.error('Error getting wallet balance:', error);
-      // Final fallback to local balance
       try {
         const { getWalletBalance } = await import('../utils/wallet');
         return await getWalletBalance(userEmail) || 0;
@@ -1563,28 +1190,15 @@ export const hybridWalletService = {
 
   fundWallet: async (userEmail, amount, method = 'bank_transfer', senderName = null, senderEmail = null, paymentReference = null) => {
     try {
-      if (!userEmail) {
-        throw new Error('User email is required for wallet funding');
-      }
       const normalizedEmail = userEmail.toLowerCase().trim();
-      
       const integerAmount = Math.floor(parseFloat(amount));
-      console.log(`💰 Funding wallet via Flutterwave: ${normalizedEmail}, Amount: ₦${integerAmount.toLocaleString()}, Method: ${method}, Reference: ${paymentReference || 'N/A'}`);
-      
-      // Call API with Flutterwave reference - wallet will be updated via webhook
       const result = await walletService.fundWallet(integerAmount, method, paymentReference || null);
-      if (result === null || result === undefined) {
-        throw new Error('Payment service unavailable. Please try again later.');
-      }
-      
+      if (result === null || result === undefined) throw new Error('Payment service unavailable');
       const balance = result.balance || result.amount || 0;
-      console.log(`✅ Wallet funding initiated: ${normalizedEmail}, New balance: ₦${balance.toLocaleString()}`);
       return { balance: balance, amount: balance };
     } catch (error) {
-      console.error(`❌ Error funding wallet for ${userEmail}:`, error);
-      // Ensure error message is user-friendly
-      if (error.message && (error.message.includes('Network') || error.message.includes('network') || error.message.includes('connection'))) {
-        throw new Error('Network connection failed. Please check your internet connection.');
+      if (error.message && (error.message.includes('network') || error.message.includes('connection'))) {
+        throw new Error('Network connection failed');
       }
       throw error;
     }
@@ -1592,77 +1206,30 @@ export const hybridWalletService = {
 
   getTransactions: async (userEmail) => {
     try {
-      if (!userEmail) {
-        console.warn('getTransactions: No user email provided - returning empty array');
-        return [];
-      }
-      
+      if (!userEmail) return [];
       const normalizedEmail = userEmail.toLowerCase().trim();
-      if (!normalizedEmail || normalizedEmail.length === 0) {
-        console.warn('getTransactions: Invalid user email - returning empty array');
-        return [];
-      }
-      
-      // Get transactions from API
       let apiTransactions = [];
       try {
         const result = await walletService.getTransactions();
         if (result !== null && result !== undefined) {
           apiTransactions = Array.isArray(result) ? result : (result.data || []);
         }
-      } catch (apiError) {
-        console.warn('⚠️ Error fetching transactions from API (non-fatal):', apiError.message);
-      }
+      } catch (apiError) {}
       
-      // Filter API transactions to ensure they belong to this user
-      const userApiTransactions = apiTransactions
-        .filter(txn => {
-          if (txn.userEmail) {
-            return txn.userEmail.toLowerCase().trim() === normalizedEmail;
-          }
-          // If no userEmail, assume it belongs to current user (from API)
-          return true;
-        })
-        .map(txn => ({
-          ...txn,
-          userEmail: normalizedEmail,
-        }));
-      
-      // Get local transactions as fallback
+      const userApiTransactions = apiTransactions.map(txn => ({ ...txn, userEmail: normalizedEmail }));
       let localTransactions = [];
       try {
         const { getTransactions: getLocalTransactions } = await import('../utils/wallet');
         localTransactions = await getLocalTransactions(normalizedEmail);
-      } catch (localError) {
-        console.warn('⚠️ Error fetching local transactions (non-fatal):', localError.message);
-      }
+      } catch (localError) {}
       
-      // Merge API and local transactions
       const { mergeTransactions } = await import('../services/transactionSyncService');
-      const mergedTransactions = mergeTransactions(userApiTransactions, localTransactions);
-      
-      // Verify all transactions have proper references
-      const transactionsWithoutRef = mergedTransactions.filter(t => !t.reference && !t.paymentReference && !t.id);
-      if (transactionsWithoutRef.length > 0) {
-        console.warn(`⚠️ Found ${transactionsWithoutRef.length} transactions without proper references for ${normalizedEmail}`);
-      }
-      
-      // Log transaction references for debugging
-      if (mergedTransactions.length > 0) {
-        const refs = mergedTransactions.slice(0, 5).map(t => t.reference || t.paymentReference || t.id || 'N/A').join(', ');
-        console.log(`📋 Sample transaction references: ${refs}${mergedTransactions.length > 5 ? '...' : ''}`);
-      }
-      
-      console.log(`✅ Loaded ${mergedTransactions.length} transactions for ${normalizedEmail} (${userApiTransactions.length} API + ${localTransactions.length} local, ${mergedTransactions.length - userApiTransactions.length - localTransactions.length} duplicates removed)`);
-      return mergedTransactions;
+      return mergeTransactions(userApiTransactions, localTransactions);
     } catch (error) {
-      console.error('Error getting transactions:', error);
-      // Fallback to local transactions only
       try {
         const { getTransactions: getLocalTransactions } = await import('../utils/wallet');
         return await getLocalTransactions(userEmail);
       } catch (fallbackError) {
-        console.error('Fallback to local transactions also failed:', fallbackError);
         return [];
       }
     }
@@ -1670,94 +1237,49 @@ export const hybridWalletService = {
 
   makePayment: async (userEmail, amount, description, bookingId = null) => {
     try {
-      if (!userEmail) {
-        throw new Error('User email is required for payment');
-      }
-      
       const result = await walletService.makePayment(amount, description, bookingId);
-      if (result === null || result === undefined) {
-        throw new Error('API returned null - payment failed');
-      }
-      
-      console.log(`✅ Payment processed via Flutterwave: ${userEmail}, Amount: ₦${amount.toLocaleString()}`);
+      if (result === null || result === undefined) throw new Error('Payment failed');
       return result;
     } catch (error) {
-      console.error('Error processing payment:', error);
       throw error;
     }
   },
 
   withdrawFunds: async (userEmail, amount, method = 'Bank Transfer', accountDetails = '') => {
     try {
-      if (!userEmail) {
-        throw new Error('User email is required for withdrawal');
-      }
-      
-      // Extract bank code and account number from accountDetails
-      // Format: "BANK_CODE:ACCOUNT_NUMBER" or just account number
-      let accountBank = null;
-      let accountNumber = accountDetails;
-      let beneficiaryName = null;
-      
+      let accountBank = null, accountNumber = accountDetails, beneficiaryName = null;
       if (accountDetails && accountDetails.includes(':')) {
         const parts = accountDetails.split(':');
-        accountBank = parts[0];
-        accountNumber = parts[1];
-        if (parts.length > 2) {
-          beneficiaryName = parts[2];
-        }
+        accountBank = parts[0]; accountNumber = parts[1];
+        if (parts.length > 2) beneficiaryName = parts[2];
       }
-      
-      // Call API with Flutterwave transfer details
       const result = await walletService.withdrawFunds?.(amount, method, accountDetails, accountBank, accountNumber, beneficiaryName);
-      if (result === null || result === undefined) {
-        throw new Error('API returned null - withdrawal failed');
-      }
-      
+      if (result === null || result === undefined) throw new Error('Withdrawal failed');
       const balance = result.balance || result.amount || 0;
-      console.log(`✅ Withdrawal initiated via Flutterwave: ${userEmail}, Amount: ₦${amount.toLocaleString()}, New balance: ₦${balance.toLocaleString()}`);
       return { balance: balance, amount: amount };
     } catch (error) {
-      console.error('Error withdrawing funds:', error);
       throw error;
     }
   },
 
   sendMoneyToUser: async (fromUserEmail, toUserEmail, amount, description = '') => {
     try {
-      // This function ensures money is sent from one user to another
-      // Each user's wallet is completely isolated - this is the ONLY way money moves between users
       const { sendMoneyToUser: localSendMoney } = await import('../utils/wallet');
       const result = await localSendMoney(fromUserEmail, toUserEmail, amount, description);
-      
-      // Try API if available (for server-side tracking)
       try {
         await walletService.sendMoneyToUser?.(fromUserEmail, toUserEmail, amount, description);
-      } catch (apiError) {
-        console.log('API send money not available, using local storage only');
-      }
-      
+      } catch (apiError) {}
       return result;
     } catch (error) {
-      console.error('Error sending money to user:', error);
       throw error;
     }
   },
 
-  // Comprehensive sync of all transactions from backend
   syncAllTransactions: async (userEmail) => {
     try {
-      if (!userEmail) {
-        throw new Error('User email is required for transaction sync');
-      }
-      
       const { syncAllTransactionsFromBackend } = await import('../services/transactionSyncService');
-      const result = await syncAllTransactionsFromBackend(userEmail);
-      
-      console.log(`✅ Comprehensive sync completed: ${result.transactions.length} transactions, Balance: ₦${result.balance.toLocaleString()}`);
-      return result;
+      return await syncAllTransactionsFromBackend(userEmail);
     } catch (error) {
-      console.error('Error in comprehensive transaction sync:', error);
       throw error;
     }
   },
@@ -1766,173 +1288,68 @@ export const hybridWalletService = {
 // Hybrid Favorite Service
 export const hybridFavoriteService = {
   addFavorite: async (apartmentId, userEmail = null) => {
-    // Normalize apartment ID to string for consistent comparison
     const normalizedId = String(apartmentId);
-    
-    // CRITICAL: Get and validate user email
-    let normalizedEmail = null;
-    if (userEmail) {
-      normalizedEmail = userEmail.toLowerCase().trim();
-    } else {
+    let normalizedEmail = userEmail?.toLowerCase().trim();
+    if (!normalizedEmail) {
       try {
         const userData = await AsyncStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          if (user.email) {
-            normalizedEmail = user.email.toLowerCase().trim();
-          }
-        }
-      } catch (error) {
-        console.error('Error getting user email:', error);
-      }
+        if (userData) normalizedEmail = JSON.parse(userData).email?.toLowerCase().trim();
+      } catch (error) {}
     }
     
-    // CRITICAL: Validate email format - no fallback to global key
-    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
-      console.warn('addFavorite: No valid user email provided - cannot add favorite without user account');
-      throw new Error('User must be logged in to add favorites');
-    }
+    if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('User must be logged in');
     
     try {
-      const result = await favoriteService.addFavorite(apartmentId);
-      // If API returns null, just continue with local storage
-      if (result === null || result === undefined) {
-        // Continue to local storage update
-      }
-    } catch (error) {
-      // Silent - continue to local storage
-    }
+      await favoriteService.addFavorite(apartmentId);
+    } catch (error) {}
     
-    // Always update local storage for immediate UI update - ALWAYS user-specific
     const { getUserFavorites, saveUserFavorites } = await import('../utils/userStorage');
     const favorites = await getUserFavorites(normalizedEmail);
-    // Normalize all existing favorites to strings for comparison
     const normalizedFavorites = favorites.map(id => String(id));
     if (!normalizedFavorites.includes(normalizedId)) {
       normalizedFavorites.push(normalizedId);
       await saveUserFavorites(normalizedEmail, normalizedFavorites);
-      console.log('✅ Favorite added to local storage:', normalizedId, 'Total favorites:', normalizedFavorites.length, 'User:', normalizedEmail);
     }
   },
 
   removeFavorite: async (apartmentId, userEmail = null) => {
-    // Normalize apartment ID to string for consistent comparison
     const normalizedId = String(apartmentId);
-    
-    // CRITICAL: Get and validate user email
-    let normalizedEmail = null;
-    if (userEmail) {
-      normalizedEmail = userEmail.toLowerCase().trim();
-    } else {
+    let normalizedEmail = userEmail?.toLowerCase().trim();
+    if (!normalizedEmail) {
       try {
         const userData = await AsyncStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          if (user.email) {
-            normalizedEmail = user.email.toLowerCase().trim();
-          }
-        }
-      } catch (error) {
-        console.error('Error getting user email:', error);
-      }
+        if (userData) normalizedEmail = JSON.parse(userData).email?.toLowerCase().trim();
+      } catch (error) {}
     }
     
-    // CRITICAL: Validate email format - no fallback to global key
-    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
-      console.warn('removeFavorite: No valid user email provided - cannot remove favorite without user account');
-      throw new Error('User must be logged in to remove favorites');
-    }
+    if (!normalizedEmail || !normalizedEmail.includes('@')) throw new Error('User must be logged in');
     
     try {
-      const result = await favoriteService.removeFavorite(apartmentId);
-      // If API returns null, just continue with local storage
-      if (result === null || result === undefined) {
-        // Continue to local storage update
-      }
-    } catch (error) {
-      // Silent - continue to local storage
-    }
+      await favoriteService.removeFavorite(apartmentId);
+    } catch (error) {}
     
-    // Always update local storage - ALWAYS user-specific
     const { getUserFavorites, saveUserFavorites } = await import('../utils/userStorage');
     const favorites = await getUserFavorites(normalizedEmail);
-    // Normalize all favorites to strings and filter
-    const normalizedFavorites = favorites.map(id => String(id));
-    const updated = normalizedFavorites.filter(id => id !== normalizedId);
+    const updated = favorites.map(id => String(id)).filter(id => id !== normalizedId);
     await saveUserFavorites(normalizedEmail, updated);
-    console.log('✅ Favorite removed from local storage:', normalizedId, 'Remaining favorites:', updated.length, 'User:', normalizedEmail);
   },
 
   getFavorites: async (userEmail = null) => {
-    // CRITICAL: Validate user email to ensure account-specific favorites
-    // Always try to get favorites from local storage first (fast, works offline)
-    // Then try API to sync, but don't fail if API fails
-    
-    // Get user email from parameter or from storage
-    let normalizedEmail = null;
-    if (userEmail) {
-      normalizedEmail = userEmail.toLowerCase().trim();
-    } else {
+    let normalizedEmail = userEmail?.toLowerCase().trim();
+    if (!normalizedEmail) {
       try {
         const userData = await AsyncStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          if (user.email) {
-            normalizedEmail = user.email.toLowerCase().trim();
-          }
-        }
-      } catch (error) {
-        console.log('Could not get user email from storage');
-      }
+        if (userData) normalizedEmail = JSON.parse(userData).email?.toLowerCase().trim();
+      } catch (error) {}
     }
     
-    // CRITICAL: Validate email format - no fallback to global key
-    if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
-      console.warn('getFavorites: No valid user email provided - returning empty array to prevent data leakage');
-=======
->>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
+    if (!normalizedEmail || !normalizedEmail.includes('@')) return [];
+    
+    try {
+      const { getUserFavorites } = await import('../utils/userStorage');
+      return await getUserFavorites(normalizedEmail);
+    } catch (error) {
       return [];
-    }
-  },
-  
-  createApartment: async (listingData) => {
-    try {
-      // Create listing via API first
-      if (await isApiAvailable()) {
-        const newListing = await apartmentService.createApartment(listingData);
-        if (newListing) {
-          // Add to cache
-          await addToCachedApartments(newListing);
-          return formatListingForExplore(newListing);
-        }
-      }
-      
-      // Fallback: Create locally
-      const newListing = await addListing(listingData);
-      return formatListingForExplore(newListing);
-    } catch (error) {
-      logger.error('Error creating apartment:', error);
-      throw error;
-    }
-  },
-  
-  deleteApartment: async (listingId) => {
-    try {
-      // Delete from API first
-      if (await isApiAvailable()) {
-        await apartmentService.deleteApartment(listingId);
-      }
-      
-      // Delete locally
-      await deleteListing(listingId);
-      
-      // Remove from cache
-      await removeFromCachedApartments(listingId);
-      
-      return true;
-    } catch (error) {
-      logger.error('Error deleting apartment:', error);
-      throw error;
     }
   }
 };
