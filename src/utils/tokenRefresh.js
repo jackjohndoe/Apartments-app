@@ -20,7 +20,6 @@ const attemptTokenRefresh = async () => {
   try {
     // Check cooldown - don't attempt refresh too frequently
     const now = Date.now();
-    
     // Reset failure count if it's been a while since the last attempt
     if (now - lastRefreshAttempt > FAILURE_RESET_TIME) {
       refreshFailureCount = 0;
@@ -262,3 +261,4 @@ export const resetRefreshFailureCount = () => {
   lastRefreshAttempt = 0;
   logger.log('✅ Token refresh failure count reset');
 };
+

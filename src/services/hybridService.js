@@ -31,106 +31,8 @@ const DEFAULT_PLACEHOLDER = getApartmentPlaceholder();
 
 // Helper to get default apartments (matches ExploreScreen default apartments)
 const getDefaultApartments = () => {
-  // These are the default apartments from ExploreScreen
-  // They should always be available as fallback
-  return [
-    {
-      id: '1',
-      title: 'Modern 3-Bedroom Apartment in Victoria Island',
-      price: 83333, // Daily rate (under 100K)
-      location: 'Lagos',
-      beds: 3,
-      baths: 2,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.92,
-      createdAt: new Date('2024-01-01').toISOString(),
-    },
-    {
-      id: '2',
-      title: 'Luxury 2-Bedroom Penthouse in Lekki',
-      price: 95000, // Daily rate (under 100K)
-      location: 'Lagos',
-      beds: 2,
-      baths: 2,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.85,
-      createdAt: new Date('2024-01-02').toISOString(),
-    },
-    {
-      id: '3',
-      title: 'Cozy 1-Bedroom Studio in Garki',
-      price: 26667, // Daily rate (under 100K)
-      location: 'Abuja',
-      beds: 1,
-      baths: 1,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.98,
-      createdAt: new Date('2024-01-03').toISOString(),
-    },
-    {
-      id: '4',
-      title: 'Spacious 4-Bedroom Family Home in Port Harcourt',
-      price: 60000, // Daily rate (under 100K)
-      location: 'Port Harcourt',
-      beds: 4,
-      baths: 3,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.91,
-      createdAt: new Date('2024-01-04').toISOString(),
-    },
-    {
-      id: '5',
-      title: 'Elegant 2-Bedroom Apartment in Ibadan',
-      price: 20000, // Daily rate (under 100K)
-      location: 'Ibadan',
-      beds: 2,
-      baths: 2,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.99,
-      createdAt: new Date('2024-01-05').toISOString(),
-    },
-    {
-      id: '6',
-      title: 'Contemporary 3-Bedroom Duplex in Kano',
-      price: 40000, // Daily rate (under 100K)
-      location: 'Kano',
-      beds: 3,
-      baths: 3,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.88,
-      createdAt: new Date('2024-01-06').toISOString(),
-    },
-    {
-      id: '7',
-      title: 'Stylish 2-Bedroom Apartment in Ikeja',
-      price: 50000, // Daily rate (under 100K)
-      location: 'Lagos',
-      beds: 2,
-      baths: 2,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.93,
-      createdAt: new Date('2024-01-07').toISOString(),
-    },
-    {
-      id: '8',
-      title: 'Luxury 5-Bedroom Mansion in Asokoro',
-      price: 98000, // Daily rate (under 100K)
-      location: 'Abuja',
-      beds: 5,
-      baths: 4,
-      image: DEFAULT_PLACEHOLDER,
-      isFavorite: false,
-      rating: 4.95,
-      createdAt: new Date('2024-01-08').toISOString(),
-    },
-  ];
+  // Return empty array to remove placeholder listings as requested
+  return [];
 };
 
 // Helper to check if an image URI is valid (not empty, not null, not undefined)
@@ -530,14 +432,14 @@ const formatListingsForExplore = (listings) => {
         // Return empty array (will use default in details screen)
         return [];
       })(),
-    isFavorite: false,
-    rating: (listing && listing.rating) || 4.5,
-    createdAt: (listing && listing.createdAt) || new Date().toISOString(),
-    createdBy: (listing && listing.createdBy) || null,
-    hostName: (listing && listing.hostName) || null,
-    isSuperhost: (listing && listing.isSuperhost) || false,
-    hostEmail: (listing && listing.hostEmail) || null,
-    hostProfilePicture: (listing && listing.hostProfilePicture) || null,
+      isFavorite: false,
+      rating: (listing && listing.rating) || 4.5,
+      createdAt: (listing && listing.createdAt) || new Date().toISOString(),
+      createdBy: (listing && listing.createdBy) || null,
+      hostName: (listing && listing.hostName) || null,
+      isSuperhost: (listing && listing.isSuperhost) || false,
+      hostEmail: (listing && listing.hostEmail) || null,
+      hostProfilePicture: (listing && listing.hostProfilePicture) || null,
     };
   });
 };
@@ -1101,143 +1003,52 @@ export const hybridApartmentService = {
       
       // PRIORITY 1: Add API apartments first (these are from ALL devices - cross-platform)
       formattedApiApartments.forEach(apt => {
-        const aptId = String(apt.id || apt._id || String(apt.id));
-        if (!allIds.has(aptId)) {
-          allIds.add(aptId);
-          // Verify image is present after formatting
-          if (!apt.image || apt.image === DEFAULT_PLACEHOLDER) {
-            logger.warn('⚠️ API listing missing image after formatting:', aptId, apt.title || 'Untitled');
-          } else {
-            logger.log('✅ API listing has image:', aptId, apt.title || 'Untitled', 'Image:', apt.image.substring(0, 50));
-          }
+        const id = String(apt.id || apt._id || '');
+        if (!allIds.has(id)) {
+          allIds.add(id);
           combined.push(apt);
         }
       });
       
-      // PRIORITY 2: Add local-only listings (avoid duplicates with API apartments)
-      // These are listings created on this device that haven't synced yet
-      // CRITICAL: Include ALL local listings - they may have just been uploaded
-      // ALWAYS prefer local version if it exists (newly uploaded listings)
-      formattedLocalListings.forEach(listing => {
-        const listingId = String(listing.id || listing._id || String(listing.id));
-        if (!listingId || listingId === 'undefined' || listingId === 'null' || listingId === '') {
-          logger.warn('⚠️ Skipping listing with invalid ID:', listing);
-          return;
-        }
-        
-        // Check if we already have this ID from API
-        if (allIds.has(listingId)) {
-          // ALWAYS replace API version with local version (local is more recent/accurate)
-          // CRITICAL: Especially if local version has images and API version doesn't
-          const index = combined.findIndex(apt => {
-            const aptId = String(apt.id || apt._id || '');
-            return aptId === listingId;
-          });
-          
-          if (index !== -1) {
-            const apiListing = combined[index];
-            const apiHasImage = apiListing.image && apiListing.image !== DEFAULT_PLACEHOLDER;
-            const localHasImage = listing.image && listing.image !== DEFAULT_PLACEHOLDER;
-            
-            // Replace API version with local version
-            // Prefer local version if it has images and API doesn't
-            if (localHasImage && !apiHasImage) {
-              logger.log('🔄 Replaced API listing (no image) with local version (has image):', listingId, listing.title || 'Untitled');
-            } else {
-              logger.log('🔄 Replaced API listing with local version:', listingId, listing.title || 'Untitled');
-            }
-            
-            combined[index] = listing;
-            
-            // Verify image is present
-            if (!listing.image || listing.image === DEFAULT_PLACEHOLDER) {
-              logger.warn('⚠️ Local listing (replaced) missing image:', listingId, listing.title || 'Untitled');
-            } else {
-              logger.log('✅ Local listing (replaced) has image:', listingId, listing.title || 'Untitled', 'Image:', listing.image.substring(0, 50));
-            }
-          } else {
-            // ID in set but not in combined - add it
-            allIds.add(listingId);
-            combined.push(listing);
-            logger.log('✅ Added local listing (ID in set but not in combined):', listingId, listing.title || 'Untitled');
-            // Verify image is present
-            if (!listing.image || listing.image === DEFAULT_PLACEHOLDER) {
-              logger.warn('⚠️ Local listing (added) missing image:', listingId, listing.title || 'Untitled');
-            } else {
-              logger.log('✅ Local listing (added) has image:', listingId, listing.title || 'Untitled', 'Image:', listing.image.substring(0, 50));
-            }
-          }
-        } else {
-          // Not in API - add local version
-          allIds.add(listingId);
-          combined.push(listing);
-          logger.log('✅ Added local-only listing (not in API yet):', listingId, listing.title || 'Untitled');
-          // Verify image is present
-          if (!listing.image || listing.image === DEFAULT_PLACEHOLDER) {
-            logger.warn('⚠️ Local-only listing missing image:', listingId, listing.title || 'Untitled');
-          } else {
-            logger.log('✅ Local-only listing has image:', listingId, listing.title || 'Untitled', 'Image:', listing.image.substring(0, 50));
-          }
+      // PRIORITY 2: Add local-only listings (pending sync)
+      // Only if not already added from API
+      formattedLocalListings.forEach(apt => {
+        const id = String(apt.id || apt._id || '');
+        if (!allIds.has(id)) {
+          allIds.add(id);
+          combined.push(apt);
         }
       });
       
-      // PRIORITY 3: Add default apartments (avoid duplicates) - these are always shown
+      // PRIORITY 3: Add default apartments (if requested/needed)
+      // Note: We're filtering defaults to avoid duplicates if they somehow got into API/local
       defaultApartments.forEach(apt => {
-        const defaultId = String(apt.id || '');
-        if (!allIds.has(defaultId)) {
-          allIds.add(defaultId);
+        const id = String(apt.id || apt._id || '');
+        if (!allIds.has(id)) {
+          allIds.add(id);
           combined.push(apt);
         }
       });
       
-      // Sort by most recent first (all listings, regardless of source)
-      combined.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.updatedAt || 0);
-        const dateB = new Date(b.createdAt || b.updatedAt || 0);
-        return dateB - dateA; // Most recent first
-      });
-      
-      logger.log('✅ All apartments combined:', combined.length, 'API:', formattedApiApartments.length, 'Local-only:', formattedLocalListings.length);
-      
-      // Log image statistics for debugging
-      const listingsWithImages = combined.filter(apt => apt.image && apt.image !== DEFAULT_PLACEHOLDER).length;
-      const listingsWithoutImages = combined.length - listingsWithImages;
-      logger.log('📊 Image statistics - With images:', listingsWithImages, 'Without images:', listingsWithoutImages, 'Total:', combined.length);
-      
-      if (combined.length > 0) {
-        logger.log('🔄 Combined listing IDs (first 5):', combined.slice(0, 5).map(l => String(l.id || l._id || '')));
-        logger.log('🔄 Combined listing titles (first 5):', combined.slice(0, 5).map(l => l.title || 'Untitled'));
-      } else {
-        logger.warn('⚠️ getAllApartmentsForExplore - Combined list is empty!');
-        logger.warn('  API apartments:', formattedApiApartments.length);
-        logger.warn('  Local listings:', formattedLocalListings.length);
-        logger.warn('  Default apartments:', defaultApartments.length);
-      }
-      
-      // ALWAYS return at least default apartments
-      return combined.length > 0 ? combined : defaultApartments;
+      logger.log('✅ Final combined listings:', combined.length);
+      return combined;
     } catch (error) {
-      logger.error('Error getting all apartments:', error);
-      // Fallback: try cached API listings first, then local listings, then defaults
+      logger.error('Error in getAllApartmentsForExplore:', error);
+      // Fallback: try cached API listings first, then local listings
       try {
         const cached = await AsyncStorage.getItem('cached_api_apartments');
         if (cached) {
           const apiApartments = JSON.parse(cached);
-          const formatted = formatListingsForExplore(apiApartments);
-          const defaults = getDefaultApartments();
-          return [...formatted, ...defaults];
+          return formatListingsForExplore(apiApartments);
         }
         const allListings = await getListings();
-        const formattedUserListings = allListings && allListings.length > 0
-          ? formatListingsForExplore(allListings)
-          : [];
-        const defaultApartments = getDefaultApartments();
-        return [...formattedUserListings, ...defaultApartments];
+        if (allListings && allListings.length > 0) {
+          return formatListingsForExplore(allListings);
+        }
       } catch (fallbackError) {
-        logger.error('Fallback also failed:', fallbackError);
-        // Last resort: return default apartments
-        return getDefaultApartments();
+        logger.error('Error in fallback:', fallbackError);
       }
+<<<<<<< HEAD
     }
   },
 
@@ -2078,67 +1889,50 @@ export const hybridFavoriteService = {
     // CRITICAL: Validate email format - no fallback to global key
     if (!normalizedEmail || normalizedEmail.length === 0 || !normalizedEmail.includes('@')) {
       console.warn('getFavorites: No valid user email provided - returning empty array to prevent data leakage');
+=======
+>>>>>>> bbd6c1646949d2ae7c70a843b92d57e1a13bb11f
       return [];
     }
-    
-    // Get favorites from local storage (primary source) - ALWAYS user-specific
-    let localFavorites = [];
-    try {
-      const { getUserFavorites } = await import('../utils/userStorage');
-      localFavorites = await getUserFavorites(normalizedEmail);
-      
-      // CRITICAL: Filter to ensure ONLY this user's favorites
-      // Validate that all favorites belong to this user
-      const validatedFavorites = localFavorites.filter(id => {
-        // All favorites in user-specific storage belong to this user
-        // But we validate the storage key was correct
-        return id !== null && id !== undefined;
-      });
-      
-      if (validatedFavorites.length !== localFavorites.length) {
-        console.warn(`⚠️ Filtered ${localFavorites.length - validatedFavorites.length} invalid favorites for ${normalizedEmail}`);
-        // Update storage with validated favorites
-        const { saveUserFavorites } = await import('../utils/userStorage');
-        await saveUserFavorites(normalizedEmail, validatedFavorites);
-        localFavorites = validatedFavorites;
-      }
-    } catch (error) {
-      console.error('Error loading favorites from local storage:', error);
-      localFavorites = [];
-    }
-    
-    // Normalize local favorites to strings
-    const normalizedLocalFavorites = localFavorites.map(id => String(id));
-    console.log('✅ Loaded favorites from local storage:', normalizedLocalFavorites.length, 'IDs:', normalizedLocalFavorites.slice(0, 5), 'User:', normalizedEmail);
-    
-    // Try to sync with API (non-blocking - don't fail if API fails)
-    try {
-      const result = await favoriteService.getFavorites();
-      if (result !== null && result !== undefined) {
-        const apiFavorites = Array.isArray(result) ? result : (result.data || []);
-        const normalizedApiFavorites = apiFavorites.map(id => String(id));
-        console.log('✅ Synced favorites from API:', normalizedApiFavorites.length, 'for user:', normalizedEmail);
-        
-        // CRITICAL: Merge API and local favorites, but ensure all belong to this user
-        // API favorites are already user-specific (from authenticated session)
-        // Combine and deduplicate
-        const combinedFavorites = [...new Set([...normalizedApiFavorites, ...normalizedLocalFavorites])];
-        
-        // Save merged favorites back to user-specific storage
-        if (combinedFavorites.length > normalizedLocalFavorites.length) {
-          const { saveUserFavorites } = await import('../utils/userStorage');
-          await saveUserFavorites(normalizedEmail, combinedFavorites);
-          console.log('✅ Saved merged favorites to user-specific storage:', combinedFavorites.length);
-        }
-        
-        return combinedFavorites.length > 0 ? combinedFavorites : normalizedLocalFavorites;
-      }
-    } catch (error) {
-      // API failed - that's okay, use local storage
-      console.log('⚠️ API sync failed, using local storage:', error.message);
-    }
-    
-    // Return local favorites (always available, works offline, user-specific)
-    return normalizedLocalFavorites;
   },
+  
+  createApartment: async (listingData) => {
+    try {
+      // Create listing via API first
+      if (await isApiAvailable()) {
+        const newListing = await apartmentService.createApartment(listingData);
+        if (newListing) {
+          // Add to cache
+          await addToCachedApartments(newListing);
+          return formatListingForExplore(newListing);
+        }
+      }
+      
+      // Fallback: Create locally
+      const newListing = await addListing(listingData);
+      return formatListingForExplore(newListing);
+    } catch (error) {
+      logger.error('Error creating apartment:', error);
+      throw error;
+    }
+  },
+  
+  deleteApartment: async (listingId) => {
+    try {
+      // Delete from API first
+      if (await isApiAvailable()) {
+        await apartmentService.deleteApartment(listingId);
+      }
+      
+      // Delete locally
+      await deleteListing(listingId);
+      
+      // Remove from cache
+      await removeFromCachedApartments(listingId);
+      
+      return true;
+    } catch (error) {
+      logger.error('Error deleting apartment:', error);
+      throw error;
+    }
+  }
 };
