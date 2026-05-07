@@ -1,26 +1,32 @@
-# Use Node.js LTS version
-FROM node:18-alpine
-
-# Set working directory
+# Multi-stage build for Spring Boot application
+# Stage 1: Build the application
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy pom.xml and download dependencies
+# Note: Using paths relative to the repository root
+COPY booking-backend/pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Install dependencies
-RUN npm ci --only=production
+# Copy source code and build
+COPY booking-backend/src ./src
+RUN mvn clean package -DskipTests
 
-# Copy application code
-COPY . .
+# Stage 2: Run the application
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
 
-# Expose port (default for Node.js apps, adjust if needed)
+# Create a non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+
+# Copy the built JAR from build stage
+# The JAR name should match what's in booking-backend/pom.xml
+COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.jar
+
+# Expose port
 EXPOSE 8080
 
-# Set environment to production
-ENV NODE_ENV=production
-
-# Start the application
-# Adjust the start command based on your backend entry point
-# Common options: "node server.js", "node index.js", "npm start"
-CMD ["node", "server.js"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "booking-0.0.1-SNAPSHOT.jar"]
 
