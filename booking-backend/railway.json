@@ -6,8 +6,12 @@
     "rootDirectory": "."
   },
   "deploy": {
-    "startCommand": "java -jar booking-0.0.1-SNAPSHOT.jar --spring.profiles.active=staging",
+    "numReplicas": 1,
+    "sleepApplication": false,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 12
+    "restartPolicyMaxRetries": 12,
+    "env": {
+      "SPRING_PROFILES_ACTIVE": "staging"
+    }
   }
 }

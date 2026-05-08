@@ -29,6 +29,9 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
+# Set default environment variable
+ENV SPRING_PROFILES_ACTIVE=staging
+
 # Run the application
-ENTRYPOINT ["java", "-jar", "booking-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "-jar", "booking-0.0.1-SNAPSHOT.jar"]
 
