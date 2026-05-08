@@ -25,8 +25,8 @@ COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.
 # Expose port (adjust if your app uses a different port)
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+# Health check (Increased start period for slow DB connections)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # Set default environment variable
