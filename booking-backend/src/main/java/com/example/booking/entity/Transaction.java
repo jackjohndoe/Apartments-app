@@ -45,7 +45,7 @@ public class Transaction {
 
     @Column(nullable = false, length = 3)
     @Builder.Default
-    private String currency = "USD";
+    private String currency = "NGN";
 
     @Column(length = 500)
     private String description;

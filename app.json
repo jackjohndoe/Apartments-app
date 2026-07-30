@@ -35,7 +35,8 @@
       "versionCode": 9
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/icon.png"
     },
     "scheme": "nigerianapartments",
     "plugins": [

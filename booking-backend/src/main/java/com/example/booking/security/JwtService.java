@@ -1,5 +1,6 @@
 package com.example.booking.security;
 
+import com.example.booking.entity.AdminUser;
 import com.example.booking.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -38,6 +39,19 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateAdminToken(AdminUser admin) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
+
+        return Jwts.builder()
+                .setSubject(admin.getEmail())
+                .claim("role", "ADMIN")
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -45,6 +59,11 @@ public class JwtService {
     public boolean isTokenValid(String token, User user) {
         final String username = extractUsername(token);
         return (username.equals(user.getEmail()) && !isTokenExpired(token));
+    }
+
+    public boolean isTokenValid(String token, AdminUser admin) {
+        final String username = extractUsername(token);
+        return (username.equals(admin.getEmail()) && !isTokenExpired(token));
     }
 
     private boolean isTokenExpired(String token) {

@@ -200,26 +200,20 @@ function ProfileStack() {
 // Guest screens that require login
 function RequireLoginScreen({ navigation, screenName, children }) {
   const { user } = useAuth();
+  const hasNavigated = React.useRef(false);
   
   React.useEffect(() => {
-    if (!user) {
+    if (!user && !hasNavigated.current) {
+      hasNavigated.current = true;
       if (Platform.OS === 'web') {
         const confirmed = window.confirm('Sign In Required\n\nPlease sign in to access this feature.');
         if (confirmed) {
-          // Try to navigate to SignIn
           const parent = navigation.getParent();
           if (parent) {
             parent.navigate('SignIn');
           } else {
             navigation.navigate('SignIn');
           }
-        }
-        // Navigate back to Explore
-        const parent = navigation.getParent();
-        if (parent) {
-          parent.navigate('Explore');
-        } else {
-          navigation.navigate('Explore');
         }
       } else {
         Alert.alert(
@@ -240,19 +234,18 @@ function RequireLoginScreen({ navigation, screenName, children }) {
             }
           ]
         );
-        // Navigate back to Explore
-        const parent = navigation.getParent();
-        if (parent) {
-          parent.navigate('Explore');
-        } else {
-          navigation.navigate('Explore');
-        }
       }
     }
-  }, [user, navigation]);
+  }, [user]);
+  
+  React.useEffect(() => {
+    if (user) {
+      hasNavigated.current = false;
+    }
+  }, [user]);
   
   if (!user) {
-    return null; // Don't render the screen if not logged in
+    return null;
   }
   
   return children;

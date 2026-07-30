@@ -66,7 +66,6 @@ public class User {
 
     public enum Role {
         GUEST,
-        HOST,
-        ADMIN
+        HOST
     }
 }

@@ -60,10 +60,21 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse getBooking(Long id) {
+    public BookingResponse getBooking(Long id, User user) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id + 
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id +
                         ". The booking may have been cancelled or deleted, or the ID may be incorrect."));
+
+        boolean isGuest = booking.getUser().getId().equals(user.getId());
+        boolean isHost = booking.getListing().getHost() != null &&
+                booking.getListing().getHost().getId().equals(user.getId());
+        boolean isAdmin = SecurityUtils.isAdmin();
+
+        if (!isGuest && !isHost && !isAdmin) {
+            throw new BadRequestException("You do not have permission to view this booking. " +
+                    "Only the guest who made the booking, the listing host, or an administrator can view booking details.");
+        }
+
         return toResponse(booking);
     }
 
@@ -92,7 +103,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id + 
                         ". The booking may have been cancelled or deleted, or the ID may be incorrect."));
 
-        boolean isAdminAction = SecurityUtils.isAdmin(user) && 
+        boolean isAdminAction = SecurityUtils.isAdmin() && 
                 !booking.getUser().getId().equals(user.getId()) &&
                 (booking.getListing().getHost() == null || !booking.getListing().getHost().getId().equals(user.getId()));
 
@@ -128,7 +139,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + id + 
                         ". The booking may have been cancelled or deleted, or the ID may be incorrect."));
 
-        boolean isAdminAction = SecurityUtils.isAdmin(user) && 
+        boolean isAdminAction = SecurityUtils.isAdmin() && 
                 (booking.getListing().getHost() == null || !booking.getListing().getHost().getId().equals(user.getId()));
 
         if (!isAdminAction && (booking.getListing().getHost() == null || !booking.getListing().getHost().getId().equals(user.getId()))) {

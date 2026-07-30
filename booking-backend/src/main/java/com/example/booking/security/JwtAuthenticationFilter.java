@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -29,13 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final BookingUserDetailsService userDetailsService;
+    private final AdminUserDetailsService adminUserDetailsService;
     private final ObjectMapper objectMapper;
 
-    public JwtAuthenticationFilter(JwtService jwtService, 
+    public JwtAuthenticationFilter(JwtService jwtService,
                                    BookingUserDetailsService userDetailsService,
+                                   AdminUserDetailsService adminUserDetailsService,
                                    ObjectMapper objectMapper) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.adminUserDetailsService = adminUserDetailsService;
         this.objectMapper = objectMapper;
     }
 
@@ -44,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -55,23 +59,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String userEmail = jwtService.extractUsername(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = null;
+
+                // Try regular user first, then admin user
                 try {
-                    BookingUserDetails userDetails = (BookingUserDetails) this.userDetailsService.loadUserByUsername(userEmail);
-                    if (jwtService.isTokenValid(jwt, userDetails.getUser())) {
-                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    userDetails = userDetailsService.loadUserByUsername(userEmail);
+                } catch (UsernameNotFoundException ex) {
+                    try {
+                        userDetails = adminUserDetailsService.loadUserByUsername(userEmail);
+                    } catch (UsernameNotFoundException ex2) {
+                        handleJwtError(response, "User associated with the authentication token was not found. The token may be invalid or the user may have been deleted.");
+                        return;
+                    }
+                }
+
+                if (userDetails instanceof BookingUserDetails bookingDetails) {
+                    if (jwtService.isTokenValid(jwt, bookingDetails.getUser())) {
+                        setAuth(response, request, userDetails);
                     } else {
                         handleJwtError(response, "Authentication token is invalid or does not match the user. Please log in again.");
                         return;
                     }
-                } catch (UsernameNotFoundException ex) {
-                    handleJwtError(response, "User associated with the authentication token was not found. The token may be invalid or the user may have been deleted.");
-                    return;
+                } else if (userDetails instanceof AdminUserDetails adminDetails) {
+                    if (jwtService.isTokenValid(jwt, adminDetails.getAdminUser())) {
+                        setAuth(response, request, userDetails);
+                    } else {
+                        handleJwtError(response, "Authentication token is invalid or does not match the admin. Please log in again.");
+                        return;
+                    }
                 }
             }
         } catch (ExpiredJwtException ex) {
@@ -94,17 +109,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private void setAuth(HttpServletResponse response, HttpServletRequest request, UserDetails userDetails) {
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+    }
+
     private void handleJwtError(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        
+
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", OffsetDateTime.now());
         body.put("status", HttpStatus.UNAUTHORIZED.value());
         body.put("error", HttpStatus.UNAUTHORIZED.getReasonPhrase());
         body.put("message", message);
         body.put("path", "Authentication");
-        
+
         objectMapper.writeValue(response.getWriter(), body);
     }
 }

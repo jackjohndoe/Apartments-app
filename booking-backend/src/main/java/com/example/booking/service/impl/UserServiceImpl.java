@@ -37,8 +37,8 @@ public class UserServiceImpl implements UserService {
         try {
             role = User.Role.valueOf(registerRequest.getRole().toUpperCase());
         } catch (IllegalArgumentException | NullPointerException ex) {
-            throw new BadRequestException("Invalid role specified: '" + registerRequest.getRole() + 
-                    "'. Allowed values are: GUEST (for booking listings), HOST (for creating and managing listings), or ADMIN (for administrative access).");
+            throw new BadRequestException("Invalid role specified: '" + registerRequest.getRole() +
+                    "'. Allowed values are: GUEST (for booking listings) or HOST (for creating and managing listings).");
         }
 
         User user = User.builder()

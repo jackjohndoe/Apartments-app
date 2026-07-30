@@ -48,7 +48,7 @@ export const authService = {
              email: userEmail,
              password: derivedPassword,
              name: userName || 'Apple User',
-             role: 'User',
+             role: 'HOST',
              provider: 'apple',
              appleUserId: appleUserId
            };

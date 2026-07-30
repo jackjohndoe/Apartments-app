@@ -52,6 +52,7 @@ sendgrid.env
 # Git files
 .git/
 
-# Documentation (optional - remove if you want docs in build)
+# Documentation
+docs/
 *.md
 !README.md

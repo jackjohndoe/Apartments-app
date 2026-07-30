@@ -138,7 +138,7 @@ class BookingServiceImplTest {
         Booking booking = Booking.builder().id(77L).listing(listing).user(guest).build();
         when(bookingRepository.findById(77L)).thenReturn(Optional.of(booking));
 
-        BookingResponse response = bookingService.getBooking(77L);
+        BookingResponse response = bookingService.getBooking(77L, guest);
 
         assertThat(response.getId()).isEqualTo(77L);
         assertThat(response.getListingId()).isEqualTo(listing.getId());
@@ -149,7 +149,7 @@ class BookingServiceImplTest {
     void getBooking_notFound() {
         when(bookingRepository.findById(88L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.getBooking(88L))
+        assertThatThrownBy(() -> bookingService.getBooking(88L, guest))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 

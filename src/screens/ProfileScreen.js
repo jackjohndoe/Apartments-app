@@ -355,6 +355,13 @@ export default function ProfileScreen() {
           )}
           <Text style={styles.name}>{profileData?.name || user?.name || 'User'}</Text>
           <Text style={styles.email}>{profileData?.email || user?.email || ''}</Text>
+          {user?.role && (
+            <View style={[styles.roleBadge, user.role === 'ADMIN' && styles.roleBadgeAdmin, user.role === 'HOST' && styles.roleBadgeHost]}>
+              <Text style={[styles.roleBadgeText, user.role === 'ADMIN' && styles.roleBadgeTextAdmin, user.role === 'HOST' && styles.roleBadgeTextHost]}>
+                {user.role}
+              </Text>
+            </View>
+          )}
           {profileData?.whatsappNumber && (
             <View style={styles.infoRow}>
               <MaterialIcons name="phone" size={16} color="#666" />
@@ -418,29 +425,33 @@ export default function ProfileScreen() {
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('MyListings')}
-          >
-            <MaterialIcons name="add-business" size={24} color="#333" />
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Upload Listing</Text>
-              <Text style={styles.menuSubtitle}>List your apartment for rent</Text>
-            </View>
-            <Text style={styles.menuArrow}>›</Text>
-          </TouchableOpacity>
+          {(user?.role === 'HOST' || user?.role === 'ADMIN') && (
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('MyListings')}
+            >
+              <MaterialIcons name="add-business" size={24} color="#333" />
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Upload Listing</Text>
+                <Text style={styles.menuSubtitle}>List your apartment for rent</Text>
+              </View>
+              <Text style={styles.menuArrow}>›</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('HostBookedListings')}
-          >
-            <MaterialIcons name="event-available" size={24} color="#FFD700" />
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Booked Listings</Text>
-              <Text style={styles.menuSubtitle}>View bookings for your apartments</Text>
-            </View>
-            <Text style={styles.menuArrow}>›</Text>
-          </TouchableOpacity>
+          {(user?.role === 'HOST' || user?.role === 'ADMIN') && (
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => navigation.navigate('HostBookedListings')}
+            >
+              <MaterialIcons name="event-available" size={24} color="#FFD700" />
+              <View style={styles.menuContent}>
+                <Text style={styles.menuTitle}>Booked Listings</Text>
+                <Text style={styles.menuSubtitle}>View bookings for your apartments</Text>
+              </View>
+              <Text style={styles.menuArrow}>›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -537,6 +548,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 8,
+  },
+  roleBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+  },
+  roleBadgeHost: {
+    backgroundColor: '#FFF3E0',
+  },
+  roleBadgeAdmin: {
+    backgroundColor: '#E3F2FD',
+  },
+  roleBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  roleBadgeTextHost: {
+    color: '#E65100',
+  },
+  roleBadgeTextAdmin: {
+    color: '#1565C0',
   },
   infoRow: {
     flexDirection: 'row',

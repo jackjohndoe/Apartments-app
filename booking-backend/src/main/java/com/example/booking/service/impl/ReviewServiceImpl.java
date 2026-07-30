@@ -70,7 +70,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with ID: " + reviewId + 
                         ". The review may have been deleted or the ID may be incorrect."));
 
-        boolean isAdminAction = SecurityUtils.isAdmin(user) && !review.getUser().getId().equals(user.getId());
+        boolean isAdminAction = SecurityUtils.isAdmin() && !review.getUser().getId().equals(user.getId());
 
         if (!isAdminAction && !review.getUser().getId().equals(user.getId())) {
             throw new BadRequestException("You can only update your own reviews. " +
@@ -98,7 +98,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Review not found with ID: " + reviewId + 
                         ". The review may have been deleted or the ID may be incorrect."));
 
-        boolean isAdminAction = SecurityUtils.isAdmin(user) && 
+        boolean isAdminAction = SecurityUtils.isAdmin() && 
                 !review.getUser().getId().equals(user.getId()) &&
                 (review.getListing().getHost() == null || !review.getListing().getHost().getId().equals(user.getId()));
 

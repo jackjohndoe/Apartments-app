@@ -26,4 +26,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     Page<Booking> findByUserIdAndStartDateAfter(Long userId, LocalDate date, Pageable pageable);
 
     Page<Booking> findByUserIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(Long userId, LocalDate start, LocalDate end, Pageable pageable);
+
+    List<Booking> findByListingId(Long listingId);
 }

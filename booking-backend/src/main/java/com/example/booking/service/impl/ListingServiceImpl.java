@@ -96,7 +96,7 @@ public class ListingServiceImpl implements ListingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Listing not found with ID: " + id + 
                         ". The listing may have been deleted or the ID may be incorrect."));
 
-        boolean isAdminAction = SecurityUtils.isAdmin(host) && !listing.getHost().getId().equals(host.getId());
+        boolean isAdminAction = SecurityUtils.isAdmin() && !listing.getHost().getId().equals(host.getId());
         validateOwnership(listing, host);
 
         listing.setTitle(request.getTitle());
@@ -139,7 +139,7 @@ public class ListingServiceImpl implements ListingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Listing not found with ID: " + id + 
                         ". The listing may have been deleted or the ID may be incorrect."));
         
-        boolean isAdminAction = SecurityUtils.isAdmin(host) && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
+        boolean isAdminAction = SecurityUtils.isAdmin() && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
         String listingTitle = listing.getTitle();
         Long ownerId = listing.getHost() != null ? listing.getHost().getId() : null;
         
@@ -200,7 +200,7 @@ public class ListingServiceImpl implements ListingService {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Listing not found with id: " + listingId));
         
-        boolean isAdminAction = SecurityUtils.isAdmin(host) && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
+        boolean isAdminAction = SecurityUtils.isAdmin() && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
         validateOwnership(listing, host);
 
         if (files == null || files.isEmpty()) {
@@ -239,7 +239,7 @@ public class ListingServiceImpl implements ListingService {
         Listing listing = listingRepository.findById(listingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Listing not found with id: " + listingId));
         
-        boolean isAdminAction = SecurityUtils.isAdmin(host) && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
+        boolean isAdminAction = SecurityUtils.isAdmin() && (listing.getHost() == null || !listing.getHost().getId().equals(host.getId()));
         validateOwnership(listing, host);
 
         ListingPhoto photo = listingPhotoRepository.findByIdAndListingId(photoId, listingId)
@@ -279,7 +279,7 @@ public class ListingServiceImpl implements ListingService {
 
     private void validateOwnership(Listing listing, User host) {
         // ADMIN can bypass ownership checks
-        if (SecurityUtils.canBypassOwnership(host)) {
+        if (SecurityUtils.canBypassOwnership()) {
             return;
         }
         if (listing.getHost() == null || !listing.getHost().getId().equals(host.getId())) {

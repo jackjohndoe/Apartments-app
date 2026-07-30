@@ -45,16 +45,19 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.createBooking(request, userDetails.getUser()));
     }
 
-    @Operation(summary = "Get a booking by ID", description = "Retrieves booking details by ID")
+    @Operation(summary = "Get a booking by ID", description = "Retrieves booking details by ID. Only the guest, listing host, or admin can view.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Booking retrieved successfully",
                     content = @Content(schema = @Schema(implementation = BookingResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - not booking owner or host"),
             @ApiResponse(responseCode = "404", description = "Booking not found")
     })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{id}")
     public ResponseEntity<BookingResponse> getBooking(
-            @Parameter(description = "Booking ID") @PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.getBooking(id));
+            @Parameter(description = "Booking ID") @PathVariable Long id,
+            @AuthenticationPrincipal BookingUserDetails userDetails) {
+        return ResponseEntity.ok(bookingService.getBooking(id, userDetails.getUser()));
     }
 
     @Operation(summary = "Get user bookings", description = "Retrieves paginated bookings for the authenticated user with optional status filter")

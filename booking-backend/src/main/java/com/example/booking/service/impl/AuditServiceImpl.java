@@ -24,8 +24,8 @@ public class AuditServiceImpl implements AuditService {
 
     @Override
     public void logAdminAction(User admin, String action, String resourceType, Long resourceId, String description) {
-        if (admin == null || admin.getRole() != User.Role.ADMIN) {
-            return; // Only log for admin users
+        if (admin == null) {
+            return;
         }
         logAction(admin, action, resourceType, resourceId, description);
     }
