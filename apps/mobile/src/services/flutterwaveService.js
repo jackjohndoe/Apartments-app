@@ -1,6 +1,6 @@
 // Flutterwave Service
 import api from './api';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../api/api';
 
 /**
  * Create a Flutterwave virtual account for bank transfer payment

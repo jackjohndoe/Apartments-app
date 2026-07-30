@@ -1,7 +1,7 @@
 // Token Refresh Utility
 // Handles automatic token refresh when tokens expire
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG } from '../api/api';
 import { logger } from './logger';
 
 let isRefreshing = false;

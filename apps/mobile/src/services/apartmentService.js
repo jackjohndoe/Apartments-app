@@ -1,6 +1,6 @@
 // Apartment/Property Service
 import api from './api';
-import { API_ENDPOINTS, API_CONFIG } from '../config/api';
+import { API_ENDPOINTS, API_CONFIG } from '../api/api';
 import { logger } from '../utils/logger';
 
 export const apartmentService = {

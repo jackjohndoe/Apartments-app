@@ -6,7 +6,7 @@ import { getUserStorageKey } from './userStorage';
 import { updateBookingStatus, getBookingById } from './bookings';
 import { hybridWalletService } from '../services/hybridService';
 import * as escrowService from '../services/escrowService';
-import { ESCROW_STATUS, DEFAULT_ESCROW_CONDITIONS } from '../config/escrow';
+import { ESCROW_STATUS, DEFAULT_ESCROW_CONDITIONS } from '../api/escrow';
 
 // Feature flag to toggle between old and new escrow systems
 const USE_ESCROW_COM = true; // Set to false to use old AsyncStorage system during migration

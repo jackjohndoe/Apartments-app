@@ -1,7 +1,7 @@
 // Authentication Service
 import api from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../api/api';
 
 export const authService = {
   // Apple Sign In

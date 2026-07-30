@@ -2,7 +2,7 @@
 // Handles comprehensive syncing of transactions from backend to local storage
 import { walletService } from './walletService';
 import { addTransaction, getTransactions, getWalletBalance, updateWalletBalance } from '../utils/wallet';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../api/api';
 
 /**
  * Calculate balance from transactions

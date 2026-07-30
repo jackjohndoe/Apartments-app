@@ -1,6 +1,6 @@
 // Wallet Service
 import api from './api';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../api/api';
 
 export const walletService = {
   // Get wallet balance

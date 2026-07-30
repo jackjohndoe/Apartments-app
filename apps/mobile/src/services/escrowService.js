@@ -1,6 +1,6 @@
 // Escrow.com Service
 // All Escrow.com operations go through backend API for security
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../api/api';
 import api from './api';
 
 /**

@@ -19,8 +19,6 @@ dist/
 .env.local
 .env.*.local
 
-
-
 sendgrid.env
 
 # Exclude AppData and Android Studio files
@@ -64,7 +62,6 @@ ios/Pods/
 # Long path issues - exclude gradle caches
 .gradle/caches/
 android/.gradle/caches/
-
 # Node modules (already excluded but ensure)
 node_modules/
 
@@ -74,5 +71,11 @@ node_modules/
 dist/
 web-build/
 
+# Monorepo apps build artifacts
+apps/dashboard/.next/
+apps/api/target/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/build/
 
 **/target/

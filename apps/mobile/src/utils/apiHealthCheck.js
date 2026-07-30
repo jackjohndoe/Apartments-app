@@ -1,6 +1,6 @@
 // API Health Check Utility
 // Checks if backend API is available and responsive
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG } from '../api/api';
 import { logger } from './logger';
 
 let healthCheckCache = null;

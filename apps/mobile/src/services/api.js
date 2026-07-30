@@ -1,6 +1,6 @@
 // API Base Configuration
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG } from '../api/api';
 import { handleTokenExpiration } from '../utils/tokenExpirationHandler';
 import { refreshToken, getValidToken } from '../utils/tokenRefresh';
 import { logger } from '../utils/logger';

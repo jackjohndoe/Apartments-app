@@ -2,7 +2,7 @@
 // Import all constants from a single entry point
 
 export * from './theme';
-export { API_CONFIG, API_ENDPOINTS } from '../config/api';
+export { API_CONFIG, API_ENDPOINTS } from '../api/api';
 
 
 

@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getEscrowByBooking, requestPayment, approvePayment } from '../utils/escrow';
 import { sendPaymentRequestEmail } from '../utils/emailService';
-import { ESCROW_STATUS } from '../config/escrow';
+import { ESCROW_STATUS } from '../api/escrow';
 
 export default function HostBookingDetailsScreen() {
   const route = useRoute();

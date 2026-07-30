@@ -1,6 +1,6 @@
 // Email service for sending booking confirmation emails
 // Supports both backend API and SendGrid REST API
-import { SENDGRID_CONFIG, isSendGridConfigured } from '../config/sendgrid';
+import { SENDGRID_CONFIG, isSendGridConfigured } from '../api/sendgrid';
 
 /**
  * Send email via SendGrid REST API
@@ -448,7 +448,7 @@ ${newBalance ? `- New Wallet Balance: ₦${newBalance.toLocaleString()}` : ''}
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: userEmail,
@@ -548,7 +548,7 @@ Thank you for your booking!
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: userEmail,
@@ -727,7 +727,7 @@ Please prepare your property and contact the guest using the information provide
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: hostEmail,
@@ -942,7 +942,7 @@ Payment Request Details:
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: userEmail,
@@ -1145,7 +1145,7 @@ If you have any questions, please contact support.
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: hostEmail,
@@ -1220,7 +1220,7 @@ ${totalServiceFees > 0 ? `- Service Fee: -₦${totalServiceFees.toLocaleString()
     // Try to use backend API first if available
     try {
       const { api } = await import('../services/api');
-      const { API_ENDPOINTS } = await import('../config/api');
+      const { API_ENDPOINTS } = await import('../api/api');
       
       const emailPayload = {
         to: hostEmail,

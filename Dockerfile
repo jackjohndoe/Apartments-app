@@ -5,11 +5,11 @@ WORKDIR /app
 
 # Copy pom.xml and download dependencies
 # Note: Using paths relative to the repository root
-COPY booking-backend/pom.xml .
+COPY apps/api/pom.xml .
 RUN mvn dependency:go-offline -B
 
 # Copy source code and build
-COPY booking-backend/src ./src
+COPY apps/api/src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Run the application
@@ -21,7 +21,7 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy the built JAR from build stage
-# The JAR name should match what's in booking-backend/pom.xml
+# The JAR name should match what's in apps/api/pom.xml
 COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.jar
 
 # Expose port

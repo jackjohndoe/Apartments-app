@@ -60,7 +60,7 @@ export const isNetworkOnline = () => {
  */
 export const checkBackendConnectivity = async () => {
   try {
-    const { API_CONFIG } = await import('../config/api');
+    const { API_CONFIG } = await import('../api/api');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 

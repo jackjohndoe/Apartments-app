@@ -10,7 +10,7 @@ import { getWalletBalance, getTransactions, addFunds, makePayment } from '../uti
 import { queueListingForSync, getPendingSyncListings, removeFromSyncQueue } from './listingSyncService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG } from '../api/api';
 
 // Helper to check if API is available
 const isApiAvailable = async () => {
