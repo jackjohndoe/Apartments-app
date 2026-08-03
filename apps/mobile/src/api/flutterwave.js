@@ -20,7 +20,7 @@ export const FLUTTERWAVE_CONFIG = {
   CURRENCY: 'NGN',
   
   // Callback URL (for webhook verification - backend only)
-  CALLBACK_URL: process.env.FLUTTERWAVE_CALLBACK_URL || 'https://booking-backend-staging.up.railway.app/api/payments/flutterwave/callback',
+  CALLBACK_URL: process.env.FLUTTERWAVE_CALLBACK_URL || 'https://booking-backend-production-a51d.up.railway.app/api/payments/flutterwave/callback',
 };
 
 /**

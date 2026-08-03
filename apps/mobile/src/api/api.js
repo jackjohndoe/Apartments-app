@@ -2,7 +2,7 @@
 // Update this file if the backend URL changes
 
 export const API_CONFIG = {
-  BASE_URL: 'https://booking-backend-staging.up.railway.app',
+  BASE_URL: 'https://booking-backend-production-a51d.up.railway.app',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
 };
