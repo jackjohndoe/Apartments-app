@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { authService } from '../services/authService';
 import { markWelcomeDealSeen } from '../utils/userStorage';
 import { logger } from '../utils/logger';
+import { GOOGLE_AUTH, isGoogleConfigured } from '../constants/googleAuth';
 // Welcome deal modal is now shown on the home page (ExploreScreen) instead
 
 let AppleAuthentication;
@@ -37,22 +38,13 @@ export default function SignUpScreen() {
   const [newUserEmail, setNewUserEmail] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Google Sign In disabled - placeholder credentials would cause App Store rejection
-  // To enable: Configure real OAuth credentials in Google Cloud Console and update these values
-  const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID';
-  const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID';
-  const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID';
-  
-  // Check if Google credentials are configured (not placeholders)
-  const isGoogleConfigured = 
-    GOOGLE_IOS_CLIENT_ID !== 'YOUR_IOS_CLIENT_ID' &&
-    GOOGLE_ANDROID_CLIENT_ID !== 'YOUR_ANDROID_CLIENT_ID' &&
-    GOOGLE_WEB_CLIENT_ID !== 'YOUR_WEB_CLIENT_ID';
-  
+  // Google Sign In uses OAuth credentials from Google Cloud Console
+  // Create them at: https://console.cloud.google.com/apis/credentials
+  // and add the client IDs to src/constants/googleAuth.js
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_AUTH.iosClientId,
+    androidClientId: GOOGLE_AUTH.androidClientId,
+    webClientId: GOOGLE_AUTH.webClientId,
   });
 
   const handleClaimDeal = async () => {
@@ -123,13 +115,17 @@ export default function SignUpScreen() {
       const { authentication } = response;
       const handleGoogleAuth = async () => {
         try {
-          const userData = {
-            id: authentication?.accessToken || 'google_user',
-            name: 'Google User',
-            email: '',
-            provider: 'google',
-          };
-          await signIn(userData);
+          const accessToken = authentication?.accessToken;
+          if (!accessToken) {
+            Alert.alert('Error', 'Google sign up failed. Please try again.');
+            return;
+          }
+
+          // Create or log in the backend account using the Google access token
+          const result = await authService.loginWithGoogle(accessToken);
+          const userData = result.user;
+
+          await signIn(userData, result.isNewUser);
           
           // IMMEDIATELY initialize wallet to ₦0 for new Google user
           // This ensures every new user starts with zero balance
@@ -149,7 +145,11 @@ export default function SignUpScreen() {
           
           navigation.replace('Main');
         } catch (error) {
-          Alert.alert('Error', 'Failed to sign up. Please try again.');
+          if (error.message === 'GOOGLE_EMAIL_MISSING') {
+            Alert.alert('Email Required', 'We could not retrieve your email from Google. Please sign up with your email and password.');
+          } else {
+            Alert.alert('Error', 'Failed to sign up with Google. Please try again.');
+          }
         }
       };
       handleGoogleAuth();

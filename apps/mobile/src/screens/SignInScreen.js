@@ -16,6 +16,7 @@ import { useAuth } from '../hooks/useAuth';
 import * as Google from 'expo-auth-session/providers/google';
 import { useNavigation } from '@react-navigation/native';
 import { authService } from '../services/authService';
+import { GOOGLE_AUTH, isGoogleConfigured } from '../constants/googleAuth';
 
 let AppleAuthentication;
 if (Platform.OS === 'ios') {
@@ -33,22 +34,13 @@ export default function SignInScreen() {
   const [passwordError, setPasswordError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Google Sign In disabled - placeholder credentials would cause App Store rejection
-  // To enable: Configure real OAuth credentials in Google Cloud Console and update these values
-  const GOOGLE_IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID';
-  const GOOGLE_ANDROID_CLIENT_ID = 'YOUR_ANDROID_CLIENT_ID';
-  const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID';
-  
-  // Check if Google credentials are configured (not placeholders)
-  const isGoogleConfigured = 
-    GOOGLE_IOS_CLIENT_ID !== 'YOUR_IOS_CLIENT_ID' &&
-    GOOGLE_ANDROID_CLIENT_ID !== 'YOUR_ANDROID_CLIENT_ID' &&
-    GOOGLE_WEB_CLIENT_ID !== 'YOUR_WEB_CLIENT_ID';
-  
+  // Google Sign In uses OAuth credentials from Google Cloud Console
+  // Create them at: https://console.cloud.google.com/apis/credentials
+  // and add the client IDs to src/constants/googleAuth.js
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_AUTH.iosClientId,
+    androidClientId: GOOGLE_AUTH.androidClientId,
+    webClientId: GOOGLE_AUTH.webClientId,
   });
 
   React.useEffect(() => {
@@ -56,17 +48,25 @@ export default function SignInScreen() {
       const { authentication } = response;
       const handleGoogleAuth = async () => {
         try {
+          const accessToken = authentication?.accessToken;
+          if (!accessToken) {
+            Alert.alert('Error', 'Google sign in failed. Please try again.');
+            return;
+          }
+
+          // Authenticate with backend using the Google access token
+          const result = await authService.loginWithGoogle(accessToken);
+
           // Sign in existing user (not new user) - pass isNewUser=false
           // This ensures existing users don't see the welcome deal
-          await signIn({
-            id: authentication?.accessToken || 'google_user',
-            name: 'Google User',
-            email: '',
-            provider: 'google',
-          }, false);
+          await signIn(result.user, result.isNewUser);
           navigation.replace('Main');
         } catch (error) {
-          Alert.alert('Error', 'Failed to sign in. Please try again.');
+          if (error.message === 'GOOGLE_EMAIL_MISSING') {
+            Alert.alert('Email Required', 'We could not retrieve your email from Google. Please sign up with your email and password.');
+          } else {
+            Alert.alert('Error', 'Failed to sign in with Google. Please try again.');
+          }
         }
       };
       handleGoogleAuth();
@@ -387,7 +387,7 @@ export default function SignInScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Sign In disabled until real OAuth credentials are configured */}
+          {/* Google Sign In - shown when OAuth credentials are configured */}
           {isGoogleConfigured && (
             <TouchableOpacity
               style={styles.googleButton}

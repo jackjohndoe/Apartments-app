@@ -69,6 +69,81 @@ export const authService = {
     }
   },
 
+  // Google Sign In - requires a valid Google OAuth access token
+  loginWithGoogle: async (accessToken) => {
+    try {
+      if (!accessToken) {
+        throw new Error('GOOGLE_TOKEN_MISSING');
+      }
+
+      // 1. Fetch the user's Google profile with the access token
+      let profile;
+      try {
+        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!profileResponse.ok) {
+          throw new Error('GOOGLE_PROFILE_FAILED');
+        }
+        profile = await profileResponse.json();
+      } catch (profileError) {
+        throw new Error('GOOGLE_PROFILE_FAILED');
+      }
+
+      const googleUserId = profile.sub;
+      const userEmail = (profile.email || '').toLowerCase().trim();
+      const userName = profile.name || profile.given_name || 'Google User';
+      const picture = profile.picture || null;
+
+      if (!googleUserId) {
+        throw new Error('GOOGLE_PROFILE_FAILED');
+      }
+
+      if (!userEmail) {
+        throw new Error('GOOGLE_EMAIL_MISSING');
+      }
+
+      // 2. Derive a stable password from the Google user ID
+      // Backend requires a password, so we use a consistent derived one (same as Apple flow)
+      const derivedPassword = `Google_Login_${googleUserId}`;
+
+      // 3. Save the Google profile (name + picture) so it is restored after sign-in
+      try {
+        const { saveUserProfile } = await import('../utils/userStorage');
+        await saveUserProfile(userEmail, { name: userName, profilePicture: picture });
+      } catch (profileSaveError) {
+        console.warn('Could not save Google profile locally (non-fatal):', profileSaveError.message);
+      }
+
+      // 4. Try to log in first (existing Google user)
+      try {
+        const loginResponse = await authService.login(userEmail, derivedPassword);
+        return { ...loginResponse, isNewUser: false, googleProfile: { name: userName, picture } };
+      } catch (loginError) {
+        // 5. Login failed - register as a new user
+        try {
+          const registerResponse = await authService.register({
+            email: userEmail,
+            password: derivedPassword,
+            name: userName,
+            role: 'HOST',
+            provider: 'google',
+            googleUserId,
+          });
+          return { ...registerResponse, isNewUser: true, googleProfile: { name: userName, picture } };
+        } catch (registerError) {
+          const errorMsg = registerError.message || registerError.toString();
+          if (errorMsg.toLowerCase().includes('exist') || errorMsg.toLowerCase().includes('duplicate')) {
+            throw new Error('Account already exists with this email. Please sign in with your email and password.');
+          }
+          throw registerError;
+        }
+      }
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Login - Requires backend connection
   login: async (email, password) => {
     try {
