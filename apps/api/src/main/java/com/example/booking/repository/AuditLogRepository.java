@@ -20,4 +20,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByResource(@Param("resourceType") String resourceType, @Param("resourceId") Long resourceId);
     
     Page<AuditLog> findByCreatedAtBetweenOrderByCreatedAtDesc(OffsetDateTime start, OffsetDateTime end, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM AuditLog a WHERE a.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

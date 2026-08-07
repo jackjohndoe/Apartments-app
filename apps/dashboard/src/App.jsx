@@ -7,6 +7,7 @@ import Listings from '@/pages/Listings'
 import Bookings from '@/pages/Bookings'
 import Transactions from '@/pages/Transactions'
 import AuditLogs from '@/pages/AuditLogs'
+import Admins from '@/pages/Admins'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
@@ -78,6 +79,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AuditLogs />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admins"
+        element={
+          <ProtectedRoute>
+            <Admins />
           </ProtectedRoute>
         }
       />

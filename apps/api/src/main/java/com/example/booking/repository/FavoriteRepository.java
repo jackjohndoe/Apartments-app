@@ -13,6 +13,8 @@ public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
     boolean existsByUserIdAndListingId(Long userId, Long listingId);
     void deleteByUserIdAndListingId(Long userId, Long listingId);
     Page<Favorite> findByUserId(Long userId, Pageable pageable);
+    void deleteByListingId(Long listingId);
+    void deleteByUserId(Long userId);
 
     @Query("SELECT f.listing.id FROM Favorite f WHERE f.user.id = :userId")
     Set<Long> findListingIdsByUserId(@Param("userId") Long userId);

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import AuthShell from '@/components/AuthShell'
 import DataTable from '@/components/DataTable'
-import { apiFetch } from '@/lib/api'
+import { getAdminTransactions } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -44,12 +44,13 @@ export default function Transactions() {
   const fetchTransactions = useCallback(async () => {
     setLoading(true)
     try {
-      const txData = await apiFetch(`/api/wallet/transactions?page=${page}&size=20`)
+      const txData = await getAdminTransactions(page, 20)
       if (txData && txData.content) {
         setTransactions(txData.content)
         setTotalPages(txData.totalPages || 0)
       }
-    } catch {
+    } catch (err) {
+      console.error(err)
       setTransactions([])
       setTotalPages(0)
     } finally {
@@ -75,6 +76,16 @@ export default function Transactions() {
 
   const columns = [
     { key: 'id', label: 'ID' },
+    {
+      key: 'userName',
+      label: 'User',
+      render: (val, row) => (
+        <div>
+          <span className="font-medium">{val}</span>
+          <span className="block text-xs text-gray-400">{row.userEmail}</span>
+        </div>
+      ),
+    },
     {
       key: 'type',
       label: 'Type',

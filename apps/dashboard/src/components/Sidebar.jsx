@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Wallet,
   ScrollText,
+  ShieldCheck,
   LogOut,
 } from 'lucide-react'
 
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/bookings', label: 'Bookings', icon: CalendarDays },
   { to: '/transactions', label: 'Transactions', icon: Wallet },
   { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText },
+  { to: '/admins', label: 'Admins', icon: ShieldCheck },
 ]
 
 export default function Sidebar() {

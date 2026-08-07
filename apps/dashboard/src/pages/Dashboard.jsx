@@ -25,6 +25,14 @@ import {
   Cell,
   Legend,
 } from 'recharts'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#06b6d4']
 
@@ -54,6 +62,26 @@ export default function Dashboard() {
         { name: 'Active', value: stats.activeBookings },
         { name: 'Completed', value: stats.completedBookings },
         { name: 'Remaining', value: Math.max(0, stats.totalBookings - stats.activeBookings - stats.completedBookings) },
+      ]
+    : []
+
+  const analyticsRows = stats
+    ? [
+        { metric: 'Total Users', value: Number(stats.totalUsers).toLocaleString() },
+        { metric: 'Total Hosts', value: Number(stats.totalHosts).toLocaleString() },
+        { metric: 'Total Guests', value: Number(stats.totalGuests).toLocaleString() },
+        { metric: 'Total Listings', value: Number(stats.totalListings).toLocaleString() },
+        { metric: 'Total Photos Uploaded', value: Number(stats.totalPhotos).toLocaleString() },
+        { metric: 'Total Bookings', value: Number(stats.totalBookings).toLocaleString() },
+        { metric: 'Active Bookings (in progress)', value: Number(stats.activeBookings).toLocaleString() },
+        { metric: 'Completed Bookings', value: Number(stats.completedBookings).toLocaleString() },
+        {
+          metric: 'Upcoming Bookings',
+          value: Math.max(0, Number(stats.totalBookings) - Number(stats.activeBookings) - Number(stats.completedBookings)).toLocaleString(),
+        },
+        { metric: 'Photos per Listing', value: stats.totalListings ? (stats.totalPhotos / stats.totalListings).toFixed(1) : '0' },
+        { metric: 'Bookings per User', value: stats.totalUsers ? (stats.totalBookings / stats.totalUsers).toFixed(1) : '0' },
+        { metric: 'Total Revenue (completed)', value: `₦${Number(stats.totalRevenue || 0).toLocaleString()}` },
       ]
     : []
 
@@ -200,6 +228,30 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Analytics Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-medium text-gray-500">Metric</TableHead>
+                      <TableHead className="font-medium text-gray-500 text-right">Value</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analyticsRows.map((row) => (
+                      <TableRow key={row.metric}>
+                        <TableCell className="text-gray-700">{row.metric}</TableCell>
+                        <TableCell className="font-semibold text-gray-900 text-right">{row.value}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

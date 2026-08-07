@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     Page<Review> findByListingId(Long listingId, Pageable pageable);
@@ -17,4 +18,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     Double calculateAverageRating(@Param("listingId") Long listingId);
 
     long countByListingId(Long listingId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Review r WHERE r.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

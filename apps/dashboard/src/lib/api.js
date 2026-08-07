@@ -35,7 +35,20 @@ export async function apiFetch(path, options = {}) {
     throw new Error(body.message || `Request failed with status ${res.status}`)
   }
 
-  return res.json()
+  if (res.status === 204) {
+    return null
+  }
+
+  const text = await res.text()
+  if (!text) {
+    return null
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
 }
 
 export async function login(email, password) {
@@ -55,9 +68,10 @@ export async function getStats() {
   return apiFetch('/api/admin/stats')
 }
 
-export async function getUsers(page = 0, size = 20, role = '') {
+export async function getUsers(page = 0, size = 20, role = '', search = '') {
   const params = new URLSearchParams({ page, size })
   if (role) params.set('role', role)
+  if (search) params.set('q', search)
   return apiFetch(`/api/admin/users?${params}`)
 }
 
@@ -68,14 +82,63 @@ export async function updateUserRole(userId, role) {
   })
 }
 
-export async function getListings(page = 0, size = 20) {
-  return apiFetch(`/api/admin/listings?page=${page}&size=${size}`)
+export async function deleteUser(userId) {
+  return apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
 }
 
-export async function getBookings(page = 0, size = 20) {
-  return apiFetch(`/api/admin/bookings?page=${page}&size=${size}`)
+export async function getListings(page = 0, size = 20, search = '') {
+  const params = new URLSearchParams({ page, size })
+  if (search) params.set('q', search)
+  return apiFetch(`/api/admin/listings?${params}`)
+}
+
+export async function createListing(listing) {
+  return apiFetch('/api/admin/listings', {
+    method: 'POST',
+    body: JSON.stringify(listing),
+  })
+}
+
+export async function deleteListing(listingId) {
+  return apiFetch(`/api/admin/listings/${listingId}`, { method: 'DELETE' })
+}
+
+export async function getBookings(page = 0, size = 20, search = '') {
+  const params = new URLSearchParams({ page, size })
+  if (search) params.set('q', search)
+  return apiFetch(`/api/admin/bookings?${params}`)
+}
+
+export async function cancelBooking(bookingId) {
+  return apiFetch(`/api/admin/bookings/${bookingId}`, { method: 'DELETE' })
+}
+
+export async function completeBooking(bookingId) {
+  return apiFetch(`/api/admin/bookings/${bookingId}/complete`, { method: 'POST' })
+}
+
+export async function getAdminTransactions(page = 0, size = 20) {
+  return apiFetch(`/api/admin/transactions?page=${page}&size=${size}`)
 }
 
 export async function getAuditLogs(page = 0, size = 20) {
   return apiFetch(`/api/admin/audit-logs?page=${page}&size=${size}`)
+}
+
+export async function getAdmins(page = 0, size = 20) {
+  return apiFetch(`/api/admin/admins?page=${page}&size=${size}`)
+}
+
+export async function createAdmin(admin) {
+  return apiFetch('/api/admin/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(admin),
+  })
+}
+
+export async function updateAdminStatus(adminId, status) {
+  return apiFetch(`/api/admin/admins/${adminId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
 }

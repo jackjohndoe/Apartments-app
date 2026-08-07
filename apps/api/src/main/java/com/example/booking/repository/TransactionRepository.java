@@ -32,4 +32,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByFlutterwaveTransferId(String flutterwaveTransferId);
     
     List<Transaction> findByWalletIdAndStatus(Long walletId, Transaction.Status status);
+
+    List<Transaction> findByUserId(Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Transaction t WHERE t.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM Transaction t WHERE t.booking.id = :bookingId")
+    void deleteByBookingId(@Param("bookingId") Long bookingId);
 }
