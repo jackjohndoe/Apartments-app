@@ -3,6 +3,7 @@ package com.example.booking.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -40,6 +41,9 @@ public class SecurityConfig {
     private final BookingUserDetailsService userDetailsService;
     private final AdminUserDetailsService adminUserDetailsService;
     private final ObjectMapper objectMapper;
+
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -98,6 +102,19 @@ public class SecurityConfig {
 
         configuration.addAllowedOriginPattern("http://localhost:*");
         configuration.addAllowedOriginPattern("http://127.0.0.1:*");
+
+        if ("*".equals(allowedOrigins) || allowedOrigins == null || allowedOrigins.trim().isEmpty()) {
+            for (String origin : new String[]{"http://localhost:3001", "http://localhost:8081", "http://localhost:5173", "http://localhost:19006"}) {
+                configuration.addAllowedOrigin(origin);
+            }
+        } else {
+            for (String origin : allowedOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    configuration.addAllowedOrigin(trimmed);
+                }
+            }
+        }
 
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
