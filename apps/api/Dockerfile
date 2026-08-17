@@ -27,7 +27,7 @@ EXPOSE 8080
 
 # Health check (Increased start period for slow DB connections)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+  CMD ["sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8084}/api/health || exit 1"]
 
 # Set default environment variable
 ENV SPRING_PROFILES_ACTIVE=staging
