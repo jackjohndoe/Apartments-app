@@ -70,7 +70,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint())
                         .accessDeniedHandler(accessDeniedHandler()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/admin/auth/login", "/api/health/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/admin/auth/login", "/api/admin/auth/bootstrap", "/api/health/**").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/api/listings/my-listings").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/apartments/my-listings").authenticated()

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 public interface AdminUserService {
     AdminAuthResponse login(AdminLoginRequest request);
     AdminAuthResponse register(AdminRegisterRequest request, String creatorEmail);
+    AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy);
     AdminAdminUserResponse getById(Long id);
     Page<AdminAdminUserResponse> listAll(Pageable pageable);
     AdminAdminUserResponse update(Long id, AdminUpdateRequest request);

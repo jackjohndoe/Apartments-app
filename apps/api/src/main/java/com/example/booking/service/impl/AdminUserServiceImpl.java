@@ -7,6 +7,8 @@ import com.example.booking.exception.ResourceNotFoundException;
 import com.example.booking.repository.AdminUserRepository;
 import com.example.booking.security.JwtService;
 import com.example.booking.service.AdminUserService;
+import com.example.booking.service.EmailService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,19 +22,29 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
+
+    @Value("${admin.allowed-email-domain:apartify.com}")
+    private String allowedEmailDomain;
 
     public AdminUserServiceImpl(AdminUserRepository adminUserRepository,
                                  PasswordEncoder passwordEncoder,
-                                 JwtService jwtService) {
+                                 JwtService jwtService,
+                                 EmailService emailService) {
         this.adminUserRepository = adminUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 
     @Override
     public AdminAuthResponse login(AdminLoginRequest request) {
         AdminUser admin = adminUserRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadRequestException("Admin account not found with email: " + request.getEmail()));
+
+        if (!isEmailDomainAllowed(admin.getEmail())) {
+            throw new BadRequestException("Access restricted to @" + allowedEmailDomain + " email addresses only.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), admin.getPassword())) {
             throw new BadRequestException("Invalid email or password.");
@@ -61,6 +73,10 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BadRequestException("An admin account with email '" + request.getEmail() + "' already exists.");
         }
 
+        if (!isEmailDomainAllowed(request.getEmail())) {
+            throw new BadRequestException("Registration restricted to @" + allowedEmailDomain + " email addresses only.");
+        }
+
         AdminUser admin = AdminUser.builder()
                 .name(request.getName())
                 .email(request.getEmail())
@@ -80,6 +96,53 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .name(admin.getName())
                 .role("ADMIN")
                 .build();
+    }
+
+    private boolean isEmailDomainAllowed(String email) {
+        if (email == null || !email.contains("@")) return false;
+        String domain = email.substring(email.lastIndexOf("@") + 1);
+        return domain.equalsIgnoreCase(allowedEmailDomain);
+    }
+
+    @Override
+    public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy) {
+        if (adminUserRepository.existsByEmail(email)) {
+            throw new BadRequestException("An admin account with email '" + email + "' already exists.");
+        }
+
+        if (!isEmailDomainAllowed(email)) {
+            throw new BadRequestException("Invitation restricted to @" + allowedEmailDomain + " email addresses only.");
+        }
+
+        String rawPassword = generateRandomPassword();
+
+        AdminUser admin = AdminUser.builder()
+                .name(name)
+                .email(email)
+                .password(passwordEncoder.encode(rawPassword))
+                .department(department)
+                .status(AdminUser.Status.ACTIVE)
+                .build();
+
+        admin = adminUserRepository.save(admin);
+
+        try {
+            emailService.sendAdminInviteEmail(email, name, rawPassword);
+        } catch (Exception e) {
+            // Admin is created even if email fails — password shown in response
+        }
+
+        return toResponse(admin);
+    }
+
+    private String generateRandomPassword() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
+        StringBuilder sb = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 12; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     @Override

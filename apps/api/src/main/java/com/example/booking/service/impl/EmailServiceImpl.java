@@ -99,6 +99,83 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendAdminInviteEmail(String toEmail, String name, String password) {
+        try {
+            if (postmarkApiToken == null || postmarkApiToken.trim().isEmpty()) {
+                throw new IllegalStateException("Postmark API token is not configured");
+            }
+
+            String htmlContent = buildAdminInviteEmailHtml(name, toEmail, password);
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("From", String.format("%s <%s>", fromName, fromEmail));
+            payload.put("To", toEmail);
+            payload.put("Subject", "You've Been Invited to Apartify Africa Admin Panel");
+            payload.put("HtmlBody", htmlContent);
+            payload.put("MessageStream", "outbound");
+
+            String jsonBody = objectMapper.writeValueAsString(payload);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.postmarkapp.com/email"))
+                    .header("Content-Type", "application/json")
+                    .header("X-Postmark-Server-Token", postmarkApiToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                    .build();
+
+            log.info("📧 Sending admin invite email via Postmark to: {}", toEmail);
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                log.info("✅ Admin invite email sent successfully via Postmark. Status: {}", response.statusCode());
+            } else {
+                log.error("❌ Failed to send admin invite email via Postmark. Status: {}, Body: {}", response.statusCode(), response.body());
+                throw new RuntimeException("Postmark API error: " + response.statusCode() + " - " + response.body());
+            }
+
+        } catch (IOException | InterruptedException e) {
+            log.error("❌ Error sending admin invite email to: {}. Error: {}", toEmail, e.getMessage(), e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new RuntimeException("Failed to send admin invite email", e);
+        }
+    }
+
+    private String buildAdminInviteEmailHtml(String name, String email, String password) {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Welcome to Apartify Africa Admin</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
+                    <h2 style="color: #333; margin-top: 0;">Welcome to Apartify Africa Admin Panel</h2>
+                    <p>Hello %s,</p>
+                    <p>You have been invited to join the Apartify Africa Admin Panel. Here are your login credentials:</p>
+                    <div style="background-color: #fff; padding: 16px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0;">
+                        <p style="margin: 4px 0;"><strong>Email:</strong> %s</p>
+                        <p style="margin: 4px 0;"><strong>Password:</strong> <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 14px;">%s</code></p>
+                    </div>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="https://dashboard-six-lac-95.vercel.app/login" style="background-color: #f59e0b; color: #1a1a2e; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Login to Dashboard</a>
+                    </div>
+                    <p><strong>Please change your password after your first login for security.</strong></p>
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+                    <p style="color: #999; font-size: 12px;">
+                        This is an automated message. Please do not reply to this email.
+                    </p>
+                </div>
+            </body>
+            </html>
+            """.formatted(name, email, password);
+    }
+
     private String buildPasswordResetEmailHtml(String resetLink) {
         return """
             <!DOCTYPE html>

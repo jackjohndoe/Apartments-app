@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import AuthShell from '@/components/AuthShell'
 import DataTable from '@/components/DataTable'
-import { getAdmins, createAdmin, updateAdminStatus } from '@/lib/api'
+import { getAdmins, createAdmin, inviteAdmin, updateAdminStatus } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserPlus, X, Loader2 } from 'lucide-react'
+import { UserPlus, Send, X, Loader2 } from 'lucide-react'
 
 const statusColors = {
   ACTIVE: 'bg-green-100 text-green-700 border-green-200',
@@ -109,12 +109,112 @@ function AddAdminModal({ onClose, onCreated }) {
   )
 }
 
+function InviteAdminModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ name: '', email: '', department: '' })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  function update(field, value) {
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    if (!form.name.trim() || !form.email.trim()) {
+      setError('Name and email are required.')
+      return
+    }
+
+    if (!form.email.endsWith('@apartify.com')) {
+      setError('Email must be an @apartify.com address.')
+      return
+    }
+
+    setCreating(true)
+    try {
+      await inviteAdmin(form.email.trim(), form.name.trim(), form.department.trim() || undefined)
+      setSuccess(`Invitation sent to ${form.email}. They will receive their password via email.`)
+      setForm({ name: '', email: '', department: '' })
+      await onCreated()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900">Invite Admin User</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg border border-red-100">
+              {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 text-green-600 text-sm px-4 py-3 rounded-lg border border-green-100">
+              {success}
+            </div>
+          )}
+
+          <div className="bg-blue-50 text-blue-700 text-sm px-4 py-3 rounded-lg border border-blue-100">
+            A random password will be generated and sent to the invitee's email address.
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full name *</label>
+            <Input value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Jane Doe" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="jane@apartify.com" />
+            <p className="text-xs text-gray-400 mt-1">Must be an @apartify.com email address</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+            <Input value={form.department} onChange={(e) => update('department', e.target.value)} placeholder="Operations" />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={creating}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Send Invitation
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function Admins() {
   const [admins, setAdmins] = useState([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
 
   const fetchAdmins = useCallback(async () => {
@@ -209,10 +309,16 @@ export default function Admins() {
             <h1 className="text-2xl font-bold text-gray-900">Admins</h1>
             <p className="text-gray-500 mt-1">Manage dashboard admin users</p>
           </div>
-          <Button onClick={() => setShowAdd(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Admin
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setShowInvite(true)}>
+              <Send className="h-4 w-4 mr-2" />
+              Invite Admin
+            </Button>
+            <Button onClick={() => setShowAdd(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Admin
+            </Button>
+          </div>
         </div>
 
         <DataTable
@@ -228,6 +334,13 @@ export default function Admins() {
       {showAdd && (
         <AddAdminModal
           onClose={() => setShowAdd(false)}
+          onCreated={fetchAdmins}
+        />
+      )}
+
+      {showInvite && (
+        <InviteAdminModal
+          onClose={() => setShowInvite(false)}
           onCreated={fetchAdmins}
         />
       )}

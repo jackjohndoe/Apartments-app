@@ -136,6 +136,13 @@ export async function createAdmin(admin) {
   })
 }
 
+export async function inviteAdmin(email, name, department) {
+  return apiFetch('/api/admin/invite', {
+    method: 'POST',
+    body: JSON.stringify({ email, name, department }),
+  })
+}
+
 export async function updateAdminStatus(adminId, status) {
   return apiFetch(`/api/admin/admins/${adminId}/status`, {
     method: 'PATCH',
