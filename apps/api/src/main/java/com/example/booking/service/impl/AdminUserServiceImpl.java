@@ -106,23 +106,34 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy, String rawPassword) {
-        if (adminUserRepository.existsByEmail(email)) {
-            throw new BadRequestException("An admin account with email '" + email + "' already exists.");
-        }
-
         if (!isEmailDomainAllowed(email)) {
             throw new BadRequestException("Invitation restricted to @" + allowedEmailDomain + " email addresses only.");
         }
 
         String password = (rawPassword != null && !rawPassword.isBlank()) ? rawPassword : generateRandomPassword();
 
-        AdminUser admin = AdminUser.builder()
-                .name(name)
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .department(department)
-                .status(AdminUser.Status.ACTIVE)
-                .build();
+        AdminUser admin;
+        boolean isNew = false;
+
+        AdminUser existing = adminUserRepository.findByEmail(email).orElse(null);
+        if (existing != null) {
+            admin = existing;
+            if (name != null && !name.isBlank()) admin.setName(name);
+            if (department != null && !department.isBlank()) admin.setDepartment(department);
+        } else {
+            isNew = true;
+            admin = AdminUser.builder()
+                    .name(name)
+                    .email(email)
+                    .password(passwordEncoder.encode(password))
+                    .department(department)
+                    .status(AdminUser.Status.ACTIVE)
+                    .build();
+        }
+
+        if (isNew || rawPassword != null && !rawPassword.isBlank()) {
+            admin.setPassword(passwordEncoder.encode(password));
+        }
 
         admin = adminUserRepository.save(admin);
 
