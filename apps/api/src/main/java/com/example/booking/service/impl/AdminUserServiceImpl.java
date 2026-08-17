@@ -102,6 +102,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy) {
+        return inviteAdmin(email, name, department, invitedBy, null);
+    }
+
+    public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy, String rawPassword) {
         if (adminUserRepository.existsByEmail(email)) {
             throw new BadRequestException("An admin account with email '" + email + "' already exists.");
         }
@@ -110,12 +114,12 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BadRequestException("Invitation restricted to @" + allowedEmailDomain + " email addresses only.");
         }
 
-        String rawPassword = generateRandomPassword();
+        String password = (rawPassword != null && !rawPassword.isBlank()) ? rawPassword : generateRandomPassword();
 
         AdminUser admin = AdminUser.builder()
                 .name(name)
                 .email(email)
-                .password(passwordEncoder.encode(rawPassword))
+                .password(passwordEncoder.encode(password))
                 .department(department)
                 .status(AdminUser.Status.ACTIVE)
                 .build();
@@ -123,7 +127,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         admin = adminUserRepository.save(admin);
 
         try {
-            emailService.sendAdminInviteEmail(email, name, rawPassword);
+            emailService.sendAdminInviteEmail(email, name, password);
         } catch (Exception e) {
             // Admin is created even if email fails — password shown in response
         }

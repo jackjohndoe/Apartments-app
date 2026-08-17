@@ -31,6 +31,6 @@ public class AdminInviteController {
             @AuthenticationPrincipal AdminUserDetails admin) {
         String inviterEmail = admin != null ? admin.getAdminUser().getEmail() : "system";
         return ResponseEntity.ok(adminUserService.inviteAdmin(
-                request.getEmail(), request.getName(), request.getDepartment(), inviterEmail));
+                request.getEmail(), request.getName(), request.getDepartment(), inviterEmail, request.getPassword()));
     }
 }

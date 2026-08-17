@@ -14,4 +14,6 @@ public class InviteAdminRequest {
     private String name;
 
     private String department;
+
+    private String password;
 }
