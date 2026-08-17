@@ -106,6 +106,7 @@ public class UserServiceImpl implements UserService {
                 .bio(user.getBio())
                 .location(user.getLocation())
                 .role(user.getRole().name())
+                .kycLevel(user.getKycLevel() != null ? user.getKycLevel().name() : User.KycLevel.UNVERIFIED.name())
                 .build();
     }
 }

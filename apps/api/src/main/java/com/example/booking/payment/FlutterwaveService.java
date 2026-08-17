@@ -39,6 +39,7 @@ public class FlutterwaveService {
     private static final String VIRTUAL_ACCOUNT_URL = FLUTTERWAVE_API_BASE_URL + "/virtual-account-numbers";
     private static final String TRANSFER_URL = FLUTTERWAVE_API_BASE_URL + "/transfers";
     private static final String TRANSACTIONS_URL = FLUTTERWAVE_API_BASE_URL + "/transactions";
+    private static final String ACCOUNT_RESOLVE_URL = FLUTTERWAVE_API_BASE_URL + "/accounts/resolve";
     private static final String WEBHOOK_SECRET_HASH_HEADER = "verif-hash"; // Flutterwave webhook verification header
     private static final int CONNECT_TIMEOUT_MS = 10000; // 10 seconds
     private static final int READ_TIMEOUT_MS = 30000; // 30 seconds
@@ -463,6 +464,86 @@ public class FlutterwaveService {
         } catch (Exception e) {
             log.error("Unexpected error initiating transfer", e);
             throw new RuntimeException("Unexpected error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Resolve (verify) a bank account against the provider to confirm the account holder's name.
+     * Used for KYC bank-account binding so that withdrawals only go to accounts owned by the user.
+     *
+     * @param accountBank   Bank code (e.g., "044" for Access Bank)
+     * @param accountNumber Bank account number
+     * @return ResolvedAccount with provider availability and verification result
+     */
+    public ResolvedAccount resolveAccount(String accountBank, String accountNumber) {
+        if (secretKey == null || secretKey.trim().isEmpty()) {
+            log.warn("Flutterwave secret key not configured - bank account resolution unavailable, " +
+                    "falling back to local name-matching mode");
+            return ResolvedAccount.builder()
+                    .accountNumber(accountNumber)
+                    .bankCode(accountBank)
+                    .verified(false)
+                    .providerAvailable(false)
+                    .message("Flutterwave not configured")
+                    .build();
+        }
+
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("account_number", accountNumber);
+            params.put("account_bank", accountBank);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(params, createAuthenticatedHeaders());
+            ResponseEntity<FlutterwaveResolveResponse> response = restTemplate.exchange(
+                    ACCOUNT_RESOLVE_URL,
+                    HttpMethod.POST,
+                    entity,
+                    FlutterwaveResolveResponse.class
+            );
+
+            FlutterwaveResolveResponse body = response.getBody();
+            if (body != null && "success".equalsIgnoreCase(body.getStatus()) && body.getData() != null) {
+                log.info("Bank account resolved successfully: bank={}, number={}, name={}",
+                        accountBank, accountNumber, body.getData().getAccountName());
+                return ResolvedAccount.builder()
+                        .accountNumber(body.getData().getAccountNumber() != null ? body.getData().getAccountNumber() : accountNumber)
+                        .accountName(body.getData().getAccountName())
+                        .bankCode(accountBank)
+                        .verified(true)
+                        .providerAvailable(true)
+                        .message(body.getMessage())
+                        .build();
+            } else {
+                String errorMsg = body != null ? body.getMessage() : "Unknown error from Flutterwave";
+                log.error("Bank account resolution failed. Message: {}", errorMsg);
+                return ResolvedAccount.builder()
+                        .accountNumber(accountNumber)
+                        .bankCode(accountBank)
+                        .verified(false)
+                        .providerAvailable(true)
+                        .message(errorMsg)
+                        .build();
+            }
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            String responseBody = e.getResponseBodyAsString();
+            log.error("Flutterwave API error resolving account: HTTP {} - Response: {}",
+                    e.getStatusCode().value(), responseBody);
+            return ResolvedAccount.builder()
+                    .accountNumber(accountNumber)
+                    .bankCode(accountBank)
+                    .verified(false)
+                    .providerAvailable(true)
+                    .message(responseBody != null && !responseBody.isEmpty() ? responseBody : e.getMessage())
+                    .build();
+        } catch (RestClientException e) {
+            log.error("Network error resolving bank account", e);
+            return ResolvedAccount.builder()
+                    .accountNumber(accountNumber)
+                    .bankCode(accountBank)
+                    .verified(false)
+                    .providerAvailable(true)
+                    .message("Network error connecting to Flutterwave: " + e.getMessage())
+                    .build();
         }
     }
 
@@ -918,6 +999,35 @@ public class FlutterwaveService {
         private String completeMessage;
         @JsonProperty("created_at")
         private String createdAt;
+    }
+
+    // Bank account resolution DTOs
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class FlutterwaveResolveResponse {
+        private String status;
+        private String message;
+        private ResolveData data;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ResolveData {
+        @JsonProperty("account_number")
+        private String accountNumber;
+        @JsonProperty("account_name")
+        private String accountName;
+    }
+
+    @lombok.Builder
+    @Data
+    public static class ResolvedAccount {
+        private String accountNumber;
+        private String accountName;
+        private String bankCode;
+        private boolean verified;
+        private boolean providerAvailable;
+        private String message;
     }
 
     public static class TransferResponse {

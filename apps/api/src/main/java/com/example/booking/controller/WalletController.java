@@ -1,11 +1,14 @@
 package com.example.booking.controller;
 
 import com.example.booking.dto.common.PageResponse;
+import com.example.booking.dto.kyc.BindBankRequest;
+import com.example.booking.dto.kyc.KycStatusResponse;
 import com.example.booking.dto.wallet.DepositRequest;
 import com.example.booking.dto.wallet.TransactionResponse;
 import com.example.booking.dto.wallet.WalletResponse;
 import com.example.booking.dto.wallet.WithdrawalRequest;
 import com.example.booking.security.BookingUserDetails;
+import com.example.booking.service.KycService;
 import com.example.booking.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,9 +34,11 @@ import java.util.Map;
 public class WalletController {
 
     private final WalletService walletService;
+    private final KycService kycService;
 
-    public WalletController(WalletService walletService) {
+    public WalletController(WalletService walletService, KycService kycService) {
         this.walletService = walletService;
+        this.kycService = kycService;
     }
 
     @Operation(summary = "Get wallet", description = "Retrieves or creates the authenticated user's wallet")
@@ -71,8 +76,21 @@ public class WalletController {
         return ResponseEntity.ok(walletService.withdraw(request, userDetails.getUser()));
     }
 
-    @Operation(summary = "Get transaction history", description = "Retrieves paginated transaction history for the user's wallet")
-    @ApiResponse(responseCode = "200", description = "Transactions retrieved successfully",
+    @Operation(summary = "Bind a bank account", description = "Verifies and binds a bank account (must be in the user's own name). Withdrawals are only allowed to the bound account.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Bank account bound",
+                    content = @Content(schema = @Schema(implementation = KycStatusResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Verification failed or account not in user's name")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PostMapping("/bind-bank")
+    public ResponseEntity<KycStatusResponse> bindBank(@Valid @RequestBody BindBankRequest request,
+                                                      @AuthenticationPrincipal BookingUserDetails userDetails) {
+        kycService.bindBankAccount(userDetails.getUser(), request);
+        return ResponseEntity.ok(kycService.getStatus(userDetails.getUser()));
+    }
+
+    @Operation(summary = "Get transaction history", description = "Retrieves paginated transaction history for the user's wallet")    @ApiResponse(responseCode = "200", description = "Transactions retrieved successfully",
             content = @Content(schema = @Schema(implementation = PageResponse.class)))
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/transactions")

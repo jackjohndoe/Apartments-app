@@ -425,6 +425,18 @@ export default function ProfileScreen() {
             <Text style={styles.menuArrow}>›</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Kyc')}
+          >
+            <MaterialIcons name="verified-user" size={24} color="#FFD700" />
+            <View style={styles.menuContent}>
+              <Text style={styles.menuTitle}>Account Verification</Text>
+              <Text style={styles.menuSubtitle}>Verify your identity (KYC) to enable withdrawals</Text>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
           {(user?.role === 'HOST' || user?.role === 'ADMIN') && (
             <TouchableOpacity 
               style={styles.menuItem}

@@ -1,4 +1,4 @@
-package com.example.booking.dto.admin;
+package com.example.booking.dto.kyc;
 
 import lombok.Builder;
 import lombok.Value;
@@ -7,20 +7,18 @@ import java.time.OffsetDateTime;
 
 @Value
 @Builder
-public class AdminUserResponse {
-    Long id;
+public class KycAdminResponse {
+    Long userId;
     String name;
     String email;
     String phone;
     String role;
-    String avatarUrl;
-    String location;
-    long listingCount;
-    long bookingCount;
-    OffsetDateTime createdAt;
     String kycLevel;
-    String kycDocumentType;
-    String kycDocumentNumberMasked;
+    String documentType;
+    String documentNumberMasked;
+    String rejectionReason;
+    OffsetDateTime submittedAt;
+    OffsetDateTime reviewedAt;
     String boundBankCode;
     String boundBankAccountNumber;
     String boundBankAccountName;

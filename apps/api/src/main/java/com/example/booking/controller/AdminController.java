@@ -150,6 +150,13 @@ public class AdminController {
                 .listingCount(u.getListings() != null ? u.getListings().size() : 0)
                 .bookingCount(bookingRepository.findByUserId(u.getId(), PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements())
                 .createdAt(null)
+                .kycLevel(u.getKycLevel() != null ? u.getKycLevel().name() : null)
+                .kycDocumentType(u.getKycDocumentType())
+                .kycDocumentNumberMasked(u.getKycDocumentNumberMasked())
+                .boundBankCode(u.getBoundBankCode())
+                .boundBankAccountNumber(u.getBoundBankAccountNumber())
+                .boundBankAccountName(u.getBoundBankAccountName())
+                .boundBankVerifiedAt(u.getBoundBankVerifiedAt())
                 .build());
 
         return ResponseEntity.ok(PageResponse.from(response));
@@ -172,6 +179,13 @@ public class AdminController {
                 .listingCount(u.getListings() != null ? u.getListings().size() : 0)
                 .bookingCount(bookingRepository.findByUserId(u.getId(), PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements())
                 .createdAt(null)
+                .kycLevel(u.getKycLevel() != null ? u.getKycLevel().name() : null)
+                .kycDocumentType(u.getKycDocumentType())
+                .kycDocumentNumberMasked(u.getKycDocumentNumberMasked())
+                .boundBankCode(u.getBoundBankCode())
+                .boundBankAccountNumber(u.getBoundBankAccountNumber())
+                .boundBankAccountName(u.getBoundBankAccountName())
+                .boundBankVerifiedAt(u.getBoundBankVerifiedAt())
                 .build());
     }
 
@@ -204,6 +218,13 @@ public class AdminController {
                 .role(user.getRole().name())
                 .avatarUrl(user.getAvatarUrl())
                 .location(user.getLocation())
+                .kycLevel(user.getKycLevel() != null ? user.getKycLevel().name() : null)
+                .kycDocumentType(user.getKycDocumentType())
+                .kycDocumentNumberMasked(user.getKycDocumentNumberMasked())
+                .boundBankCode(user.getBoundBankCode())
+                .boundBankAccountNumber(user.getBoundBankAccountNumber())
+                .boundBankAccountName(user.getBoundBankAccountName())
+                .boundBankVerifiedAt(user.getBoundBankVerifiedAt())
                 .build());
     }
 

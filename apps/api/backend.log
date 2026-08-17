@@ -1,0 +1,4650 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------< com.example:booking >-------------------------
+[INFO] Building booking 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.3.0:run (default-cli) > test-compile @ booking >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ booking ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ booking ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ booking ---
+[INFO] skip non existing resourceDirectory C:\Users\USER\Documents\GitHub\Apartments-app\apps\api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ booking ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:3.3.0:run (default-cli) < test-compile @ booking <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.3.0:run (default-cli) @ booking ---
+[INFO] Attaching agents: []
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.0)
+
+2026-08-14 17:30:14.749  INFO 24528 --- [           main] com.example.booking.BookingApplication   : Starting BookingApplication using Java 21.0.11 with PID 24528 (C:\Users\USER\Documents\GitHub\Apartments-app\apps\api\target\classes started by USER in C:\Users\USER\Documents\GitHub\Apartments-app\apps\api)
+2026-08-14 17:30:14.749  INFO 24528 --- [           main] com.example.booking.BookingApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-08-14 17:30:18.020  INFO 24528 --- [           main] c.e.booking.payment.FlutterwaveService   : Flutterwave Configuration Check (v3 API):
+2026-08-14 17:30:18.020  INFO 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Property secret-key: NOT SET
+2026-08-14 17:30:18.020  INFO 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Property encryption-key: NOT SET
+2026-08-14 17:30:18.020  INFO 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Env FLUTTERWAVE_SECRET_KEY: NOT SET
+2026-08-14 17:30:18.020  INFO 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Env FLUTTERWAVE_ENCRYPTION_KEY: NOT SET
+2026-08-14 17:30:18.020  WARN 24528 --- [           main] c.e.booking.payment.FlutterwaveService   : Flutterwave secret key is not configured. Virtual account creation will fail.
+2026-08-14 17:30:18.020  WARN 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Please set FLUTTERWAVE_SECRET_KEY environment variable in Railway.
+2026-08-14 17:30:18.020  WARN 24528 --- [           main] c.e.booking.payment.FlutterwaveService   : Flutterwave encryption key is not configured. Webhook verification will be disabled.
+2026-08-14 17:30:18.020  WARN 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Please set FLUTTERWAVE_ENCRYPTION_KEY environment variable in Railway.
+2026-08-14 17:30:18.020 ERROR 24528 --- [           main] c.e.booking.payment.FlutterwaveService   : ❌ FlutterwaveService initialized but credentials are missing!
+2026-08-14 17:30:18.020 ERROR 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :   Set these in Railway Variables:
+2026-08-14 17:30:18.020 ERROR 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :     FLUTTERWAVE_SECRET_KEY (Secret Key from Flutterwave dashboard)
+2026-08-14 17:30:18.020 ERROR 24528 --- [           main] c.e.booking.payment.FlutterwaveService   :     FLUTTERWAVE_ENCRYPTION_KEY (Encryption Key from Flutterwave dashboard)
+2026-08-14 17:30:18.348  WARN 24528 --- [           main] r$InitializeUserDetailsManagerConfigurer : Found 2 UserDetailsService beans, with names [adminUserDetailsService, bookingUserDetailsService]. Global Authentication Manager will not use a UserDetailsService for username/password login. Consider publishing a single UserDetailsService bean.
+2026-08-14 17:30:18.426  WARN 24528 --- [           main] c.e.b.service.impl.EmailServiceImpl      : ⚠️ Postmark API token is not configured. Email sending will fail.
+2026-08-14 17:30:18.536  WARN 24528 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-14 17:30:18.958  INFO 24528 --- [           main] com.example.booking.BookingApplication   : Started BookingApplication in 4.487 seconds (process running for 4.673)
+Hibernate: 
+    select
+        au1_0.id,
+        au1_0.avatar_url,
+        au1_0.created_at,
+        au1_0.department,
+        au1_0.email,
+        au1_0.last_login_at,
+        au1_0.name,
+        au1_0.notes,
+        au1_0.password,
+        au1_0.permissions,
+        au1_0.phone,
+        au1_0.status,
+        au1_0.updated_at 
+    from
+        admin_users au1_0 
+    where
+        au1_0.email=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.avatar_url,
+        u1_0.bio,
+        u1_0.bound_bank_account_name,
+        u1_0.bound_bank_account_number,
+        u1_0.bound_bank_code,
+        u1_0.bound_bank_verified_at,
+        u1_0.email,
+        u1_0.kyc_document_number_masked,
+        u1_0.kyc_document_type,
+        u1_0.kyc_level,
+        u1_0.kyc_rejection_reason,
+        u1_0.kyc_reviewed_at,
+        u1_0.kyc_submitted_at,
+        u1_0.location,
+        u1_0.name,
+        u1_0.password,
+        u1_0.phone,
+        u1_0.role,
+        u1_0.virtual_account_bank,
+        u1_0.virtual_account_created_at,
+        u1_0.virtual_account_flw_ref,
+        u1_0.virtual_account_name,
+        u1_0.virtual_account_number 
+    from
+        users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    insert 
+    into
+        users
+        (avatar_url, bio, bound_bank_account_name, bound_bank_account_number, bound_bank_code, bound_bank_verified_at, email, kyc_document_number_masked, kyc_document_type, kyc_level, kyc_rejection_reason, kyc_reviewed_at, kyc_submitted_at, location, name, password, phone, role, virtual_account_bank, virtual_account_created_at, virtual_account_flw_ref, virtual_account_name, virtual_account_number) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    returning id
+? Test user created: test@example.com / Test@1234
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.avatar_url,
+        u1_0.bio,
+        u1_0.bound_bank_account_name,
+        u1_0.bound_bank_account_number,
+        u1_0.bound_bank_code,
+        u1_0.bound_bank_verified_at,
+        u1_0.email,
+        u1_0.kyc_document_number_masked,
+        u1_0.kyc_document_type,
+        u1_0.kyc_level,
+        u1_0.kyc_rejection_reason,
+        u1_0.kyc_reviewed_at,
+        u1_0.kyc_submitted_at,
+        u1_0.location,
+        u1_0.name,
+        u1_0.password,
+        u1_0.phone,
+        u1_0.role,
+        u1_0.virtual_account_bank,
+        u1_0.virtual_account_created_at,
+        u1_0.virtual_account_flw_ref,
+        u1_0.virtual_account_name,
+        u1_0.virtual_account_number 
+    from
+        users u1_0 
+    where
+        u1_0.email=?
+Hibernate: 
+    insert 
+    into
+        users
+        (avatar_url, bio, bound_bank_account_name, bound_bank_account_number, bound_bank_code, bound_bank_verified_at, email, kyc_document_number_masked, kyc_document_type, kyc_level, kyc_rejection_reason, kyc_reviewed_at, kyc_submitted_at, location, name, password, phone, role, virtual_account_bank, virtual_account_created_at, virtual_account_flw_ref, virtual_account_name, virtual_account_number) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    returning id
+? Test user created: host@example.com / Test@1234
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+2026-08-14 20:54:17.507  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=3h7m40s176ms581µs999ns).
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        l1_0.id,
+        l1_0.average_rating,
+        l1_0.created_at,
+        l1_0.description,
+        l1_0.host_id,
+        l1_0.host_email,
+        l1_0.host_name,
+        l1_0.host_profile_picture,
+        l1_0.location,
+        l1_0.price,
+        l1_0.review_count,
+        l1_0.title 
+    from
+        listings l1_0 
+    offset
+        ? rows 
+    fetch
+        first ? rows only
+Hibernate: 
+    select
+        prt1_0.id,
+        prt1_0.created_at,
+        prt1_0.expiry_date,
+        prt1_0.token,
+        prt1_0.used,
+        prt1_0.user_id 
+    from
+        password_reset_tokens prt1_0
+2026-08-15 09:31:10.158  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=19m40s891ms219µs300ns).
+2026-08-15 15:13:17.698  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=5h42m18s338ms219µs100ns).
+2026-08-15 16:03:40.677  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=33m18s772ms785µs200ns).
+2026-08-15 16:11:42.798  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=2m2s32ms922µs600ns).
+2026-08-15 17:26:44.144  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1h13m39s342ms555µs600ns).
+2026-08-16 08:06:20.388  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=13h44m275ms832µs800ns).
+2026-08-16 10:38:51.284  WARN 24528 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=43m28s176ms835µs500ns).

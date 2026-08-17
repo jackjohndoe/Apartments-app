@@ -1,14 +1,17 @@
 package com.example.booking.service.impl;
 
+import com.example.booking.config.KycProperties;
 import com.example.booking.dto.wallet.DepositRequest;
 import com.example.booking.dto.wallet.TransactionResponse;
 import com.example.booking.dto.wallet.WalletResponse;
 import com.example.booking.dto.wallet.WithdrawalRequest;
 import com.example.booking.entity.Booking;
+import com.example.booking.entity.ComplianceFlag;
 import com.example.booking.entity.Transaction;
 import com.example.booking.entity.User;
 import com.example.booking.entity.Wallet;
 import com.example.booking.exception.BadRequestException;
+import com.example.booking.exception.ForbiddenException;
 import com.example.booking.exception.ResourceNotFoundException;
 import com.example.booking.payment.PaymentProvider;
 import com.example.booking.payment.FlutterwaveService;
@@ -19,6 +22,7 @@ import com.example.booking.repository.BookingRepository;
 import com.example.booking.repository.TransactionRepository;
 import com.example.booking.repository.UserRepository;
 import com.example.booking.repository.WalletRepository;
+import com.example.booking.service.ComplianceService;
 import com.example.booking.service.WalletService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,19 +43,25 @@ public class WalletServiceImpl implements WalletService {
     private final UserRepository userRepository;
     private final PaymentProvider paymentProvider;
     private final FlutterwaveService flutterwaveService;
+    private final KycProperties kycProperties;
+    private final ComplianceService complianceService;
 
     public WalletServiceImpl(WalletRepository walletRepository,
                              TransactionRepository transactionRepository,
                              BookingRepository bookingRepository,
                              UserRepository userRepository,
                              PaymentProvider paymentProvider,
-                             FlutterwaveService flutterwaveService) {
+                             FlutterwaveService flutterwaveService,
+                             KycProperties kycProperties,
+                             ComplianceService complianceService) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.paymentProvider = paymentProvider;
         this.flutterwaveService = flutterwaveService;
+        this.kycProperties = kycProperties;
+        this.complianceService = complianceService;
     }
 
     @Override
@@ -120,6 +130,34 @@ public class WalletServiceImpl implements WalletService {
                     return walletRepository.save(newWallet);
                 });
 
+        assertWalletActive(wallet);
+
+        // AML: enforce daily deposit caps by KYC tier
+        BigDecimal dailyLimit = dailyDepositLimit(user);
+        BigDecimal todayDeposits = transactionRepository.sumAmountByWalletTypesSince(
+                wallet.getId(),
+                java.util.List.of(Transaction.Type.DEPOSIT),
+                java.util.List.of(Transaction.Status.PENDING, Transaction.Status.PROCESSING, Transaction.Status.COMPLETED),
+                startOfDay());
+        if (todayDeposits.add(request.getAmount()).compareTo(dailyLimit) > 0) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.DEPOSIT_LIMIT_EXCEEDED,
+                    ComplianceFlag.Severity.HIGH,
+                    "Daily deposit limit exceeded: " + request.getAmount() + " NGN requested, "
+                            + todayDeposits + "/" + dailyLimit + " NGN used today",
+                    "kycLevel=" + (user.getKycLevel() != null ? user.getKycLevel().name() : "null"));
+            throw new BadRequestException("Daily deposit limit reached. You can deposit up to " + dailyLimit +
+                    " NGN per day at your current verification level. Please try again tomorrow or complete KYC verification to increase your limit.");
+        }
+
+        // Flag large deposits for compliance review
+        if (kycProperties.getLargeSingleTransactionThreshold() != null
+                && request.getAmount().compareTo(kycProperties.getLargeSingleTransactionThreshold()) >= 0) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.LARGE_TRANSACTION,
+                    ComplianceFlag.Severity.LOW,
+                    "Large deposit: " + request.getAmount() + " NGN",
+                    "type=DEPOSIT, kycLevel=" + (user.getKycLevel() != null ? user.getKycLevel().name() : "null"));
+        }
+
         // Create pending transaction - will be confirmed when Flutterwave webhook arrives
         String reference = request.getReference() != null ? request.getReference() : 
                 "DEP_" + System.currentTimeMillis() + "_" + user.getId();
@@ -168,26 +206,149 @@ public class WalletServiceImpl implements WalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for your account. " +
                         "Please contact support if you believe this is an error."));
 
-        if (wallet.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new BadRequestException("Insufficient wallet balance. Your current balance is " + 
-                    wallet.getBalance() + " " + wallet.getCurrency() + ", but you attempted to withdraw " + 
-                    request.getAmount() + " " + wallet.getCurrency() + ". Please deposit funds or adjust the withdrawal amount.");
+        assertWalletActive(wallet);
+
+        // AML: withdrawals require verified identity
+        if (user.getKycLevel() == null || !user.getKycLevel().isAtLeast(User.KycLevel.BASIC)) {
+            throw new ForbiddenException("Withdrawals require completed KYC verification. " +
+                    "Please complete KYC (Basic tier or higher) in your account before withdrawing funds. " +
+                    "Funds in your wallet remain safe until then.");
         }
 
-        // Use Flutterwave Transfer API to send money to user's bank account
+        BigDecimal amount = request.getAmount();
+
+        // AML: withdrawals only allowed to the user's verified, bound bank account
+        String requestedBank = request.getAccountBank() != null ? request.getAccountBank()
+                : extractBankCode(request.getDestinationAccountId());
+        String requestedAccount = request.getAccountNumber() != null ? request.getAccountNumber()
+                : extractAccountNumber(request.getDestinationAccountId());
+
+        if (kycProperties.isRequireBankBinding()) {
+            String boundNumber = user.getBoundBankAccountNumber();
+            String boundBank = user.getBoundBankCode();
+            if (boundNumber == null || boundNumber.isBlank() || boundBank == null || boundBank.isBlank()) {
+                throw new ForbiddenException("You must bind a bank account in your own name before withdrawing. " +
+                        "Use the 'Bind Bank Account' option in your wallet.");
+            }
+            boolean accountMatches = requestedAccount != null
+                    && normalizeAccount(requestedAccount).equals(normalizeAccount(boundNumber));
+            boolean bankMatches = requestedBank == null || requestedBank.isBlank()
+                    || normalizeAccount(requestedBank).equals(normalizeAccount(boundBank));
+            if (!accountMatches || !bankMatches) {
+                complianceService.flag(user.getId(), ComplianceFlag.Type.WITHDRAWAL_TO_UNBOUND_ACCOUNT,
+                        ComplianceFlag.Severity.CRITICAL,
+                        "Withdrawal attempt to an account that is not the user's bound bank account",
+                        "requestedBank=" + requestedBank + ", requestedAccount="
+                                + (requestedAccount != null ? maskAccount(requestedAccount) : "null")
+                                + ", boundBank=" + boundBank + ", boundAccount=" + maskAccount(boundNumber));
+                throw new ForbiddenException("Withdrawals are only allowed to your verified bound bank account ending in " +
+                        (boundNumber != null ? boundNumber.substring(Math.max(0, boundNumber.length() - 4)) : "") +
+                        ". If you need to change it, contact support.");
+            }
+        }
+
+        // AML: velocity checks
+        java.time.OffsetDateTime now = java.time.OffsetDateTime.now();
+        long hourlyCount = transactionRepository.countByWalletTypesSince(
+                wallet.getId(),
+                java.util.List.of(Transaction.Type.WITHDRAWAL),
+                java.util.List.of(Transaction.Status.PENDING, Transaction.Status.PROCESSING, Transaction.Status.COMPLETED),
+                now.minusHours(1));
+        if (hourlyCount >= kycProperties.getMaxWithdrawalsPerHour()) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.WITHDRAWAL_VELOCITY_EXCEEDED,
+                    ComplianceFlag.Severity.HIGH,
+                    "Withdrawal velocity exceeded: " + hourlyCount + " withdrawals in the last hour (max "
+                            + kycProperties.getMaxWithdrawalsPerHour() + ")");
+            throw new BadRequestException("You have reached the maximum number of withdrawals per hour (" +
+                    kycProperties.getMaxWithdrawalsPerHour() + "). Please try again later.");
+        }
+        long dailyCount = transactionRepository.countByWalletTypesSince(
+                wallet.getId(),
+                java.util.List.of(Transaction.Type.WITHDRAWAL),
+                java.util.List.of(Transaction.Status.PENDING, Transaction.Status.PROCESSING, Transaction.Status.COMPLETED),
+                startOfDay());
+        if (dailyCount >= kycProperties.getMaxWithdrawalsPerDay()) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.WITHDRAWAL_VELOCITY_EXCEEDED,
+                    ComplianceFlag.Severity.HIGH,
+                    "Withdrawal velocity exceeded: " + dailyCount + " withdrawals today (max "
+                            + kycProperties.getMaxWithdrawalsPerDay() + ")");
+            throw new BadRequestException("You have reached the maximum number of withdrawals per day (" +
+                    kycProperties.getMaxWithdrawalsPerDay() + "). Please try again tomorrow.");
+        }
+
+        // AML: daily and monthly withdrawal caps by tier
+        java.util.List<Transaction.Status> withdrawalStatuses = java.util.List.of(
+                Transaction.Status.PENDING, Transaction.Status.PROCESSING, Transaction.Status.COMPLETED);
+        BigDecimal dailyWithdrawn = transactionRepository.sumAmountByWalletTypesSince(
+                wallet.getId(), java.util.List.of(Transaction.Type.WITHDRAWAL), withdrawalStatuses, startOfDay());
+        BigDecimal dailyLimit = dailyWithdrawalLimit(user);
+        if (dailyWithdrawn.add(amount).compareTo(dailyLimit) > 0) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.WITHDRAWAL_LIMIT_EXCEEDED,
+                    ComplianceFlag.Severity.HIGH,
+                    "Daily withdrawal limit exceeded: requested " + amount + " NGN, "
+                            + dailyWithdrawn + "/" + dailyLimit + " NGN used today");
+            throw new BadRequestException("Daily withdrawal limit reached. You can withdraw up to " + dailyLimit +
+                    " NGN per day at your current verification level.");
+        }
+        BigDecimal monthlyWithdrawn = transactionRepository.sumAmountByWalletTypesSince(
+                wallet.getId(), java.util.List.of(Transaction.Type.WITHDRAWAL), withdrawalStatuses, startOfMonth());
+        BigDecimal monthlyLimit = monthlyWithdrawalLimit(user);
+        if (monthlyWithdrawn.add(amount).compareTo(monthlyLimit) > 0) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.WITHDRAWAL_LIMIT_EXCEEDED,
+                    ComplianceFlag.Severity.HIGH,
+                    "Monthly withdrawal limit exceeded: requested " + amount + " NGN, "
+                            + monthlyWithdrawn + "/" + monthlyLimit + " NGN used this month");
+            throw new BadRequestException("Monthly withdrawal limit reached. You can withdraw up to " + monthlyLimit +
+                    " NGN per month at your current verification level.");
+        }
+
+        // AML: anti money-mule cool-down - funds cannot be cashed out immediately after deposit
+        int cooldownMinutes = kycProperties.getWithdrawalCooldownAfterDepositMinutes();
+        if (cooldownMinutes > 0) {
+            java.util.List<Transaction> recentDeposits = transactionRepository.findCompletedDeposits(
+                    wallet.getId(), org.springframework.data.domain.PageRequest.of(0, 1));
+            if (!recentDeposits.isEmpty() && recentDeposits.get(0).getCreatedAt() != null) {
+                java.time.OffsetDateTime lastDeposit = recentDeposits.get(0).getCreatedAt();
+                java.time.OffsetDateTime eligibleAt = lastDeposit.plusMinutes(cooldownMinutes);
+                if (now.isBefore(eligibleAt)) {
+                    long waitMinutes = java.time.Duration.between(now, eligibleAt).toMinutes() + 1;
+                    complianceService.flag(user.getId(), ComplianceFlag.Type.RECENT_DEPOSIT_WITHDRAWAL,
+                            ComplianceFlag.Severity.MEDIUM,
+                            "Withdrawal attempted shortly after deposit (money-mule pattern)",
+                            "lastDeposit=" + lastDeposit + ", requested=" + amount + " NGN");
+                    throw new BadRequestException("Funds must remain in your wallet for " + cooldownMinutes +
+                            " minutes after a deposit before they can be withdrawn. Please retry in approximately " +
+                            waitMinutes + " minute(s).");
+                }
+            }
+        }
+
+        if (wallet.getBalance().compareTo(amount) < 0) {
+            throw new BadRequestException("Insufficient wallet balance. Your current balance is " + 
+                    wallet.getBalance() + " " + wallet.getCurrency() + ", but you attempted to withdraw " + 
+                    amount + " " + wallet.getCurrency() + ". Please deposit funds or adjust the withdrawal amount.");
+        }
+
+        // Flag large withdrawals for compliance review
+        if (kycProperties.getLargeSingleTransactionThreshold() != null
+                && amount.compareTo(kycProperties.getLargeSingleTransactionThreshold()) >= 0) {
+            complianceService.flag(user.getId(), ComplianceFlag.Type.LARGE_TRANSACTION,
+                    ComplianceFlag.Severity.MEDIUM,
+                    "Large withdrawal: " + amount + " NGN",
+                    "type=WITHDRAWAL, kycLevel=" + (user.getKycLevel() != null ? user.getKycLevel().name() : "null"));
+        }
+
+        // Use Flutterwave Transfer API to send money to the user's VERIFIED bound bank account
         String reference = "WTH_" + System.currentTimeMillis() + "_" + user.getId();
-        String accountBank = request.getAccountBank() != null ? request.getAccountBank() : 
-                extractBankCode(request.getDestinationAccountId());
-        String accountNumber = request.getAccountNumber() != null ? request.getAccountNumber() : 
-                extractAccountNumber(request.getDestinationAccountId());
-        String beneficiaryName = request.getBeneficiaryName() != null ? request.getBeneficiaryName() : 
-                user.getName();
+        String accountBank = user.getBoundBankCode();
+        String accountNumber = user.getBoundBankAccountNumber();
+        String beneficiaryName = user.getBoundBankAccountName() != null ? user.getBoundBankAccountName() : user.getName();
 
         try {
             FlutterwaveService.TransferResponse transferResponse = flutterwaveService.transferFunds(
                     accountBank,
                     accountNumber,
-                    request.getAmount(),
+                    amount,
                     request.getDescription() != null ? request.getDescription() : "Wallet withdrawal",
                     reference,
                     beneficiaryName
@@ -262,6 +423,7 @@ public class WalletServiceImpl implements WalletService {
         boolean isWalletPayment = wallet != null;
 
         if (isWalletPayment) {
+            assertWalletActive(wallet);
             // Sync balance first to get accurate current balance
             syncBalanceWithFlutterwave(user);
             wallet = walletRepository.findByUserId(user.getId()).orElse(wallet);
@@ -519,6 +681,17 @@ public class WalletServiceImpl implements WalletService {
                             return walletRepository.save(newWallet);
                         });
                 log.info("Retrieved or created wallet for user: userId={}, walletId={}", user.getId(), wallet.getId());
+            }
+
+            // AML: never credit a frozen/suspended/closed wallet
+            if (wallet.getStatus() != Wallet.Status.ACTIVE) {
+                log.warn("Blocking webhook credit for non-active wallet: walletId={}, userId={}, status={}, txRef={}",
+                        wallet.getId(), user.getId(), wallet.getStatus(), txRef);
+                complianceService.flag(user.getId(), ComplianceFlag.Type.WALLET_FREEZE_ATTEMPT,
+                        ComplianceFlag.Severity.HIGH,
+                        "Funds attempted to be credited to a " + wallet.getStatus().name().toLowerCase() + " wallet",
+                        "txRef=" + txRef + ", flwRef=" + flwRef + ", amount=" + amount);
+                return;
             }
 
             // If transaction doesn't exist, create it now
@@ -831,7 +1004,9 @@ public class WalletServiceImpl implements WalletService {
                                 .build();
                         return walletRepository.save(newWallet);
                     });
-            
+
+            assertWalletActive(wallet);
+
             // CRITICAL: Use the charged amount (what customer paid), not settled amount
             // Flutterwave fees are deducted before settlement, but customer's wallet should reflect full amount paid
             BigDecimal amount = verification.getAmount() != null ? verification.getAmount() : BigDecimal.ZERO;
@@ -1482,5 +1657,66 @@ public class WalletServiceImpl implements WalletService {
                 .createdAt(transaction.getCreatedAt())
                 .processedAt(transaction.getProcessedAt())
                 .build();
+    }
+
+    // ===== KYC / AML helper methods =====
+
+    private void assertWalletActive(Wallet wallet) {
+        if (wallet.getStatus() != Wallet.Status.ACTIVE) {
+            throw new ForbiddenException("Your wallet is currently " + wallet.getStatus().name().toLowerCase() +
+                    ". Deposits, withdrawals and fund movements are disabled until it is reactivated. " +
+                    "Please contact support for assistance.");
+        }
+    }
+
+    private BigDecimal dailyDepositLimit(User user) {
+        User.KycLevel level = user.getKycLevel() != null ? user.getKycLevel() : User.KycLevel.UNVERIFIED;
+        switch (level) {
+            case VERIFIED:
+                return kycProperties.getVerifiedDailyDepositLimit();
+            case BASIC:
+                return kycProperties.getBasicDailyDepositLimit();
+            default:
+                return kycProperties.getUnverifiedDailyDepositLimit();
+        }
+    }
+
+    private BigDecimal dailyWithdrawalLimit(User user) {
+        if (user.getKycLevel() == User.KycLevel.VERIFIED) {
+            return kycProperties.getVerifiedDailyWithdrawalLimit();
+        }
+        return kycProperties.getBasicDailyWithdrawalLimit();
+    }
+
+    private BigDecimal monthlyWithdrawalLimit(User user) {
+        if (user.getKycLevel() == User.KycLevel.VERIFIED) {
+            return kycProperties.getVerifiedMonthlyWithdrawalLimit();
+        }
+        return kycProperties.getBasicMonthlyWithdrawalLimit();
+    }
+
+    private java.time.OffsetDateTime startOfDay() {
+        return java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
+                .toOffsetDateTime();
+    }
+
+    private java.time.OffsetDateTime startOfMonth() {
+        return java.time.LocalDate.now().withDayOfMonth(1).atStartOfDay(java.time.ZoneId.systemDefault())
+                .toOffsetDateTime();
+    }
+
+    private static String normalizeAccount(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replaceAll("\\D", "");
+    }
+
+    private static String maskAccount(String value) {
+        if (value == null || value.isBlank()) {
+            return "null";
+        }
+        String v = value.trim();
+        return v.length() <= 4 ? "****" + v : "****" + v.substring(v.length() - 4);
     }
 }

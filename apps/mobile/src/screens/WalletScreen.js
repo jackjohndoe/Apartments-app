@@ -32,6 +32,7 @@ import { logger } from '../utils/logger';
 import { createEscrowPayment } from '../utils/escrow';
 import { initializePayment, verifyPayment, createVirtualAccount } from '../services/flutterwaveService';
 import { walletService } from '../services/walletService';
+import { kycService } from '../services/kycService';
 import PlatformWebView from '../components/PlatformWebView';
 
 export default function WalletScreen() {
@@ -68,7 +69,8 @@ export default function WalletScreen() {
   const [virtualAccountError, setVirtualAccountError] = useState(null);
   const [withdrawVirtualAccount, setWithdrawVirtualAccount] = useState(null);
   const [creatingWithdrawAccount, setCreatingWithdrawAccount] = useState(false);
-  
+  const [kycStatus, setKycStatus] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
   // Track last comprehensive sync time
   const lastComprehensiveSyncRef = useRef(0);
   
@@ -345,6 +347,34 @@ export default function WalletScreen() {
     // Delay sync to allow initial load to complete
     setTimeout(syncAllOnMount, 2000);
   }, []);
+
+  // Load KYC status (non-blocking) to gate withdrawals
+  useEffect(() => {
+    let cancelled = false;
+    const loadKyc = async () => {
+      if (!user || !user.email) {
+        setKycStatus(null);
+        setKycLoading(false);
+        return;
+      }
+      try {
+        const status = await kycService.getStatus();
+        if (!cancelled) {
+          setKycStatus(status);
+        }
+      } catch (error) {
+        logger.warn('⚠️ Failed to load KYC status (non-fatal):', error.message);
+      } finally {
+        if (!cancelled) {
+          setKycLoading(false);
+        }
+      }
+    };
+    loadKyc();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Reset virtual account states when fund modal closes
   useEffect(() => {
@@ -1918,6 +1948,32 @@ export default function WalletScreen() {
           )}
         </View>
 
+        {/* KYC Verification Banner */}
+        {!kycLoading && kycStatus && kycStatus.level !== 'BASIC' && kycStatus.level !== 'VERIFIED' && (
+          <TouchableOpacity
+            style={styles.kycBanner}
+            onPress={() => navigation.navigate('Kyc')}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons
+              name={kycStatus.level === 'PENDING' ? 'hourglass-top' : 'verified-user'}
+              size={22}
+              color="#FFF"
+            />
+            <View style={styles.kycBannerContent}>
+              <Text style={styles.kycBannerTitle}>
+                {kycStatus.level === 'PENDING' ? 'Verification Under Review' : 'Complete KYC Verification'}
+              </Text>
+              <Text style={styles.kycBannerSubtitle}>
+                {kycStatus.level === 'PENDING'
+                  ? 'Your documents are being reviewed. Withdrawals will be enabled once verified.'
+                  : 'Verify your identity to enable withdrawals.'}
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={22} color="#FFF" />
+          </TouchableOpacity>
+        )}
+
 
         {/* Action Buttons - Above Transaction History */}
         {/* Show different buttons based on how wallet was accessed */}
@@ -2708,6 +2764,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  kycBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1D4ED8',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+  },
+  kycBannerContent: {
+    flex: 1,
+  },
+  kycBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  kycBannerSubtitle: {
+    fontSize: 12,
+    color: '#DBEAFE',
+    marginTop: 2,
   },
   paymentInfoCard: {
     backgroundColor: '#FFF9E6',

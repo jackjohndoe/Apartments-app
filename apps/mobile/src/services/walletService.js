@@ -180,7 +180,7 @@ export const walletService = {
       }
       return response.data || response;
     } catch (error) {
-      return null;
+      throw error;
     }
   },
 

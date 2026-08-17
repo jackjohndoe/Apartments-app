@@ -14,4 +14,5 @@ public class UserProfileResponse {
     String bio;
     String location;
     String role;
+    String kycLevel;
 }

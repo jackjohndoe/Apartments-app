@@ -22,7 +22,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.wallet.id = :walletId AND t.status = 'COMPLETED' AND t.type IN :types")
     java.math.BigDecimal sumAmountByWalletAndTypes(@Param("walletId") Long walletId, 
                                                    @Param("types") List<Transaction.Type> types);
-    
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+            "WHERE t.wallet.id = :walletId AND t.status IN :statuses AND t.type IN :types AND t.createdAt >= :since")
+    java.math.BigDecimal sumAmountByWalletTypesSince(@Param("walletId") Long walletId,
+                                                     @Param("types") List<Transaction.Type> types,
+                                                     @Param("statuses") List<Transaction.Status> statuses,
+                                                     @Param("since") java.time.OffsetDateTime since);
+
+    @Query("SELECT COUNT(t) FROM Transaction t " +
+            "WHERE t.wallet.id = :walletId AND t.status IN :statuses AND t.type IN :types AND t.createdAt >= :since")
+    long countByWalletTypesSince(@Param("walletId") Long walletId,
+                                 @Param("types") List<Transaction.Type> types,
+                                 @Param("statuses") List<Transaction.Status> statuses,
+                                 @Param("since") java.time.OffsetDateTime since);
+
+    @Query("SELECT t FROM Transaction t WHERE t.wallet.id = :walletId " +
+            "AND t.status = 'COMPLETED' AND t.type = 'DEPOSIT' ORDER BY t.createdAt DESC")
+    List<Transaction> findCompletedDeposits(@Param("walletId") Long walletId, Pageable pageable);
+
     Optional<Transaction> findByReference(String reference);
     
     Optional<Transaction> findByFlutterwaveTxRef(String flutterwaveTxRef);

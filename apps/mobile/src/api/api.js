@@ -2,7 +2,7 @@
 // Update this file if the backend URL changes
 
 export const API_CONFIG = {
-  BASE_URL: 'https://booking-backend-production-a51d.up.railway.app',
+  BASE_URL: 'http://localhost:8080',
   TIMEOUT: 30000, // 30 seconds
   RETRY_ATTEMPTS: 3,
 };
@@ -50,6 +50,12 @@ export const API_ENDPOINTS = {
     VERIFY_TRANSACTIONS: '/api/wallet/verify-transactions',
     SYNC_ALL: '/api/wallet/sync-all',
     VERIFY_PENDING: '/api/wallet/verify-pending', // Verify all pending transactions
+    BIND_BANK: '/api/wallet/bind-bank', // Bind verified bank account for withdrawals
+  },
+  // KYC / Verification
+  KYC: {
+    STATUS: '/api/kyc/status',
+    SUBMIT: '/api/kyc/submit',
   },
   // Favorites
   FAVORITES: {

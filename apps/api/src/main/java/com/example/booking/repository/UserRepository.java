@@ -25,4 +25,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 OR LOWER(COALESCE(u.phone, '')) LIKE LOWER(CONCAT('%', :q, '%')))
             """)
     Page<User> search(@Param("q") String q, @Param("role") User.Role role, Pageable pageable);
+
+    Page<User> findByKycLevel(User.KycLevel kycLevel, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.kycLevel IS NOT NULL AND u.kycLevel <> 'UNVERIFIED'")
+    Page<User> findByKycLevelNotUnverified(Pageable pageable);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.kycLevel IS NOT NULL AND u.kycLevel = 'PENDING'")
+    long countPendingKyc();
 }

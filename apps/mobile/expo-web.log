@@ -1,0 +1,41 @@
+Starting project at C:\Users\USER\Documents\GitHub\Apartments-app\apps\mobile
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 3082ms node_modules\expo\AppEntry.js (1217 modules)
+Web Bundled 45ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 22ms src\utils\listings.js (1 module)
+Web Bundled 2ms src\utils\listings.js (1 module)
+Web Bundled 14ms src\utils\apiHealthCheck.js (1 module)
+Web Bundled 4ms src\utils\apiHealthCheck.js (1 module)
+Web src\services\hybridService.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 142ms src\services\hybridService.js (321 modules)
+Web Bundled 16ms src\services\hybridService.js (1 module)
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 62ms node_modules\expo\AppEntry.js (1 module)
+Web Bundled 69ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 2ms src\utils\listings.js (1 module)
+Web Bundled 2ms src\utils\apiHealthCheck.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web src\services\hybridService.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 15ms src\services\hybridService.js (1 module)
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 57ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web Bundled 2ms src\utils\listings.js (1 module)
+Web Bundled 3ms src\utils\apiHealthCheck.js (1 module)
+Web src\services\hybridService.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 15ms src\services\hybridService.js (1 module)
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 286ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 64ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo\AppEntry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+Web Bundled 60ms node_modules\expo\AppEntry.js (1 module)
+ LOG  [web] Logs will appear in the browser console

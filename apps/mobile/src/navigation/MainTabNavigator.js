@@ -22,6 +22,7 @@ import HostProfileScreen from '../screens/HostProfileScreen';
 import HostBookedListingsScreen from '../screens/HostBookedListingsScreen';
 import HostBookingDetailsScreen from '../screens/HostBookingDetailsScreen';
 import UserBookingDetailsScreen from '../screens/UserBookingDetailsScreen';
+import KycScreen from '../screens/KycScreen';
 import SignInScreen from '../screens/SignInScreen';
 import { Text, View, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -75,6 +76,11 @@ function ExploreStack() {
         options={{ headerShown: false }}
       />
       <Stack.Screen 
+        name="Kyc" 
+        component={KycScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
         name="HostProfile" 
         component={HostProfileScreen}
         options={{ headerShown: false }}
@@ -114,6 +120,11 @@ function FavoritesStack() {
       <Stack.Screen 
         name="Wallet" 
         component={WalletScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Kyc" 
+        component={KycScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen 
@@ -191,6 +202,11 @@ function ProfileStack() {
       <Stack.Screen 
         name="HostBookingDetails" 
         component={HostBookingDetailsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="Kyc" 
+        component={KycScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
