@@ -8,9 +8,66 @@ A React Native mobile app for apartment leasing in Nigeria, styled with white an
 - **Authentication**: Sign In and Sign Up with Google and Apple authentication
 - **Explore**: Browse apartment listings across Nigeria
 - **Favorites**: Save and manage favorite apartments
-- **Wallet**: Manage payments and transactions
+- **Wallet**: Manage payments, withdrawals, and bank account binding
+- **KYC Verification**: Multi-tier identity verification for AML compliance (Unverified → Pending → Basic → Verified)
 - **Apartment Details**: View detailed information about apartments
 - **Profile**: User profile and settings
+
+## KYC / AML Compliance
+
+Multi-tier identity verification to comply with Anti-Money Laundering regulations. Withdrawals are disabled until the user reaches **Basic** tier or higher.
+
+### Verification Tiers
+
+| Tier | Capabilities |
+|------|-------------|
+| **Unverified** | Browse listings, make bookings. No wallet withdrawals. |
+| **Pending** | Documents submitted, awaiting admin review. |
+| **Basic** | Can bind a bank account and withdraw funds. |
+| **Fully Verified** | Full access to all features. |
+
+### User Flow
+
+1. User submits identity document type and number via the app (`/api/kyc/submit`)
+2. Submission enters **Pending** state, visible in the admin compliance dashboard
+3. Admin reviews and **approves** (setting tier to Basic or Verified) or **rejects** with a reason
+4. On approval, user can bind a bank account (verified against Flutterwave) for withdrawals
+5. All KYC decisions are audit-logged with the admin actor's identity
+
+### Admin Endpoints (`/api/admin/compliance`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/kyc/pending` | List submissions awaiting review |
+| GET | `/kyc` | List all submissions (excluding unverified) |
+| PUT | `/kyc/{userId}/approve` | Approve KYC (set tier, optionally bind bank) |
+| PUT | `/kyc/{userId}/reject` | Reject KYC with a reason |
+| PATCH | `/wallets/{userId}/status` | Freeze/unfreeze a wallet |
+| GET | `/flags` | List AML compliance flags |
+| PATCH | `/flags/{id}/resolve` | Resolve a compliance flag |
+
+### AML Compliance Flags
+
+Automatic flags are raised for suspicious activity:
+
+- `WITHDRAWAL_TO_UNBOUND_ACCOUNT` — withdrawal to an account not bound via KYC
+- `BANK_BINDING_MISMATCH` — bank details don't match the verified provider record
+- `DEPOSIT_LIMIT_EXCEEDED` / `WITHDRAWAL_LIMIT_EXCEEDED` — transaction thresholds breached
+- `WITHDRAWAL_VELOCITY_EXCEEDED` — too many withdrawals in a short period
+- `RECENT_DEPOSIT_WITHDRAWAL` — funds withdrawn shortly after deposit
+- `LARGE_TRANSACTION` — unusually large transaction detected
+- `KYC_REJECTED` / `KYC_APPROVED` — audit trail for verification decisions
+
+Flags are graded by severity (Low → Medium → High → Critical) and can be resolved by admins.
+
+### Key Files
+
+- `apps/api/.../service/KycService.java` — core KYC logic
+- `apps/api/.../controller/KycController.java` — user-facing endpoints
+- `apps/api/.../controller/AdminComplianceController.java` — admin review & AML
+- `apps/api/.../entity/ComplianceFlag.java` — compliance flag entity
+- `apps/mobile/src/services/kycService.js` — mobile client KYC service
+- `apps/mobile/src/screens/WalletScreen.js` — KYC banner & gate for withdrawals
 
 ## Getting Started
 
@@ -202,23 +259,35 @@ Apple authentication is available on iOS devices only. Make sure you have:
 
 ```
 ├── App.js                    # Main app entry point
-├── src/
-│   ├── context/
-│   │   └── AuthContext.js    # Authentication context
-│   ├── hooks/
-│   │   └── useAuth.js        # Auth hook
-│   ├── navigation/
-│   │   └── MainTabNavigator.js # Bottom tab navigation
-│   └── screens/
-│       ├── HomeScreen.js
-│       ├── SignInScreen.js
-│       ├── SignUpScreen.js
-│       ├── ExploreScreen.js
-│       ├── FavoritesScreen.js
-│       ├── WalletScreen.js
-│       ├── ProfileScreen.js
-│       └── ApartmentDetailsScreen.js
-└── assets/                   # App assets
+├── apps/
+│   ├── api/                  # Spring Boot backend
+│   │   └── src/main/java/com/example/booking/
+│   │       ├── controller/
+│   │       │   ├── KycController.java
+│   │       │   ├── AdminComplianceController.java
+│   │       │   └── WalletController.java
+│   │       ├── service/
+│   │       │   ├── KycService.java
+│   │       │   └── ComplianceService.java
+│   │       ├── entity/
+│   │       │   ├── User.java          # KYC fields (level, document, timestamps)
+│   │       │   ├── ComplianceFlag.java
+│   │       │   └── Wallet.java
+│   │       └── dto/kyc/
+│   │           ├── KycSubmitRequest.java
+│   │           ├── KycStatusResponse.java
+│   │           ├── KycAdminResponse.java
+│   │           ├── KycDecisionRequest.java
+│   │           └── BindBankRequest.java
+│   ├── mobile/               # React Native (Expo) app
+│   │   └── src/
+│   │       ├── api/api.js              # API endpoint constants
+│   │       ├── services/kycService.js  # KYC client service
+│   │       └── screens/
+│   │           ├── WalletScreen.js      # KYC banner + withdrawal gate
+│   │           └── ...
+│   └── dashboard/            # Admin dashboard (React + Vite)
+├── assets/                   # App assets
 ```
 
 ## Notes

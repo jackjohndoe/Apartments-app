@@ -8,6 +8,7 @@ import Bookings from '@/pages/Bookings'
 import Transactions from '@/pages/Transactions'
 import AuditLogs from '@/pages/AuditLogs'
 import Admins from '@/pages/Admins'
+import Compliance from '@/pages/Compliance'
 
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
@@ -87,6 +88,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Admins />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/compliance"
+        element={
+          <ProtectedRoute>
+            <Compliance />
           </ProtectedRoute>
         }
       />

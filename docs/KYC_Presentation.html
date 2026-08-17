@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apartify Africa — KYC & AML Compliance</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; color: #1a1a2e; }
+
+  .slide {
+    width: 100%; min-height: 100vh; padding: 60px 80px;
+    display: flex; flex-direction: column; justify-content: center;
+    page-break-after: always; position: relative;
+  }
+
+  /* Slide backgrounds */
+  .slide-cover { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; text-align: center; }
+  .slide-light { background: #fff; }
+  .slide-dark { background: #1a1a2e; color: #fff; }
+  .slide-accent { background: #f59e0b; color: #1a1a2e; }
+
+  /* Typography */
+  h1 { font-size: 48px; font-weight: 800; margin-bottom: 16px; }
+  h2 { font-size: 36px; font-weight: 700; margin-bottom: 24px; color: #1a1a2e; }
+  .slide-dark h2 { color: #f59e0b; }
+  .slide-cover h1 { font-size: 56px; }
+  h3 { font-size: 20px; font-weight: 600; margin-bottom: 12px; color: #0f3460; }
+  p, li { font-size: 18px; line-height: 1.7; }
+  .subtitle { font-size: 22px; color: #94a3b8; margin-top: 8px; }
+  .slide-cover .subtitle { color: #cbd5e1; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 16px; }
+  th { background: #1a1a2e; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; }
+  td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Lists */
+  ul, ol { padding-left: 24px; margin: 12px 0; }
+  li { margin-bottom: 8px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin: 2px 4px; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+  .badge-orange { background: #ffedd5; color: #9a3412; }
+  .badge-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
+  .flow-step { background: #f1f5f9; border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px 20px; font-size: 14px; font-weight: 600; text-align: center; min-width: 120px; }
+  .flow-step.active { background: #f59e0b; border-color: #d97706; color: #1a1a2e; }
+  .flow-arrow { font-size: 24px; color: #94a3b8; }
+
+  /* Code block */
+  .code { background: #1e293b; color: #e2e8f0; padding: 20px 24px; border-radius: 12px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.6; margin: 16px 0; white-space: pre; overflow-x: auto; }
+  .code .comment { color: #64748b; }
+  .code .keyword { color: #f59e0b; }
+  .code .string { color: #34d399; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 20px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin: 20px 0; }
+  .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+  .card h3 { margin-bottom: 8px; }
+  .card p { font-size: 15px; color: #64748b; }
+
+  /* Tier cards */
+  .tier-card { text-align: center; padding: 24px; border-radius: 12px; border: 2px solid #e2e8f0; }
+  .tier-card h3 { font-size: 22px; margin-bottom: 8px; }
+  .tier-card p { font-size: 14px; color: #64748b; }
+  .tier-unverified { border-color: #94a3b8; }
+  .tier-pending { border-color: #f59e0b; background: #fffbeb; }
+  .tier-basic { border-color: #3b82f6; background: #eff6ff; }
+  .tier-verified { border-color: #10b981; background: #ecfdf5; }
+
+  /* Footer */
+  .slide-footer { position: absolute; bottom: 24px; left: 80px; right: 80px; display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; }
+  .slide-dark .slide-footer { color: #64748b; }
+
+  /* Highlight */
+  .highlight { color: #f59e0b; font-weight: 700; }
+  .slide-light .highlight { color: #d97706; }
+
+  /* Architecture box */
+  .arch-box { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 24px 0; flex-wrap: wrap; }
+  .arch-node { background: #1a1a2e; color: #fff; padding: 16px 24px; border-radius: 12px; text-align: center; font-weight: 600; font-size: 14px; }
+  .arch-node.accent { background: #f59e0b; color: #1a1a2e; }
+  .arch-arrow { font-size: 28px; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Cover -->
+<div class="slide slide-cover">
+  <div style="margin: auto;">
+    <div style="font-size: 72px; font-weight: 900; letter-spacing: -2px;">Apartify Africa</div>
+    <div style="font-size: 28px; color: #f59e0b; margin-top: 16px; font-weight: 600;">KYC & AML Compliance System</div>
+    <div class="subtitle" style="margin-top: 32px;">Making apartment leasing safe and compliant across Nigeria</div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Confidential</span>
+  </div>
+</div>
+
+<!-- SLIDE 2: Why KYC Matters -->
+<div class="slide slide-light">
+  <h2>Why KYC Matters</h2>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li><strong>Regulatory requirement</strong> — CBN (Central Bank of Nigeria) guidelines mandate identity verification for financial services</li>
+        <li><strong>Prevents fraud</strong> — stops money laundering, identity theft, and scam accounts</li>
+        <li><strong>Builds trust</strong> — verified users feel safer transacting on the platform</li>
+        <li><strong>Unlocks features</strong> — wallet withdrawals are blocked until KYC is completed</li>
+      </ul>
+    </div>
+    <div class="card" style="background: #fef3c7; border-color: #f59e0b;">
+      <h3 style="color: #92400e;">Key Stat</h3>
+      <p style="font-size: 28px; font-weight: 800; color: #92400e;">72%</p>
+      <p style="color: #92400e;">of fraudulent transactions in Nigeria originate from unverified accounts. KYC is the first line of defense.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Why KYC Matters</span>
+  </div>
+</div>
+
+<!-- SLIDE 3: Verification Tiers -->
+<div class="slide slide-light">
+  <h2>Verification Tiers</h2>
+  <p style="margin-bottom: 24px; color: #64748b;">Four-tier system — withdrawals are gated until <strong>Basic</strong> tier or higher.</p>
+  <div class="grid-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+    <div class="tier-card tier-unverified">
+      <div style="font-size: 32px; margin-bottom: 8px;">🔓</div>
+      <h3>Unverified</h3>
+      <span class="badge badge-gray">Default</span>
+      <p style="margin-top: 12px;">Browse listings, make bookings. <strong>No withdrawals.</strong></p>
+    </div>
+    <div class="tier-card tier-pending">
+      <div style="font-size: 32px; margin-bottom: 8px;">⏳</div>
+      <h3>Pending</h3>
+      <span class="badge badge-yellow">Under Review</span>
+      <p style="margin-top: 12px;">Documents submitted, awaiting admin review.</p>
+    </div>
+    <div class="tier-card tier-basic">
+      <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
+      <h3>Basic</h3>
+      <span class="badge badge-blue">Approved</span>
+      <p style="margin-top: 12px;">Can bind bank account and <strong>withdraw funds</strong>.</p>
+    </div>
+    <div class="tier-card tier-verified">
+      <div style="font-size: 32px; margin-bottom: 8px;">🛡️</div>
+      <h3>Verified</h3>
+      <span class="badge badge-green">Full Access</span>
+      <p style="margin-top: 12px;">Complete verification. <strong>All features unlocked.</strong></p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Verification Tiers</span>
+  </div>
+</div>
+
+<!-- SLIDE 4: User KYC Flow -->
+<div class="slide slide-light">
+  <h2>User KYC Flow</h2>
+  <div class="flow">
+    <div class="flow-step">User opens<br>Wallet screen</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Sees KYC<br>banner</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Selects<br>document type</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Enters<br>doc number</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Submits<br>→ PENDING</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">Admin<br>reviews</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step active">Approved<br>→ BASIC</div>
+  </div>
+  <div style="margin-top: 32px;">
+    <h3>Accepted Document Types</h3>
+    <div style="display: flex; gap: 12px; margin-top: 12px;">
+      <span class="badge badge-blue" style="font-size: 15px; padding: 8px 16px;">NIN (National ID)</span>
+      <span class="badge badge-blue" style="font-size: 15px; padding: 8px 16px;">Voter's Card</span>
+      <span class="badge badge-blue" style="font-size: 15px; padding: 8px 16px;">International Passport</span>
+      <span class="badge badge-blue" style="font-size: 15px; padding: 8px 16px;">Driver's License</span>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>User KYC Flow</span>
+  </div>
+</div>
+
+<!-- SLIDE 5: Bank Account Binding -->
+<div class="slide slide-light">
+  <h2>Bank Account Binding</h2>
+  <div class="grid-2">
+    <div>
+      <h3>How it works</h3>
+      <ol style="font-size: 17px;">
+        <li>User provides: <strong>Bank name</strong>, <strong>Account number</strong>, <strong>Account holder name</strong></li>
+        <li>Backend verifies the account against <strong>Flutterwave</strong> (Nigerian bank API)</li>
+        <li>Account is bound to the user's profile</li>
+        <li><strong>Only bound accounts</strong> can receive withdrawals</li>
+      </ol>
+      <div style="margin-top: 20px; padding: 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+        <strong>Why?</strong> Prevents funds from being sent to accounts the user doesn't own. Critical for AML compliance.
+      </div>
+    </div>
+    <div>
+      <h3>Requirements</h3>
+      <table>
+        <tr><th>Requirement</th><th>Detail</th></tr>
+        <tr><td>KYC Tier</td><td><span class="badge badge-blue">Basic</span> or higher</td></tr>
+        <tr><td>Verification Provider</td><td>Flutterwave</td></tr>
+        <tr><td>Bank Code</td><td>Required (e.g., 044 — Access Bank)</td></tr>
+        <tr><td>Account Number</td><td>10-digit Nigerian account</td></tr>
+        <tr><td>Account Name</td><td>Must match Flutterwave response</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Bank Account Binding</span>
+  </div>
+</div>
+
+<!-- SLIDE 6: Admin Compliance Dashboard -->
+<div class="slide slide-light">
+  <h2>Admin Compliance Dashboard</h2>
+  <div class="grid-3">
+    <div class="card">
+      <h3>🔍 Review KYC</h3>
+      <ul>
+        <li>View pending submissions queue</li>
+        <li>See document type and masked number</li>
+        <li>Approve → set tier (Basic / Verified)</li>
+        <li>Reject → provide reason</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🏦 Wallet Management</h3>
+      <ul>
+        <li>Freeze/unfreeze wallets</li>
+        <li>Suspend suspicious accounts</li>
+        <li>Block deposits and withdrawals</li>
+        <li>Reason logged with admin identity</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🚩 AML Flags</h3>
+      <ul>
+        <li>Auto-generated compliance alerts</li>
+        <li>Severity grading (Low → Critical)</li>
+        <li>Resolve with optional notes</li>
+        <li>Full audit trail</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top: 24px;">
+    <h3>Admin Endpoints</h3>
+    <div class="code"><span class="comment">// KYC Review</span>
+<span class="keyword">GET</span>    /api/admin/compliance/kyc/pending     <span class="comment">// Submissions awaiting review</span>
+<span class="keyword">GET</span>    /api/admin/compliance/kyc             <span class="comment">// All submissions</span>
+<span class="keyword">PUT</span>    /api/admin/compliance/kyc/{userId}/approve  <span class="comment">// Approve KYC</span>
+<span class="keyword">PUT</span>    /api/admin/compliance/kyc/{userId}/reject   <span class="comment">// Reject KYC</span>
+
+<span class="comment">// Wallet & Flags</span>
+<span class="keyword">PATCH</span>  /api/admin/compliance/wallets/{userId}/status <span class="comment">// Freeze/Unfreeze</span>
+<span class="keyword">GET</span>    /api/admin/compliance/flags           <span class="comment">// AML alerts</span>
+<span class="keyword">PATCH</span>  /api/admin/compliance/flags/{id}/resolve  <span class="comment">// Resolve flag</span></div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Admin Compliance Dashboard</span>
+  </div>
+</div>
+
+<!-- SLIDE 7: AML Compliance Flags -->
+<div class="slide slide-light">
+  <h2>AML Compliance Flags</h2>
+  <p style="margin-bottom: 16px; color: #64748b;">The system automatically raises flags for suspicious activity, graded by severity.</p>
+  <table>
+    <tr><th>Flag Type</th><th>Trigger</th><th>Severity</th></tr>
+    <tr><td>Withdrawal to Unbound Account</td><td>User tries to withdraw to an unverified account</td><td><span class="badge badge-red">HIGH</span></td></tr>
+    <tr><td>Bank Binding Mismatch</td><td>Bank details don't match Flutterwave verification</td><td><span class="badge badge-red">HIGH</span></td></tr>
+    <tr><td>Deposit Limit Exceeded</td><td>Single deposit above threshold</td><td><span class="badge badge-orange">MEDIUM</span></td></tr>
+    <tr><td>Withdrawal Limit Exceeded</td><td>Single withdrawal above threshold</td><td><span class="badge badge-red">HIGH</span></td></tr>
+    <tr><td>Withdrawal Velocity Exceeded</td><td>Too many withdrawals in short period</td><td><span class="badge badge-orange">MEDIUM</span></td></tr>
+    <tr><td>Recent Deposit + Withdrawal</td><td>Funds withdrawn shortly after deposit (layering)</td><td><span class="badge badge-red">HIGH</span></td></tr>
+    <tr><td>Large Transaction</td><td>Unusually large amount detected</td><td><span class="badge badge-yellow">MEDIUM</span></td></tr>
+    <tr><td>KYC Rejected / Approved</td><td>Audit trail for verification decisions</td><td><span class="badge badge-gray">LOW</span></td></tr>
+  </table>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>AML Compliance Flags</span>
+  </div>
+</div>
+
+<!-- SLIDE 8: Security & Data Protection -->
+<div class="slide slide-dark">
+  <h2>Security & Data Protection</h2>
+  <div class="grid-2" style="margin-top: 16px;">
+    <div>
+      <h3 style="color: #f59e0b;">Data Protection</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 16px;">🔒 Document numbers are <strong>masked</strong> in the database</li>
+        <li style="margin-bottom: 16px;">🔒 Only the <strong>last 4 digits</strong> stored in plain text</li>
+        <li style="margin-bottom: 16px;">🔒 Full numbers are <strong>never logged</strong> or returned in API responses</li>
+        <li style="margin-bottom: 16px;">🔒 Bank verification done <strong>server-side</strong> via Flutterwave — no account numbers in frontend</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color: #f59e0b;">Audit & Compliance</h3>
+      <ul style="list-style: none; padding: 0;">
+        <li style="margin-bottom: 16px;">📋 All admin actions are <strong>audit-logged</strong></li>
+        <li style="margin-bottom: 16px;">📋 Each log includes: admin email, timestamp, action, and affected entity</li>
+        <li style="margin-bottom: 16px;">📋 KYC decisions (approve/reject) create compliance flag records</li>
+        <li style="margin-bottom: 16px;">📋 Wallet status changes generate audit entries with reason</li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Security & Data Protection</span>
+  </div>
+</div>
+
+<!-- SLIDE 9: Technical Architecture -->
+<div class="slide slide-light">
+  <h2>Technical Architecture</h2>
+  <div class="arch-box">
+    <div class="arch-node">📱 Mobile App<br><small>Expo React Native</small></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node accent">⚙️ Spring Boot API<br><small>KYC + Wallet + Compliance</small></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-node">🗄️ PostgreSQL<br><small>Users, KYC, Flags</small></div>
+  </div>
+  <div class="arch-box" style="margin-top: -8px;">
+    <div class="arch-node accent">💳 Flutterwave<br><small>Bank Account Verification</small></div>
+    <div class="arch-arrow" style="visibility: hidden;">→</div>
+    <div class="arch-node">🖥️ Admin Dashboard<br><small>React + Vite (Vercel)</small></div>
+  </div>
+  <div style="margin-top: 32px;">
+    <h3>Key Files</h3>
+    <div class="code"><span class="comment">// Backend (Spring Boot)</span>
+apps/api/.../service/KycService.java              <span class="comment">// Core KYC logic</span>
+apps/api/.../controller/KycController.java         <span class="comment">// User-facing endpoints</span>
+apps/api/.../controller/AdminComplianceController.java  <span class="comment">// Admin review & AML</span>
+apps/api/.../entity/ComplianceFlag.java            <span class="comment">// Compliance flag entity</span>
+
+<span class="comment">// Mobile (Expo)</span>
+apps/mobile/src/services/kycService.js             <span class="comment">// KYC client service</span>
+apps/mobile/src/screens/WalletScreen.js            <span class="comment">// KYC banner + withdrawal gate</span>
+
+<span class="comment">// Admin Dashboard (React)</span>
+apps/dashboard/src/pages/Compliance.jsx            <span class="comment">// KYC review + AML flags</span></div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Technical Architecture</span>
+  </div>
+</div>
+
+<!-- SLIDE 10: Summary & Next Steps -->
+<div class="slide slide-cover">
+  <div style="margin: auto; text-align: left; max-width: 800px;">
+    <h2 style="color: #fff; font-size: 36px; margin-bottom: 32px; text-align: center;">Implementation Summary</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Multi-tier KYC (Unverified → Verified)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Document submission & admin review</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Bank account binding via Flutterwave</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Withdrawal gating by KYC tier</span>
+        </div>
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">AML compliance flags (auto-detection)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Wallet freeze/unfreeze by admin</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Audit logging for all admin actions</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span style="color: #34d399; font-size: 20px;">✅</span>
+          <span style="font-size: 17px;">Document number masking</span>
+        </div>
+      </div>
+    </div>
+    <div style="text-align: center; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.2);">
+      <p style="font-size: 20px; color: #cbd5e1;">Next Steps</p>
+      <p style="font-size: 16px; color: #94a3b8; margin-top: 8px;">Document image upload · Automated BVN verification · Real-time admin notifications · Batch review</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Apartify Africa</span>
+    <span>Making apartment leasing safe and compliant across Nigeria</span>
+  </div>
+</div>
+
+</body>
+</html>

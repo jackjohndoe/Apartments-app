@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081'
+const API_URL = import.meta.env.VITE_API_URL || 'https://booking-backend-production-a51d.up.railway.app'
 
 function getToken() {
   return localStorage.getItem('admin_token')
@@ -140,5 +140,50 @@ export async function updateAdminStatus(adminId, status) {
   return apiFetch(`/api/admin/admins/${adminId}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
+  })
+}
+
+export async function getPendingKyc(page = 0, size = 20) {
+  return apiFetch(`/api/admin/compliance/kyc/pending?page=${page}&size=${size}`)
+}
+
+export async function getAllKyc(page = 0, size = 20) {
+  return apiFetch(`/api/admin/compliance/kyc?page=${page}&size=${size}`)
+}
+
+export async function approveKyc(userId, level, bankCode, accountNumber) {
+  const body = { level }
+  if (bankCode) body.accountBank = bankCode
+  if (accountNumber) body.accountNumber = accountNumber
+  return apiFetch(`/api/admin/compliance/kyc/${userId}/approve`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function rejectKyc(userId, reason) {
+  return apiFetch(`/api/admin/compliance/kyc/${userId}/reject`, {
+    method: 'PUT',
+    body: JSON.stringify({ reason }),
+  })
+}
+
+export async function getComplianceFlags(page = 0, size = 20, resolved) {
+  const params = new URLSearchParams({ page, size })
+  if (resolved !== undefined && resolved !== null) params.set('resolved', resolved)
+  return apiFetch(`/api/admin/compliance/flags?${params}`)
+}
+
+export async function resolveFlag(flagId, note) {
+  return apiFetch(`/api/admin/compliance/flags/${flagId}/resolve`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
+export async function setWalletStatus(userId, status, reason) {
+  return apiFetch(`/api/admin/compliance/wallets/${userId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, reason }),
   })
 }

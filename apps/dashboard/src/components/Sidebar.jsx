@@ -8,6 +8,7 @@ import {
   Wallet,
   ScrollText,
   ShieldCheck,
+  ShieldAlert,
   LogOut,
 } from 'lucide-react'
 
@@ -19,6 +20,7 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', icon: Wallet },
   { to: '/audit-logs', label: 'Audit Logs', icon: ScrollText },
   { to: '/admins', label: 'Admins', icon: ShieldCheck },
+  { to: '/compliance', label: 'KYC / Compliance', icon: ShieldAlert },
 ]
 
 export default function Sidebar() {
