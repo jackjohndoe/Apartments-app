@@ -136,10 +136,10 @@ export async function createAdmin(admin) {
   })
 }
 
-export async function inviteAdmin(email, name, department) {
+export async function inviteAdmin(email, name, department, inviteEmail) {
   return apiFetch('/api/admin/invite', {
     method: 'POST',
-    body: JSON.stringify({ email, name, department }),
+    body: JSON.stringify({ email, name, department, inviteEmail }),
   })
 }
 

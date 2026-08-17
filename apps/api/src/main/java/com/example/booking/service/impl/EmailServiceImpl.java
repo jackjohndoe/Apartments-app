@@ -100,13 +100,13 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendAdminInviteEmail(String toEmail, String name, String password) {
+    public void sendAdminInviteEmail(String toEmail, String name, String password, String loginEmail) {
         try {
             if (postmarkApiToken == null || postmarkApiToken.trim().isEmpty()) {
                 throw new IllegalStateException("Postmark API token is not configured");
             }
 
-            String htmlContent = buildAdminInviteEmailHtml(name, toEmail, password);
+            String htmlContent = buildAdminInviteEmailHtml(name, loginEmail, password);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("From", String.format("%s <%s>", fromName, fromEmail));
@@ -121,10 +121,11 @@ public class EmailServiceImpl implements EmailService {
                     .uri(URI.create("https://api.postmarkapp.com/email"))
                     .header("Content-Type", "application/json")
                     .header("X-Postmark-Server-Token", postmarkApiToken)
+                    .timeout(Duration.ofSeconds(15))
                     .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                     .build();
 
-            log.info("📧 Sending admin invite email via Postmark to: {}", toEmail);
+            log.info("📧 Sending admin invite email via Postmark to: {} (login: {})", toEmail, loginEmail);
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 

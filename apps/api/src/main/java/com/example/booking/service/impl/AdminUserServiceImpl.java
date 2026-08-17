@@ -102,10 +102,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy) {
-        return inviteAdmin(email, name, department, invitedBy, null);
+        return inviteAdmin(email, name, department, invitedBy, null, null);
     }
 
-    public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy, String rawPassword) {
+    public AdminAdminUserResponse inviteAdmin(String email, String name, String department, String invitedBy, String rawPassword, String inviteEmail) {
         if (!isEmailDomainAllowed(email)) {
             throw new BadRequestException("Invitation restricted to @" + allowedEmailDomain + " email addresses only.");
         }
@@ -137,8 +137,9 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         admin = adminUserRepository.save(admin);
 
+        String recipientEmail = (inviteEmail != null && !inviteEmail.isBlank()) ? inviteEmail : email;
         try {
-            emailService.sendAdminInviteEmail(email, name, password);
+            emailService.sendAdminInviteEmail(recipientEmail, name, password, email);
         } catch (Exception e) {
             // Admin is created even if email fails — password shown in response
         }

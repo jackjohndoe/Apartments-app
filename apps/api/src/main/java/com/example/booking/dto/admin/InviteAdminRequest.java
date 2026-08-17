@@ -13,6 +13,9 @@ public class InviteAdminRequest {
     @NotBlank(message = "Name is required")
     private String name;
 
+    @Email(message = "Invalid email format")
+    private String inviteEmail;
+
     private String department;
 
     private String password;

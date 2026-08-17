@@ -110,7 +110,7 @@ function AddAdminModal({ onClose, onCreated }) {
 }
 
 function InviteAdminModal({ onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', email: '', department: '' })
+  const [form, setForm] = useState({ name: '', email: '', department: '', inviteEmail: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [creating, setCreating] = useState(false)
@@ -130,15 +130,16 @@ function InviteAdminModal({ onClose, onCreated }) {
     }
 
     if (!form.email.endsWith('@apartify.com')) {
-      setError('Email must be an @apartify.com address.')
+      setError('Login email must be an @apartify.com address.')
       return
     }
 
     setCreating(true)
     try {
-      await inviteAdmin(form.email.trim(), form.name.trim(), form.department.trim() || undefined)
-      setSuccess(`Invitation sent to ${form.email}. They will receive their password via email.`)
-      setForm({ name: '', email: '', department: '' })
+      const inviteEmail = form.inviteEmail.trim() || form.email.trim()
+      await inviteAdmin(form.email.trim(), form.name.trim(), form.department.trim() || undefined, inviteEmail)
+      setSuccess(`Invitation sent! Password emailed to ${inviteEmail}. Login email: ${form.email}`)
+      setForm({ name: '', email: '', department: '', inviteEmail: '' })
       await onCreated()
     } catch (err) {
       setError(err.message)
@@ -174,7 +175,7 @@ function InviteAdminModal({ onClose, onCreated }) {
           )}
 
           <div className="bg-blue-50 text-blue-700 text-sm px-4 py-3 rounded-lg border border-blue-100">
-            A random password will be generated and sent to the invitee's email address.
+            A random password will be generated and sent to the admin's personal email address.
           </div>
 
           <div>
@@ -183,9 +184,15 @@ function InviteAdminModal({ onClose, onCreated }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Login Email *</label>
             <Input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="jane@apartify.com" />
-            <p className="text-xs text-gray-400 mt-1">Must be an @apartify.com email address</p>
+            <p className="text-xs text-gray-400 mt-1">Must be an @apartify.com email address — this is their login</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Personal Email (for password)</label>
+            <Input type="email" value={form.inviteEmail} onChange={(e) => update('inviteEmail', e.target.value)} placeholder="jane@gmail.com" />
+            <p className="text-xs text-gray-400 mt-1">Where the confidential password email is sent. Leave blank to use the login email.</p>
           </div>
 
           <div>
