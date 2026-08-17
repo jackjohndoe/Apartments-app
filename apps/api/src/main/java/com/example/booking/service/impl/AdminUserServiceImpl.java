@@ -42,10 +42,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUser admin = adminUserRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadRequestException("Admin account not found with email: " + request.getEmail()));
 
-        if (!isEmailDomainAllowed(admin.getEmail())) {
-            throw new BadRequestException("Access restricted to @" + allowedEmailDomain + " email addresses only.");
-        }
-
         if (!passwordEncoder.matches(request.getPassword(), admin.getPassword())) {
             throw new BadRequestException("Invalid email or password.");
         }
