@@ -4,7 +4,6 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copy pom.xml and download dependencies
-# Note: Using paths relative to the repository root
 COPY apps/api/pom.xml .
 RUN mvn dependency:go-offline -B
 
@@ -21,12 +20,16 @@ RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
 # Copy the built JAR from build stage
-# The JAR name should match what's in apps/api/pom.xml
 COPY --from=build /app/target/booking-0.0.1-SNAPSHOT.jar booking-0.0.1-SNAPSHOT.jar
 
-# Expose port
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "booking-0.0.1-SNAPSHOT.jar"]
-
+# JVM memory limits - prevents OOM from killing Postgres on shared Railway resources
+ENTRYPOINT ["java", \
+  "-Xms256m", \
+  "-Xmx512m", \
+  "-XX:MaxMetaspaceSize=256m", \
+  "-XX:+UseContainerSupport", \
+  "-XX:MaxRAMPercentage=50.0", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "booking-0.0.1-SNAPSHOT.jar"]
