@@ -57,7 +57,18 @@ export async function login(email, password) {
     body: JSON.stringify({ email, password }),
   })
   setToken(data.token)
+  localStorage.setItem('admin_name', data.name || '')
+  localStorage.setItem('admin_email', data.email || '')
   return { ...data, role: 'ADMIN' }
+}
+
+export function getAdminName() {
+  return localStorage.getItem('admin_name') || 'Admin'
+}
+
+export function clearAdminInfo() {
+  localStorage.removeItem('admin_name')
+  localStorage.removeItem('admin_email')
 }
 
 export async function getMe() {
@@ -148,6 +159,10 @@ export async function updateAdminStatus(adminId, status) {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   })
+}
+
+export async function deleteAdmin(adminId) {
+  return apiFetch(`/api/admin/admins/${adminId}`, { method: 'DELETE' })
 }
 
 export async function getPendingKyc(page = 0, size = 20) {

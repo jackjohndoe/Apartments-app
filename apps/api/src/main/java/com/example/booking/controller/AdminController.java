@@ -286,6 +286,13 @@ public class AdminController {
         return ResponseEntity.ok(adminUserService.updateStatus(id, status));
     }
 
+    @Operation(summary = "Delete an admin user")
+    @DeleteMapping("/admins/{id}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable Long id) {
+        adminUserService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @Operation(summary = "List all bookings (admin view)")
     @GetMapping("/bookings")
     public ResponseEntity<PageResponse<AdminBookingResponse>> getBookings(

@@ -1,46 +1,42 @@
-// SendGrid Configuration
-// SendGrid API for sending emails directly from the mobile app
+// Mailjet Configuration
+// Mailjet API for sending emails directly from the mobile app
 // Supports environment variables with fallback to hardcoded values
 
-export const SENDGRID_CONFIG = {
-  // Your SendGrid API Key
-  // Can be set via SENDGRID_API_KEY environment variable or hardcoded here
-  API_KEY: process.env.SENDGRID_API_KEY || '',
+export const MAILJET_CONFIG = {
+  // Mailjet API Key
+  // Can be set via MAILJET_API_KEY environment variable or hardcoded here
+  API_KEY: process.env.MAILJET_API_KEY || '32d750bffa1b4a2cc8699fe19f8ef0a5',
   
-  // SendGrid API endpoint (REST API - recommended for React Native/Expo)
-  API_URL: 'https://api.sendgrid.com/v3/mail/send',
+  // Mailjet API Secret
+  // Can be set via MAILJET_API_SECRET environment variable or hardcoded here
+  API_SECRET: process.env.MAILJET_API_SECRET || 'd298c4f9295715e76904c4881142e471',
   
-  // SMTP Configuration (available but not used - REST API is used instead)
-  // Server: smtp.sendgrid.net
-  // Ports: 25, 587 (TLS), 465 (SSL)
-  // Username: apikey
-  // Password: (same as API_KEY above)
+  // Mailjet API endpoint (REST API v3.1)
+  API_URL: 'https://api.mailjet.com/v3.1/send',
   
-  // Sender email address (MUST be verified in SendGrid Dashboard)
-  // Can be set via SENDGRID_FROM_EMAIL environment variable or hardcoded here
-  // 
-  // TO FIX EMAIL SENDING ISSUES:
-  // 1. Go to https://app.sendgrid.com/
-  // 2. Navigate to: Settings > Sender Authentication
-  // 3. Click "Verify a Single Sender" or use an existing verified sender
-  // 4. Follow the verification process (check your email inbox)
-  // 5. Once verified, update the FROM_EMAIL below to match your verified email
-  // 6. Update FROM_NAME to match your brand/app name
-  //
-  // IMPORTANT: SendGrid will reject emails if the FROM_EMAIL is not verified!
-  FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || 'NigerianApartments@ledgeroofing.com', // Verified sender email
-  FROM_NAME: process.env.SENDGRID_FROM_NAME || 'Nigerian Apartments',
+  // Sender email address (MUST be verified in Mailjet Dashboard)
+  // Can be set via MAILJET_FROM_EMAIL environment variable or hardcoded here
+  FROM_EMAIL: process.env.MAILJET_FROM_EMAIL || 'nigerianapartments@apartifyafrica.site',
+  FROM_NAME: process.env.MAILJET_FROM_NAME || 'Nigerian Apartments',
 };
 
-// Check if SendGrid is configured
-export const isSendGridConfigured = () => {
-  const hasApiKey = SENDGRID_CONFIG.API_KEY && SENDGRID_CONFIG.API_KEY !== 'YOUR_SENDGRID_API_KEY';
-  const hasFromEmail = SENDGRID_CONFIG.FROM_EMAIL && SENDGRID_CONFIG.FROM_EMAIL !== 'YOUR_EMAIL@example.com';
+// Check if Mailjet is configured
+export const isMailjetConfigured = () => {
+  const hasApiKey = MAILJET_CONFIG.API_KEY && MAILJET_CONFIG.API_KEY !== 'YOUR_MAILJET_API_KEY';
+  const hasApiSecret = MAILJET_CONFIG.API_SECRET && MAILJET_CONFIG.API_SECRET !== 'YOUR_MAILJET_API_SECRET';
+  const hasFromEmail = MAILJET_CONFIG.FROM_EMAIL && MAILJET_CONFIG.FROM_EMAIL !== 'YOUR_EMAIL@example.com';
   
-  if (hasApiKey && !hasFromEmail) {
-    console.warn('⚠️ SendGrid API key is set, but FROM_EMAIL needs to be updated to your verified sender email in SendGrid Dashboard');
+  if (hasApiKey && !hasApiSecret) {
+    console.warn('⚠️ Mailjet API key is set, but API secret is missing');
   }
   
-  return hasApiKey && hasFromEmail;
+  if ((hasApiKey && hasApiSecret) && !hasFromEmail) {
+    console.warn('⚠️ Mailjet API credentials are set, but FROM_EMAIL needs to be updated to your verified sender email in Mailjet Dashboard');
+  }
+  
+  return hasApiKey && hasApiSecret && hasFromEmail;
 };
 
+// Legacy aliases for backward compatibility
+export const SENDGRID_CONFIG = MAILJET_CONFIG;
+export const isSendGridConfigured = isMailjetConfigured;

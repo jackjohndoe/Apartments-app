@@ -206,6 +206,13 @@ public class AdminUserServiceImpl implements AdminUserService {
         return toResponse(adminUserRepository.save(admin));
     }
 
+    @Override
+    public void delete(Long id) {
+        AdminUser admin = adminUserRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + id));
+        adminUserRepository.delete(admin);
+    }
+
     private AdminAdminUserResponse toResponse(AdminUser admin) {
         return AdminAdminUserResponse.builder()
                 .id(admin.getId())

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import AuthShell from '@/components/AuthShell'
 import StatsCard from '@/components/StatsCard'
-import { getStats } from '@/lib/api'
+import { getStats, getAdminName } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -40,6 +40,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const adminName = getAdminName()
 
   useEffect(() => {
     getStats()
@@ -89,7 +90,7 @@ export default function Dashboard() {
     <AuthShell>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Hello, {adminName}</h1>
           <p className="text-gray-500 mt-1">Platform overview and key metrics</p>
         </div>
 

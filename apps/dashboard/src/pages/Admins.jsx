@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
 import AuthShell from '@/components/AuthShell'
 import DataTable from '@/components/DataTable'
-import { getAdmins, createAdmin, inviteAdmin, updateAdminStatus } from '@/lib/api'
+import { getAdmins, createAdmin, inviteAdmin, updateAdminStatus, deleteAdmin } from '@/lib/api'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserPlus, Send, X, Loader2 } from 'lucide-react'
+import { UserPlus, Send, X, Loader2, Trash2 } from 'lucide-react'
 
 const statusColors = {
   ACTIVE: 'bg-green-100 text-green-700 border-green-200',
@@ -223,6 +223,7 @@ export default function Admins() {
   const [showAdd, setShowAdd] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
   const [togglingId, setTogglingId] = useState(null)
+  const [deletingId, setDeletingId] = useState(null)
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true)
@@ -251,6 +252,19 @@ export default function Admins() {
       alert('Failed to update status: ' + err.message)
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  async function handleDelete(admin) {
+    if (!confirm(`Are you sure you want to delete "${admin.name}"? This action cannot be undone.`)) return
+    setDeletingId(admin.id)
+    try {
+      await deleteAdmin(admin.id)
+      await fetchAdmins()
+    } catch (err) {
+      alert('Failed to delete admin: ' + err.message)
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -295,15 +309,26 @@ export default function Admins() {
       key: 'actions',
       label: 'Actions',
       render: (_, row) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          className={row.status === 'ACTIVE' ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-green-600 hover:text-green-700 hover:bg-green-50'}
-          onClick={() => handleToggleStatus(row)}
-          disabled={togglingId === row.id}
-        >
-          {togglingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : row.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={row.status === 'ACTIVE' ? 'text-red-500 hover:text-red-700 hover:bg-red-50' : 'text-green-600 hover:text-green-700 hover:bg-green-50'}
+            onClick={() => handleToggleStatus(row)}
+            disabled={togglingId === row.id || deletingId === row.id}
+          >
+            {togglingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : row.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            onClick={() => handleDelete(row)}
+            disabled={togglingId === row.id || deletingId === row.id}
+          >
+            {deletingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
+        </div>
       ),
     },
   ]

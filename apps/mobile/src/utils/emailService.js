@@ -1,129 +1,124 @@
 // Email service for sending booking confirmation emails
-// Supports both backend API and SendGrid REST API
-import { SENDGRID_CONFIG, isSendGridConfigured } from '../api/sendgrid';
+// Supports both backend API and Mailjet REST API
+import { MAILJET_CONFIG, isMailjetConfigured } from '../api/sendgrid';
 
 /**
- * Send email via SendGrid REST API
+ * Send email via Mailjet REST API
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} htmlContent - HTML email content
  * @param {string} textContent - Plain text email content
  */
-const sendEmailViaSendGrid = async (to, subject, htmlContent, textContent) => {
+const sendEmailViaMailjet = async (to, subject, htmlContent, textContent) => {
   try {
-    if (!SENDGRID_CONFIG.API_KEY || SENDGRID_CONFIG.API_KEY === 'YOUR_SENDGRID_API_KEY') {
-      console.error('❌ SendGrid API key is not configured');
+    if (!MAILJET_CONFIG.API_KEY || MAILJET_CONFIG.API_KEY === 'YOUR_MAILJET_API_KEY') {
+      console.error('❌ Mailjet API key is not configured');
       return false;
     }
 
-    // Warn if FROM_EMAIL might not be verified, but still attempt to send
-    if (!SENDGRID_CONFIG.FROM_EMAIL || SENDGRID_CONFIG.FROM_EMAIL === 'YOUR_EMAIL@example.com' || SENDGRID_CONFIG.FROM_EMAIL === 'noreply@bookingapp.com') {
-      console.warn('⚠️ FROM_EMAIL might not be verified in SendGrid. Verify it in SendGrid Dashboard > Settings > Sender Authentication');
+    if (!MAILJET_CONFIG.API_SECRET || MAILJET_CONFIG.API_SECRET === 'YOUR_MAILJET_API_SECRET') {
+      console.error('❌ Mailjet API secret is not configured');
+      return false;
     }
 
-    console.log(`📧 Sending email via SendGrid to: ${to}`);
-    console.log(`📧 From: ${SENDGRID_CONFIG.FROM_EMAIL}`);
-    console.log(`📧 API Key (first 10 chars): ${SENDGRID_CONFIG.API_KEY ? SENDGRID_CONFIG.API_KEY.substring(0, 10) + '...' : 'NOT SET'}`);
+    if (!MAILJET_CONFIG.FROM_EMAIL || MAILJET_CONFIG.FROM_EMAIL === 'YOUR_EMAIL@example.com') {
+      console.warn('⚠️ FROM_EMAIL might not be verified in Mailjet. Verify it in Mailjet Dashboard > Sender Addresses');
+    }
+
+    console.log(`📧 Sending email via Mailjet to: ${to}`);
+    console.log(`📧 From: ${MAILJET_CONFIG.FROM_NAME} <${MAILJET_CONFIG.FROM_EMAIL}>`);
+
+    // Mailjet v3.1 API uses Basic Auth with API_KEY:API_SECRET
+    const authHeader = 'Basic ' + btoa(`${MAILJET_CONFIG.API_KEY}:${MAILJET_CONFIG.API_SECRET}`);
 
     const requestBody = {
-      personalizations: [
+      Messages: [
         {
-          to: [{ email: to }],
-          subject: subject,
-        },
-      ],
-      from: {
-        email: SENDGRID_CONFIG.FROM_EMAIL,
-        name: SENDGRID_CONFIG.FROM_NAME,
-      },
-      content: [
-        {
-          type: 'text/plain',
-          value: textContent,
-        },
-        {
-          type: 'text/html',
-          value: htmlContent,
+          From: {
+            Email: MAILJET_CONFIG.FROM_EMAIL,
+            Name: MAILJET_CONFIG.FROM_NAME,
+          },
+          To: [
+            {
+              Email: to,
+            },
+          ],
+          Subject: subject,
+          HTMLPart: htmlContent,
+          TextPart: textContent || '',
         },
       ],
     };
 
-    // Log request details (without sensitive data)
-    console.log('📧 SendGrid Request Details:', {
+    console.log('📧 Mailjet Request Details:', {
       to: to,
-      from: SENDGRID_CONFIG.FROM_EMAIL,
-      fromName: SENDGRID_CONFIG.FROM_NAME,
+      from: MAILJET_CONFIG.FROM_EMAIL,
+      fromName: MAILJET_CONFIG.FROM_NAME,
       subject: subject,
       hasHtmlContent: !!htmlContent,
       hasTextContent: !!textContent,
     });
 
-    const response = await fetch(SENDGRID_CONFIG.API_URL, {
+    const response = await fetch(MAILJET_CONFIG.API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${SENDGRID_CONFIG.API_KEY}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
     });
 
     if (response.ok) {
-      console.log('✅ Email sent successfully via SendGrid to:', to);
+      console.log('✅ Email sent successfully via Mailjet to:', to);
       return true;
     } else {
       const errorText = await response.text();
-      let errorMessage = `SendGrid API error (${response.status}): ${errorText}`;
+      let errorMessage = `Mailjet API error (${response.status}): ${errorText}`;
       let detailedError = '';
       
-      // Parse error details if available
       try {
         const errorJson = JSON.parse(errorText);
-        if (errorJson.errors && errorJson.errors.length > 0) {
-          const errors = errorJson.errors.map((err, idx) => {
-            let errMsg = `Error ${idx + 1}: ${err.message || 'Unknown error'}`;
-            if (err.field) {
-              errMsg += ` (Field: ${err.field})`;
-            }
-            if (err.help) {
-              errMsg += ` (Help: ${err.help})`;
+        if (errorJson.Messages && errorJson.Messages.length > 0) {
+          const errors = errorJson.Messages.map((msg, idx) => {
+            let errMsg = `Message ${idx + 1}: Status ${msg.Status || 'Unknown'}`;
+            if (msg.Errors && msg.Errors.length > 0) {
+              const errorDetails = msg.Errors.map(err => {
+                let errStr = `${err.code ? `Code ${err.code}: ` : ''}${err.message || 'Unknown error'}`;
+                if (err.customErrorCode) {
+                  errStr += ` (${err.customErrorCode})`;
+                }
+                return errStr;
+              }).join(' | ');
+              errMsg += ` - ${errorDetails}`;
             }
             return errMsg;
           }).join(' | ');
-          errorMessage = `SendGrid Errors: ${errors}`;
-          detailedError = JSON.stringify(errorJson, null, 2);
-        } else {
-          detailedError = errorText;
+          errorMessage = `Mailjet Errors: ${errors}`;
         }
+        detailedError = JSON.stringify(errorJson, null, 2);
       } catch (e) {
-        // Use errorText as is if JSON parsing fails
         detailedError = errorText;
       }
       
-      console.error('❌ SendGrid API error:', errorMessage);
+      console.error('❌ Mailjet API error:', errorMessage);
       console.error('❌ Full error response:', detailedError);
       console.error('❌ Status code:', response.status);
-      console.error('❌ Response headers:', JSON.stringify(Object.fromEntries(response.headers.entries())));
       
-      // Provide helpful hints for common errors
       if (response.status === 401) {
-        console.error('💡 Tip: Invalid API key. Check that your SendGrid API key is correct.');
-      } else if (response.status === 403) {
-        console.error('💡 Tip: API key permissions issue. Go to SendGrid Dashboard > Settings > API Keys');
-        console.error('💡 Make sure your API key has "Mail Send" permissions enabled');
-        console.error('💡 You may need to create a new API key with full access');
+        console.error('💡 Tip: Invalid API credentials. Check your Mailjet API Key and Secret.');
       } else if (response.status === 400) {
         console.error('💡 Tip: Bad request. Check the error details above.');
-        if (errorText.includes('from') || errorText.toLowerCase().includes('sender')) {
-          console.error('💡 The sender email must be verified in SendGrid Dashboard > Settings > Sender Authentication');
+        if (errorText.includes('From') || errorText.toLowerCase().includes('sender')) {
+          console.error('💡 The sender email must be verified in Mailjet Dashboard > Sender Addresses');
         }
-      } else if (response.status === 422) {
-        console.error('💡 Tip: Validation error. Check that all required fields are provided.');
+      } else if (response.status === 403) {
+        console.error('💡 Tip: Forbidden. Check your Mailjet account permissions and API key restrictions.');
       }
       
       return false;
     }
   } catch (error) {
-    console.error('❌ Error sending email via SendGrid:', error.message || error);
+    console.error('❌ Error sending email via Mailjet:', error.message || error);
     if (error.message) {
       console.error('Full error:', error);
     }
@@ -473,15 +468,15 @@ ${newBalance ? `- New Wallet Balance: ₦${newBalance.toLocaleString()}` : ''}
       }
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send wallet top-up email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(userEmail, subject, htmlContent, receiptDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send wallet top-up email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(userEmail, subject, htmlContent, receiptDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Email sending failed - both backend API and SendGrid failed');
+    console.error('❌ Email sending failed - both backend API and Mailjet failed');
     console.error('❌ User email that failed:', userEmail);
     return false;
   } catch (error) {
@@ -575,24 +570,24 @@ Thank you for your booking!
         }
         return true;
       }
-      // Backend returned null - try SendGrid as fallback
+      // Backend returned null - try Mailjet as fallback
     } catch (apiError) {
       // Only log if it's an unexpected error (not already handled by API service)
       if (apiError?.status !== 500 && apiError?.status !== 401 && apiError?.status !== 403) {
         console.error('❌ Backend API email endpoint error:', apiError?.message || 'Unknown error');
       }
-      // Continue to SendGrid fallback
+      // Continue to Mailjet fallback
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(userEmail, subject, htmlContent, receiptDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(userEmail, subject, htmlContent, receiptDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Email sending failed - both backend API and SendGrid failed');
+    console.error('❌ Email sending failed - both backend API and Mailjet failed');
     console.error('❌ User email that failed:', userEmail);
     return false;
   } catch (error) {
@@ -648,8 +643,8 @@ export const sendPasswordResetEmail = async (email, resetCode) => {
     </html>
   `;
 
-  console.log('📧 Attempting to send password reset email via SendGrid...');
-  return await sendEmailViaSendGrid(email, subject, htmlContent, textContent);
+  console.log('📧 Attempting to send password reset email via Mailjet...');
+  return await sendEmailViaMailjet(email, subject, htmlContent, textContent);
 };
 
 /**
@@ -746,24 +741,24 @@ Please prepare your property and contact the guest using the information provide
         console.log('✅ Host notification email sent via backend API');
         return true;
       }
-      // Backend returned null - try SendGrid as fallback
+      // Backend returned null - try Mailjet as fallback
     } catch (apiError) {
       // Only log if it's an unexpected error (not already handled by API service)
       if (apiError?.status !== 500 && apiError?.status !== 401 && apiError?.status !== 403) {
         console.error('❌ Backend API email endpoint error:', apiError?.message || 'Unknown error');
       }
-      // Continue to SendGrid fallback
+      // Continue to Mailjet fallback
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send host notification email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(hostEmail, subject, htmlContent, bookingDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send host notification email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(hostEmail, subject, htmlContent, bookingDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Host notification email failed - both backend API and SendGrid failed');
+    console.error('❌ Host notification email failed - both backend API and Mailjet failed');
     console.error('❌ Host email that failed:', hostEmail);
     return false;
   } catch (error) {
@@ -965,15 +960,15 @@ Payment Request Details:
       }
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send payment request email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(userEmail, subject, htmlContent, receiptDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send payment request email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(userEmail, subject, htmlContent, receiptDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Payment request email failed - both backend API and SendGrid failed');
+    console.error('❌ Payment request email failed - both backend API and Mailjet failed');
     return false;
   } catch (error) {
     console.error('Error sending payment request email:', error);
@@ -1168,15 +1163,15 @@ If you have any questions, please contact support.
       }
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send cancellation email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(hostEmail, subject, htmlContent, bookingDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send cancellation email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(hostEmail, subject, htmlContent, bookingDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Cancellation email failed - both backend API and SendGrid failed');
+    console.error('❌ Cancellation email failed - both backend API and Mailjet failed');
     return false;
   } catch (error) {
     console.error('Error sending booking cancellation email:', error);
@@ -1244,15 +1239,15 @@ ${totalServiceFees > 0 ? `- Service Fee: -₦${totalServiceFees.toLocaleString()
       }
     }
 
-    // Fallback to SendGrid if backend API is not available
-    console.log('📧 Backend API unavailable, attempting to send payment confirmation email via SendGrid...');
-    const sendGridSuccess = await sendEmailViaSendGrid(hostEmail, subject, htmlContent, receiptDetails);
+    // Fallback to Mailjet if backend API is not available
+    console.log('📧 Backend API unavailable, attempting to send payment confirmation email via Mailjet...');
+    const mailjetSuccess = await sendEmailViaMailjet(hostEmail, subject, htmlContent, receiptDetails);
     
-    if (sendGridSuccess) {
+    if (mailjetSuccess) {
       return true;
     }
 
-    console.error('❌ Payment confirmation email failed - both backend API and SendGrid failed');
+    console.error('❌ Payment confirmation email failed - both backend API and Mailjet failed');
     return false;
   } catch (error) {
     console.error('Error sending payment confirmation email:', error);

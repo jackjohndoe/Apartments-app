@@ -13,4 +13,5 @@ public interface AdminUserService {
     Page<AdminAdminUserResponse> listAll(Pageable pageable);
     AdminAdminUserResponse update(Long id, AdminUpdateRequest request);
     AdminAdminUserResponse updateStatus(Long id, String status);
+    void delete(Long id);
 }
